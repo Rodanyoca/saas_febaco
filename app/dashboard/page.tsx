@@ -7,7 +7,7 @@ import {
   Shield,
   Users,
   UserCog,
-  Whistle,
+  Flag,
   BadgeCheck,
   Stethoscope,
   Layers,
@@ -67,7 +67,7 @@ export default function DashboardPage() {
           <StatCard
             title="Arbitres"
             value={stats.arbitres}
-            icon={Whistle}
+            icon={Flag}
             href="/dashboard/arbitres"
           />
           <StatCard
@@ -159,7 +159,7 @@ export default function DashboardPage() {
               {[
                 { label: "Rechercher un athlète", href: "/dashboard/athletes", icon: Users },
                 { label: "Consulter les clubs", href: "/dashboard/clubs", icon: Shield },
-                { label: "Liste des arbitres", href: "/dashboard/arbitres", icon: Whistle },
+                { label: "Liste des arbitres", href: "/dashboard/arbitres", icon: Flag },
                 { label: "Encadrement technique", href: "/dashboard/coachs", icon: UserCog },
               ].map((action) => (
                 <a

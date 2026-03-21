@@ -10,7 +10,7 @@ import {
   Shield,
   Users,
   UserCog,
-  Whistle,
+  Flag,
   BadgeCheck,
   Stethoscope,
   LogOut,
@@ -26,7 +26,7 @@ const navigation = [
   { name: "Clubs", href: "/dashboard/clubs", icon: Shield },
   { name: "Athlètes", href: "/dashboard/athletes", icon: Users },
   { name: "Entraîneurs", href: "/dashboard/coachs", icon: UserCog },
-  { name: "Arbitres", href: "/dashboard/arbitres", icon: Whistle },
+  { name: "Arbitres", href: "/dashboard/arbitres", icon: Flag },
   { name: "Officiels", href: "/dashboard/officiels", icon: BadgeCheck },
   { name: "Médecins", href: "/dashboard/medecins", icon: Stethoscope },
 ]
