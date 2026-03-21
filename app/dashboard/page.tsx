@@ -19,7 +19,7 @@ export default function DashboardPage() {
     <div className="flex flex-col">
       <Header
         title="Tableau de bord"
-        subtitle="Vue d'ensemble du referentiel federal FEBADCO"
+        subtitle="Vue d'ensemble du referentiel federal FEBACO"
       />
 
       <div className="flex-1 p-6 space-y-6">
@@ -44,12 +44,12 @@ export default function DashboardPage() {
             href="/dashboard/clubs"
           />
           <StatCard
-            title="Équipes"
+            title="Equipes"
             value={stats.equipes}
             icon={Layers}
           />
           <StatCard
-            title="Athlètes"
+            title="Athletes"
             value={stats.athletes}
             icon={Users}
             href="/dashboard/athletes"
@@ -59,7 +59,7 @@ export default function DashboardPage() {
         {/* Second row of stats */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            title="Entraîneurs"
+            title="Entraineurs"
             value={stats.coachs}
             icon={UserCog}
             href="/dashboard/coachs"
@@ -77,7 +77,7 @@ export default function DashboardPage() {
             href="/dashboard/officiels"
           />
           <StatCard
-            title="Médecins"
+            title="Medecins"
             value={stats.medecins}
             icon={Stethoscope}
             href="/dashboard/medecins"
@@ -86,10 +86,10 @@ export default function DashboardPage() {
 
         {/* Additional info cards */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Répartition par province */}
+          {/* Repartition par province */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Répartition par province</CardTitle>
+              <CardTitle className="text-lg">Repartition par province</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -109,7 +109,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex gap-4 text-sm text-muted-foreground">
                       <span>{item.clubs} clubs</span>
-                      <span>{item.athletes} athlètes</span>
+                      <span>{item.athletes} athletes</span>
                     </div>
                   </div>
                 ))}
@@ -117,10 +117,10 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Répartition par sexe */}
+          {/* Repartition par sexe */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Répartition des athlètes</CardTitle>
+              <CardTitle className="text-lg">Repartition des athletes</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -152,12 +152,12 @@ export default function DashboardPage() {
         {/* Quick actions */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Accès rapide</CardTitle>
+            <CardTitle className="text-lg">Acces rapide</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: "Rechercher un athlète", href: "/dashboard/athletes", icon: Users },
+                { label: "Rechercher un athlete", href: "/dashboard/athletes", icon: Users },
                 { label: "Consulter les clubs", href: "/dashboard/clubs", icon: Shield },
                 { label: "Liste des arbitres", href: "/dashboard/arbitres", icon: Flag },
                 { label: "Encadrement technique", href: "/dashboard/coachs", icon: UserCog },

@@ -42,15 +42,15 @@ export default function LoginPage() {
         <div className="text-center">
           <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-lg overflow-hidden">
             <Image
-              src="/images/logo-febadco.jpg"
-              alt="Logo FEBADCO"
+              src="/images/logo-febaco.png"
+              alt="Logo FEBACO"
               width={96}
               height={96}
-              className="object-cover"
+              className="object-contain"
               priority
             />
           </div>
-          <h1 className="mt-4 text-3xl font-bold text-sidebar-foreground">FEBADCO</h1>
+          <h1 className="mt-4 text-3xl font-bold text-sidebar-foreground">FEBACO</h1>
           <p className="mt-2 text-sidebar-muted text-sm">
             Systeme de Gestion de la Federation de Basketball du Congo
           </p>
@@ -153,7 +153,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="text-center space-y-2">
           <p className="text-xs text-sidebar-muted">
-            Plateforme de gestion du referentiel sportif de la FEBADCO
+            Plateforme de gestion du referentiel sportif de la FEBACO
           </p>
           <p className="text-xs text-sidebar-muted/70">
             Powered by <span className="font-semibold text-accent">DS Concept</span>

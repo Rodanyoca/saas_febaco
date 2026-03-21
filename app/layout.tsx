@@ -7,7 +7,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'FEBADCO - Federation de Basketball du Congo',
+  title: 'FEBACO - Federation de Basketball du Congo',
   description: 'Systeme de Gestion de la Federation de Basketball du Congo - Powered by DS Concept',
   generator: 'v0.app',
   icons: {

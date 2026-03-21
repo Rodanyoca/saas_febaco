@@ -50,26 +50,26 @@ export function Sidebar() {
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white overflow-hidden">
                 <Image
-                  src="/images/logo-febadco.jpg"
-                  alt="Logo FEBADCO"
+                  src="/images/logo-febaco.png"
+                  alt="Logo FEBACO"
                   width={40}
                   height={40}
-                  className="object-cover"
+                  className="object-contain"
                 />
               </div>
               <span className="text-lg font-bold text-sidebar-foreground">
-                FEBADCO
+                FEBACO
               </span>
             </div>
           )}
           {collapsed && (
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white overflow-hidden">
               <Image
-                src="/images/logo-febadco.jpg"
-                alt="Logo FEBADCO"
+                src="/images/logo-febaco.png"
+                alt="Logo FEBACO"
                 width={40}
                 height={40}
-                className="object-cover"
+                className="object-contain"
               />
             </div>
           )}
