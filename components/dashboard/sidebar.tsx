@@ -1,6 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
@@ -17,18 +19,17 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
-import { useState } from "react"
 
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
   { name: "Ligues", href: "/dashboard/ligues", icon: MapPin },
   { name: "Ententes", href: "/dashboard/ententes", icon: Building2 },
   { name: "Clubs", href: "/dashboard/clubs", icon: Shield },
-  { name: "Athlètes", href: "/dashboard/athletes", icon: Users },
-  { name: "Entraîneurs", href: "/dashboard/coachs", icon: UserCog },
+  { name: "Athletes", href: "/dashboard/athletes", icon: Users },
+  { name: "Entraineurs", href: "/dashboard/coachs", icon: UserCog },
   { name: "Arbitres", href: "/dashboard/arbitres", icon: Flag },
   { name: "Officiels", href: "/dashboard/officiels", icon: BadgeCheck },
-  { name: "Médecins", href: "/dashboard/medecins", icon: Stethoscope },
+  { name: "Medecins", href: "/dashboard/medecins", icon: Stethoscope },
 ]
 
 export function Sidebar() {
@@ -46,18 +47,30 @@ export function Sidebar() {
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
           {!collapsed && (
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-                <Shield className="h-5 w-5 text-sidebar-primary-foreground" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white overflow-hidden">
+                <Image
+                  src="/images/logo-febadco.jpg"
+                  alt="Logo FEBADCO"
+                  width={40}
+                  height={40}
+                  className="object-cover"
+                />
               </div>
               <span className="text-lg font-bold text-sidebar-foreground">
-                FECOBASKET
+                FEBADCO
               </span>
             </div>
           )}
           {collapsed && (
-            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-              <Shield className="h-5 w-5 text-sidebar-primary-foreground" />
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white overflow-hidden">
+              <Image
+                src="/images/logo-febadco.jpg"
+                alt="Logo FEBADCO"
+                width={40}
+                height={40}
+                className="object-cover"
+              />
             </div>
           )}
         </div>
@@ -102,10 +115,10 @@ export function Sidebar() {
           <Link
             href="/login"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-            title={collapsed ? "Déconnexion" : undefined}
+            title={collapsed ? "Deconnexion" : undefined}
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span>Déconnexion</span>}
+            {!collapsed && <span>Deconnexion</span>}
           </Link>
         </div>
       </div>

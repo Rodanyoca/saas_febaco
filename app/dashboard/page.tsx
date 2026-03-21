@@ -1,6 +1,3 @@
-import { Header } from "@/components/dashboard/header"
-import { StatCard } from "@/components/dashboard/stat-card"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   MapPin,
   Building2,
@@ -12,6 +9,9 @@ import {
   Stethoscope,
   Layers,
 } from "lucide-react"
+import { Header } from "@/components/dashboard/header"
+import { StatCard } from "@/components/dashboard/stat-card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { stats } from "@/lib/demo-data"
 
 export default function DashboardPage() {
@@ -19,7 +19,7 @@ export default function DashboardPage() {
     <div className="flex flex-col">
       <Header
         title="Tableau de bord"
-        subtitle="Vue d'ensemble du référentiel fédéral FECOBASKET"
+        subtitle="Vue d'ensemble du referentiel federal FEBADCO"
       />
 
       <div className="flex-1 p-6 space-y-6">

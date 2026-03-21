@@ -1,4 +1,4 @@
-// Données de démonstration pour FECOBASKET
+// Donnees de demonstration pour FEBADCO
 // Ces données seront remplacées par l'API Google Sheets
 
 export interface Ligue {
@@ -172,17 +172,17 @@ export const arbitres: Arbitre[] = [
 ]
 
 export const officiels: Officiel[] = [
-  { id: "OFF001", nom: "KABAMBA", prenom: "Robert", sexe: "M", dateNaissance: "1970-05-15", nationalite: "Congolaise", fonction: "Président", structure: "FECOBASKET", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "-", statut: "Actif" },
-  { id: "OFF002", nom: "LWAMBA", prenom: "Marie-Claire", sexe: "F", dateNaissance: "1978-09-22", nationalite: "Congolaise", fonction: "Secrétaire Général", structure: "FECOBASKET", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de Ngaliema", club: "-", statut: "Actif" },
+  { id: "OFF001", nom: "KABAMBA", prenom: "Robert", sexe: "M", dateNaissance: "1970-05-15", nationalite: "Congolaise", fonction: "Président", structure: "FEBADCO", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "-", statut: "Actif" },
+  { id: "OFF002", nom: "LWAMBA", prenom: "Marie-Claire", sexe: "F", dateNaissance: "1978-09-22", nationalite: "Congolaise", fonction: "Secrétaire Général", structure: "FEBADCO", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de Ngaliema", club: "-", statut: "Actif" },
   { id: "OFF003", nom: "KALUBI", prenom: "François", sexe: "M", dateNaissance: "1975-03-10", nationalite: "Congolaise", fonction: "Président", structure: "Ligue du Katanga", province: "Haut-Katanga", ligue: "Ligue du Katanga", entente: "Entente de Lubumbashi", club: "-", statut: "Actif" },
   { id: "OFF004", nom: "MUTEBA", prenom: "Jeanne", sexe: "F", dateNaissance: "1982-11-08", nationalite: "Congolaise", fonction: "Trésorier", structure: "BC Renaissance", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "BC Renaissance", statut: "Actif" },
-  { id: "OFF005", nom: "NKONGOLO", prenom: "David", sexe: "M", dateNaissance: "1980-06-25", nationalite: "Congolaise", fonction: "Directeur Technique", structure: "FECOBASKET", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "-", statut: "Actif" },
+  { id: "OFF005", nom: "NKONGOLO", prenom: "David", sexe: "M", dateNaissance: "1980-06-25", nationalite: "Congolaise", fonction: "Directeur Technique", structure: "FEBADCO", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "-", statut: "Actif" },
 ]
 
 export const medecins: Medecin[] = [
   { id: "MED001", nom: "KABONGO", prenom: "Dr. Antoine", sexe: "M", dateNaissance: "1972-08-14", nationalite: "Congolaise", specialite: "Médecine du sport", structureMedicale: "Clinique des Sports Kinshasa", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "BC Renaissance", statut: "Actif" },
   { id: "MED002", nom: "MWENZE", prenom: "Dr. Pauline", sexe: "F", dateNaissance: "1980-02-28", nationalite: "Congolaise", specialite: "Traumatologie", structureMedicale: "Hôpital Provincial Lubumbashi", province: "Haut-Katanga", ligue: "Ligue du Katanga", entente: "Entente de Lubumbashi", club: "BC Lubumbashi", statut: "Actif" },
-  { id: "MED003", nom: "TSHISEKEDI", prenom: "Dr. Bruno", sexe: "M", dateNaissance: "1978-11-10", nationalite: "Congolaise", specialite: "Kinésithérapie", structureMedicale: "Centre Médical FECOBASKET", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de Ngaliema", club: "AS Dragons", statut: "Actif" },
+  { id: "MED003", nom: "TSHISEKEDI", prenom: "Dr. Bruno", sexe: "M", dateNaissance: "1978-11-10", nationalite: "Congolaise", specialite: "Kinésithérapie", structureMedicale: "Centre Médical FEBADCO", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de Ngaliema", club: "AS Dragons", statut: "Actif" },
   { id: "MED004", nom: "LUKUSA", prenom: "Dr. Grace", sexe: "F", dateNaissance: "1985-05-20", nationalite: "Congolaise", specialite: "Médecine générale", structureMedicale: "Polyclinique Bukavu", province: "Sud-Kivu", ligue: "Ligue du Sud-Kivu", entente: "Entente de Bukavu", club: "AS Bukavu", statut: "Actif" },
 ]
 

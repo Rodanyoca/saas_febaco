@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -29,7 +30,7 @@ export default function LoginPage() {
     if (formData.username === "admin" && formData.password === "admin") {
       router.push("/dashboard")
     } else {
-      setError("Identifiants incorrects. Utilisez admin/admin pour la démo.")
+      setError("Identifiants incorrects. Utilisez admin/admin pour la demo.")
       setIsLoading(false)
     }
   }
@@ -39,12 +40,19 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo and branding */}
         <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-primary">
-            <Shield className="h-10 w-10 text-primary-foreground" />
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-lg overflow-hidden">
+            <Image
+              src="/images/logo-febadco.jpg"
+              alt="Logo FEBADCO"
+              width={96}
+              height={96}
+              className="object-cover"
+              priority
+            />
           </div>
-          <h1 className="mt-4 text-3xl font-bold text-sidebar-foreground">FECOBASKET</h1>
-          <p className="mt-2 text-sidebar-muted">
-            Fédération Congolaise de Basketball
+          <h1 className="mt-4 text-3xl font-bold text-sidebar-foreground">FEBADCO</h1>
+          <p className="mt-2 text-sidebar-muted text-sm">
+            Systeme de Gestion de la Federation de Basketball du Congo
           </p>
         </div>
 
@@ -55,7 +63,7 @@ export default function LoginPage() {
               Connexion
             </CardTitle>
             <CardDescription className="text-center text-sidebar-muted">
-              Accédez au système de gestion fédéral
+              Accedez a la plateforme de gestion federale
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -137,15 +145,20 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center text-sm text-sidebar-muted">
               <p>Version 1.0 - Consultation uniquement</p>
-              <p className="mt-1">Identifiants de démo: admin / admin</p>
+              <p className="mt-1">Identifiants de demo: admin / admin</p>
             </div>
           </CardContent>
         </Card>
 
         {/* Footer */}
-        <p className="text-center text-xs text-sidebar-muted">
-          Plateforme de gestion du référentiel sportif de la FECOBASKET
-        </p>
+        <div className="text-center space-y-2">
+          <p className="text-xs text-sidebar-muted">
+            Plateforme de gestion du referentiel sportif de la FEBADCO
+          </p>
+          <p className="text-xs text-sidebar-muted/70">
+            Powered by <span className="font-semibold text-accent">DS Concept</span>
+          </p>
+        </div>
       </div>
     </div>
   )
