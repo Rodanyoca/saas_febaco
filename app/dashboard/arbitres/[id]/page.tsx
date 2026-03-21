@@ -1,13 +1,13 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
+import { ArrowLeft, FileDown, Flag, MapPin, Award } from "lucide-react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { arbitres } from "@/lib/demo-data"
-import { ArrowLeft, FileDown, Whistle, MapPin, Award } from "lucide-react"
 
 export default function ArbitreDetailPage() {
   const params = useParams()
@@ -17,9 +17,9 @@ export default function ArbitreDetailPage() {
   if (!arbitre) {
     return (
       <div className="flex flex-col">
-        <Header title="Arbitre non trouvé" />
+        <Header title="Arbitre non trouve" />
         <div className="flex-1 p-6">
-          <p className="text-muted-foreground">L'arbitre demandé n'existe pas.</p>
+          <p className="text-muted-foreground">L arbitre demande n existe pas.</p>
           <Button onClick={() => router.back()} className="mt-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
@@ -30,7 +30,7 @@ export default function ArbitreDetailPage() {
   }
 
   const handleExportPDF = () => {
-    alert("Export PDF - Cette fonctionnalité sera connectée à l'API")
+    alert("Export PDF - Cette fonctionnalite sera connectee a l API")
   }
 
   return (
@@ -41,7 +41,7 @@ export default function ArbitreDetailPage() {
         <div className="flex items-center justify-between">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour à la liste
+            Retour a la liste
           </Button>
           <Button onClick={handleExportPDF}>
             <FileDown className="mr-2 h-4 w-4" />
@@ -54,7 +54,7 @@ export default function ArbitreDetailPage() {
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                  <Whistle className="h-10 w-10 text-primary" />
+                  <Flag className="h-10 w-10 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold">
@@ -77,19 +77,19 @@ export default function ArbitreDetailPage() {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <DetailCard
-            title="Identité"
-            icon={Whistle}
+            title="Identite"
+            icon={Flag}
             fields={[
               { label: "ID Arbitre", value: arbitre.id },
               { label: "Nom complet", value: `${arbitre.prenom} ${arbitre.nom}` },
-              { label: "Sexe", value: arbitre.sexe === "M" ? "Masculin" : "Féminin" },
+              { label: "Sexe", value: arbitre.sexe === "M" ? "Masculin" : "Feminin" },
               { label: "Date de naissance", value: arbitre.dateNaissance },
-              { label: "Nationalité", value: arbitre.nationalite },
+              { label: "Nationalite", value: arbitre.nationalite },
             ]}
           />
 
           <DetailCard
-            title="Profil d'arbitrage"
+            title="Profil d arbitrage"
             icon={Award}
             fields={[
               { label: "Niveau", value: arbitre.niveau },
