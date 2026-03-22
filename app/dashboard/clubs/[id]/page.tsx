@@ -1,19 +1,63 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { clubs, athletes } from "@/lib/demo-data"
+import { Club } from "@/lib/demo-data"
 import { ArrowLeft, FileDown, Shield, MapPin, Users, Layers } from "lucide-react"
 import Link from "next/link"
 
 export default function ClubDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const club = clubs.find((c) => c.id === params.id)
+  const idParam = useMemo(() => {
+    const raw = (params as { id?: string | string[] })?.id
+    return Array.isArray(raw) ? raw[0] : raw
+  }, [params])
+
+  const [clubs, setClubs] = useState<Club[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/clubs", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setClubs(Array.isArray(json?.clubs) ? json.clubs : [])
+        }
+      } catch {
+        if (!canceled) setClubs([])
+      } finally {
+        if (!canceled) setLoading(false)
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  const club = useMemo(() => {
+    if (!idParam) return undefined
+    return clubs.find((c) => String(c.id) === String(idParam))
+  }, [clubs, idParam])
+
+  if (loading) {
+    return (
+      <div className="flex flex-col">
+        <Header title="Chargement..." />
+        <div className="flex-1 p-6">
+          <p className="text-muted-foreground">Chargement du club...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!club) {
     return (
@@ -30,8 +74,8 @@ export default function ClubDetailPage() {
     )
   }
 
-  // Get athletes for this club
-  const clubAthletes = athletes.filter((a) => a.club === club.nom)
+  // Athletes non connectés à Google Sheets pour l'instant
+  const clubAthletes: Array<{ id: string; prenom: string; nom: string; equipe: string; poste: string; statut: string }> = []
 
   const handleExportPDF = () => {
     // Placeholder for PDF export

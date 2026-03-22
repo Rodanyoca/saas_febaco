@@ -2,6 +2,7 @@
 // Ces données seront remplacées par l'API Google Sheets
 
 export interface Ligue {
+  [key: string]: unknown
   id: string
   nom: string
   pseudo: string
@@ -10,15 +11,18 @@ export interface Ligue {
 }
 
 export interface Entente {
+  [key: string]: unknown
   id: string
   nom: string
   pseudo: string
+  ligueId?: string
   ligue: string
   province: string
   statut: string
 }
 
 export interface Club {
+  [key: string]: unknown
   id: string
   nom: string
   categorie: string
@@ -28,6 +32,20 @@ export interface Club {
   statut: string
   nombreEquipes: number
   nombreAthletes: number
+}
+
+export interface Equipe {
+  [key: string]: unknown
+  id: string
+  nom: string
+  club: string
+  entente: string
+  ligue: string
+  province: string
+  categorie: string
+  genre: string
+  coach?: string
+  statut: string
 }
 
 export interface Athlete {
@@ -200,7 +218,11 @@ export const stats = {
 }
 
 // Helper pour obtenir les options de filtres
-export function getFilterOptions(data: Record<string, unknown>[], key: string): { value: string; label: string }[] {
-  const uniqueValues = [...new Set(data.map((item) => String(item[key])))]
+export function getFilterOptions<T extends Record<string, unknown>>(
+  data: T[],
+  key: keyof T | string
+): { value: string; label: string }[] {
+  const k = String(key)
+  const uniqueValues = [...new Set(data.map((item) => String(item[k as keyof T])))]
   return uniqueValues.filter(Boolean).map((value) => ({ value, label: value }))
 }

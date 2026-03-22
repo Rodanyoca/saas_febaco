@@ -8,6 +8,7 @@ interface StatCardProps {
   value: number | string
   icon: LucideIcon
   href?: string
+  detail?: React.ReactNode
   trend?: {
     value: number
     isPositive: boolean
@@ -20,6 +21,7 @@ export function StatCard({
   value,
   icon: Icon,
   href,
+  detail,
   trend,
   className,
 }: StatCardProps) {
@@ -36,6 +38,9 @@ export function StatCard({
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <p className="text-3xl font-bold text-foreground">{value}</p>
+            {detail && (
+              <div className="text-xs text-muted-foreground leading-4">{detail}</div>
+            )}
             {trend && (
               <p
                 className={cn(
