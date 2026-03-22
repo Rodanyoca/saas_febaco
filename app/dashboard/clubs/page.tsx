@@ -13,6 +13,7 @@ const columns: Column<Club>[] = [
   { key: "entente", header: "Entente" },
   { key: "ligue", header: "Ligue" },
   { key: "province", header: "Province" },
+  { key: "dateAffiliation", header: "Date d'affiliation" },
   {
     key: "statut",
     header: "Statut",

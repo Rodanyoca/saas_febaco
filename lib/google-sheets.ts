@@ -1,5 +1,7 @@
 import { google } from "googleapis"
 
+const SHEETS_REQUEST_TIMEOUT_MS = 10000
+
 function requiredEnv(name: string): string {
   const value = process.env[name]
   if (!value) {
@@ -39,10 +41,15 @@ export async function readSheetRows(sheetName: string): Promise<SheetRow[]> {
   const spreadsheetId = requiredEnv("GOOGLE_SHEETS_SPREADSHEET_ID")
   const sheets = createSheetsClient()
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${sheetName}!A:ZZ`,
-  })
+  const res = await sheets.spreadsheets.values.get(
+    {
+      spreadsheetId,
+      range: `${sheetName}!A:ZZ`,
+    },
+    {
+      timeout: SHEETS_REQUEST_TIMEOUT_MS,
+    }
+  )
 
   const values = res.data.values ?? []
   if (values.length === 0) return []

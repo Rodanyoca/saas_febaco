@@ -21,23 +21,29 @@ export default function DashboardPage() {
   const [ententes, setEntentes] = useState<{ statut?: string }[]>([])
   const [clubs, setClubs] = useState<{ statut?: string }[]>([])
   const [equipes, setEquipes] = useState<{ statut?: string; genre?: string }[]>([])
+  const [athletes, setAthletes] = useState<{ statut?: string; sexe?: string }[]>([])
+  const [coachs, setCoachs] = useState<{ statut?: string; niveau?: string }[]>([])
 
   useEffect(() => {
     let canceled = false
     const load = async () => {
       try {
-        const [liguesRes, ententesRes, clubsRes, equipesRes] = await Promise.all([
+        const [liguesRes, ententesRes, clubsRes, equipesRes, athletesRes, coachsRes] = await Promise.all([
           fetch("/api/ligues", { cache: "no-store" }),
           fetch("/api/ententes", { cache: "no-store" }),
           fetch("/api/clubs", { cache: "no-store" }),
           fetch("/api/equipes", { cache: "no-store" }),
+          fetch("/api/athletes", { cache: "no-store" }),
+          fetch("/api/coachs", { cache: "no-store" }),
         ])
 
-        const [liguesJson, ententesJson, clubsJson, equipesJson] = await Promise.all([
+        const [liguesJson, ententesJson, clubsJson, equipesJson, athletesJson, coachsJson] = await Promise.all([
           liguesRes.json(),
           ententesRes.json(),
           clubsRes.json(),
           equipesRes.json(),
+          athletesRes.json(),
+          coachsRes.json(),
         ])
 
         if (!canceled) {
@@ -45,6 +51,8 @@ export default function DashboardPage() {
           setEntentes(Array.isArray(ententesJson?.ententes) ? ententesJson.ententes : [])
           setClubs(Array.isArray(clubsJson?.clubs) ? clubsJson.clubs : [])
           setEquipes(Array.isArray(equipesJson?.equipes) ? equipesJson.equipes : [])
+          setAthletes(Array.isArray(athletesJson?.athletes) ? athletesJson.athletes : [])
+          setCoachs(Array.isArray(coachsJson?.coachs) ? coachsJson.coachs : [])
         }
       } catch {
         if (!canceled) {
@@ -52,6 +60,8 @@ export default function DashboardPage() {
           setEntentes([])
           setClubs([])
           setEquipes([])
+          setAthletes([])
+          setCoachs([])
         }
       }
     }
@@ -111,6 +121,44 @@ export default function DashboardPage() {
     return { total, actif, inactif, masculin, feminin }
   }, [equipes])
 
+  const athleteCounts = useMemo(() => {
+    const total = athletes.length
+    const inactif = athletes.filter((a) => String(a?.statut ?? "").toLowerCase() === "inactif").length
+
+    const hommes = athletes.filter((a) => {
+      const s = String(a?.sexe ?? "").toLowerCase()
+      return s === "m" || s === "masculin" || s === "homme" || s === "male"
+    }).length
+
+    const femmes = athletes.filter((a) => {
+      const s = String(a?.sexe ?? "").toLowerCase()
+      return s === "f" || s === "feminin" || s === "féminin" || s === "femme" || s === "female"
+    }).length
+
+    return { total, hommes, femmes, inactif }
+  }, [athletes])
+
+  const coachCounts = useMemo(() => {
+    const total = coachs.length
+
+    const local = coachs.filter((c) => {
+      const n = String(c?.niveau ?? "").toLowerCase()
+      return n.includes("local")
+    }).length
+
+    const national = coachs.filter((c) => {
+      const n = String(c?.niveau ?? "").toLowerCase()
+      return n.includes("national")
+    }).length
+
+    const international = coachs.filter((c) => {
+      const n = String(c?.niveau ?? "").toLowerCase()
+      return n.includes("international")
+    }).length
+
+    return { total, local, national, international }
+  }, [coachs])
+
   return (
     <div className="flex flex-col">
       <Header
@@ -147,13 +195,14 @@ export default function DashboardPage() {
             value={equipeCounts.total}
             icon={Layers}
             href="/dashboard/equipes"
-            detail={`Actifs ${equipeCounts.actif}  Inactifs ${equipeCounts.inactif}`}
+            detail={`Masculin ${equipeCounts.masculin}  Féminin ${equipeCounts.feminin}  Inactifs ${equipeCounts.inactif}`}
           />
           <StatCard
             title="Athletes"
-            value={0}
+            value={athleteCounts.total}
             icon={Users}
             href="/dashboard/athletes"
+            detail={`Hommes ${athleteCounts.hommes}  Femmes ${athleteCounts.femmes}  Inactifs ${athleteCounts.inactif}`}
           />
         </div>
 
@@ -161,9 +210,10 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Entraineurs"
-            value={0}
+            value={coachCounts.total}
             icon={UserCog}
             href="/dashboard/coachs"
+            detail={`Local ${coachCounts.local}  National ${coachCounts.national}  International ${coachCounts.international}`}
           />
           <StatCard
             title="Arbitres"

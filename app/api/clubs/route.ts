@@ -14,6 +14,12 @@ export async function GET() {
       const entente = pickFirst(row, ["nom_entente", "entente", "entente_nom"])
       const ligue = pickFirst(row, ["nom_ligue", "ligue", "ligue_nom"])
       const province = pickFirst(row, ["nom_province", "province", "province_nom"])
+      const dateAffiliation = pickFirst(row, [
+        "date_affiliation",
+        "date_d_affiliation",
+        "date_aff",
+        "affiliation",
+      ])
       const statut = pickFirst(row, ["statut", "status", "etat"])
 
       const fallbackId = `row_${index + 2}`
@@ -27,6 +33,7 @@ export async function GET() {
         entente: entente || "-",
         ligue: ligue || "-",
         province: province || "-",
+        dateAffiliation: dateAffiliation || "-",
         statut: statut || "-",
         nombreEquipes: 0,
         nombreAthletes: 0,

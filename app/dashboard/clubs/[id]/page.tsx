@@ -7,9 +7,8 @@ import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Club } from "@/lib/demo-data"
+import { Club, Equipe } from "@/lib/demo-data"
 import { ArrowLeft, FileDown, Shield, MapPin, Users, Layers } from "lucide-react"
-import Link from "next/link"
 
 export default function ClubDetailPage() {
   const params = useParams()
@@ -20,6 +19,7 @@ export default function ClubDetailPage() {
   }, [params])
 
   const [clubs, setClubs] = useState<Club[]>([])
+  const [equipes, setEquipes] = useState<Equipe[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -43,10 +43,38 @@ export default function ClubDetailPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/equipes", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setEquipes(Array.isArray(json?.equipes) ? json.equipes : [])
+        }
+      } catch {
+        if (!canceled) setEquipes([])
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
   const club = useMemo(() => {
     if (!idParam) return undefined
     return clubs.find((c) => String(c.id) === String(idParam))
   }, [clubs, idParam])
+
+  const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase()
+
+  const clubEquipes = useMemo(() => {
+    const clubName = normalize(club?.nom)
+    if (!clubName) return []
+
+    return equipes.filter((e) => normalize(e.club) === clubName)
+  }, [club?.nom, equipes])
 
   if (loading) {
     return (
@@ -73,9 +101,6 @@ export default function ClubDetailPage() {
       </div>
     )
   }
-
-  // Athletes non connectés à Google Sheets pour l'instant
-  const clubAthletes: Array<{ id: string; prenom: string; nom: string; equipe: string; poste: string; statut: string }> = []
 
   const handleExportPDF = () => {
     // Placeholder for PDF export
@@ -133,6 +158,7 @@ export default function ClubDetailPage() {
               { label: "ID Club", value: club.id },
               { label: "Nom du club", value: club.nom },
               { label: "Catégorie", value: club.categorie },
+              { label: "Date d'affiliation", value: club.dateAffiliation ?? "-" },
               { label: "Statut", value: club.statut },
             ]}
           />
@@ -159,42 +185,39 @@ export default function ClubDetailPage() {
           />
         </div>
 
-        {/* Athletes list */}
+        {/* Equipes list */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Layers className="h-5 w-5 text-primary" />
-              Athlètes du club ({clubAthletes.length})
+              Équipes du club ({clubEquipes.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {clubAthletes.length === 0 ? (
+            {clubEquipes.length === 0 ? (
               <p className="text-muted-foreground text-sm">
-                Aucun athlète enregistré pour ce club.
+                Aucune équipe enregistrée pour ce club.
               </p>
             ) : (
               <div className="space-y-2">
-                {clubAthletes.map((athlete) => (
-                  <Link
-                    key={athlete.id}
-                    href={`/dashboard/athletes/${athlete.id}`}
-                    className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+                {clubEquipes.map((equipe) => (
+                  <div
+                    key={(equipe as unknown as { __key?: string }).__key ?? equipe.id}
+                    className="flex items-center justify-between rounded-lg border border-border p-3"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                         <Users className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium">
-                          {athlete.prenom} {athlete.nom}
-                        </p>
+                        <p className="font-medium">{equipe.nom}</p>
                         <p className="text-sm text-muted-foreground">
-                          {athlete.equipe} - {athlete.poste}
+                          {equipe.categorie} - {equipe.genre}
                         </p>
                       </div>
                     </div>
-                    <StatusBadge status={athlete.statut} />
-                  </Link>
+                    <StatusBadge status={equipe.statut} />
+                  </div>
                 ))}
               </div>
             )}

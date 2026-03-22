@@ -29,6 +29,7 @@ export interface Club {
   entente: string
   ligue: string
   province: string
+  dateAffiliation?: string
   statut: string
   nombreEquipes: number
   nombreAthletes: number
@@ -49,6 +50,8 @@ export interface Equipe {
 }
 
 export interface Athlete {
+  [key: string]: unknown
+  __key?: string
   id: string
   nom: string
   prenom: string
@@ -68,6 +71,8 @@ export interface Athlete {
 }
 
 export interface Coach {
+  [key: string]: unknown
+  __key?: string
   id: string
   nom: string
   prenom: string
