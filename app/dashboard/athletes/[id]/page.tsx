@@ -1,18 +1,64 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { athletes } from "@/lib/demo-data"
+import { Athlete } from "@/lib/demo-data"
 import { ArrowLeft, FileDown, User, MapPin, Trophy, Info } from "lucide-react"
 
 export default function AthleteDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const athlete = athletes.find((a) => a.id === params.id)
+
+  const athleteId = useMemo(() => {
+    const raw = params?.id
+    if (Array.isArray(raw)) return raw[0]
+    return typeof raw === "string" ? raw : ""
+  }, [params])
+
+  const [athletes, setAthletes] = useState<Athlete[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/athletes", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
+        }
+      } catch {
+        if (!canceled) setAthletes([])
+      } finally {
+        if (!canceled) setLoading(false)
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  const athlete = useMemo(() => {
+    if (!athleteId) return undefined
+    return athletes.find((a) => a.id === athleteId || a.__key === athleteId)
+  }, [athletes, athleteId])
+
+  if (loading) {
+    return (
+      <div className="flex flex-col">
+        <Header title="Chargement..." />
+        <div className="flex-1 p-6">
+          <p className="text-muted-foreground">Chargement de la fiche athlète.</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!athlete) {
     return (

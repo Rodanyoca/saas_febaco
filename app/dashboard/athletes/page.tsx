@@ -17,7 +17,19 @@ const columns: Column<Athlete>[] = [
   { key: "sexe", header: "Sexe", className: "text-center" },
   { key: "dateNaissance", header: "Date de naissance" },
   { key: "nationalite", header: "Nationalité" },
-  { key: "club", header: "Club" },
+  {
+    key: "club",
+    header: "Club",
+    className: "min-w-[220px]",
+    render: (item) => (
+      <div className="flex flex-col leading-tight">
+        <span className="font-medium text-foreground">{item.club}</span>
+        {item.entente ? (
+          <span className="text-xs text-muted-foreground">{item.entente}</span>
+        ) : null}
+      </div>
+    ),
+  },
   {
     key: "statut",
     header: "Statut",

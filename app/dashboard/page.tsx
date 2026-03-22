@@ -24,6 +24,37 @@ export default function DashboardPage() {
   const [athletes, setAthletes] = useState<{ statut?: string; sexe?: string }[]>([])
   const [coachs, setCoachs] = useState<{ statut?: string; niveau?: string }[]>([])
 
+  const DetailStat = ({
+    label,
+    value,
+    valueClassName,
+  }: {
+    label: string
+    value: number
+    valueClassName?: string
+  }) => (
+    <div className="flex items-baseline gap-1 whitespace-nowrap">
+      <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
+      <span className={valueClassName ?? "text-[12px] font-semibold text-foreground tabular-nums"}>
+        {value}
+      </span>
+    </div>
+  )
+
+  const DetailRow = ({ children }: { children: React.ReactNode }) => (
+    <div className="flex flex-wrap items-center gap-2">
+      {children}
+    </div>
+  )
+
+  const DetailRowNoWrap = ({ children }: { children: React.ReactNode }) => (
+    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
+      {children}
+    </div>
+  )
+
+  const Sep = () => <span className="h-3 w-px bg-border" />
+
   useEffect(() => {
     let canceled = false
     const load = async () => {
@@ -168,52 +199,90 @@ export default function DashboardPage() {
 
       <div className="flex-1 p-6 space-y-6">
         {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <StatCard
             title="Ligues"
             value={ligueCounts.total}
             icon={MapPin}
             href="/dashboard/ligues"
-            detail={`Actifs ${ligueCounts.actif}  Inactifs ${ligueCounts.inactif}`}
+            detail={
+              <DetailRow>
+                <DetailStat label="Actifs" value={ligueCounts.actif} valueClassName="text-[12px] font-semibold text-orange-700 tabular-nums" />
+                <Sep />
+                <DetailStat label="Inactifs" value={ligueCounts.inactif} valueClassName="text-[12px] font-semibold text-zinc-700 tabular-nums" />
+              </DetailRow>
+            }
           />
           <StatCard
             title="Ententes"
             value={ententeCounts.total}
             icon={Building2}
             href="/dashboard/ententes"
-            detail={`Actifs ${ententeCounts.actif}  Inactifs ${ententeCounts.inactif}`}
+            detail={
+              <DetailRow>
+                <DetailStat label="Actifs" value={ententeCounts.actif} valueClassName="text-[12px] font-semibold text-orange-700 tabular-nums" />
+                <Sep />
+                <DetailStat label="Inactifs" value={ententeCounts.inactif} valueClassName="text-[12px] font-semibold text-zinc-700 tabular-nums" />
+              </DetailRow>
+            }
           />
           <StatCard
             title="Clubs"
             value={clubCounts.total}
             icon={Shield}
             href="/dashboard/clubs"
-            detail={`Actifs ${clubCounts.actif}  Inactifs ${clubCounts.inactif}`}
+            detail={
+              <DetailRow>
+                <DetailStat label="Actifs" value={clubCounts.actif} valueClassName="text-[12px] font-semibold text-orange-700 tabular-nums" />
+                <Sep />
+                <DetailStat label="Inactifs" value={clubCounts.inactif} valueClassName="text-[12px] font-semibold text-zinc-700 tabular-nums" />
+              </DetailRow>
+            }
           />
           <StatCard
             title="Equipes"
             value={equipeCounts.total}
             icon={Layers}
             href="/dashboard/equipes"
-            detail={`Masculin ${equipeCounts.masculin}  Féminin ${equipeCounts.feminin}  Inactifs ${equipeCounts.inactif}`}
+            detail={
+              <DetailRow>
+                <DetailStat label="Masculin" value={equipeCounts.masculin} valueClassName="text-[12px] font-semibold text-sky-700 tabular-nums" />
+                <Sep />
+                <DetailStat label="Féminin" value={equipeCounts.feminin} valueClassName="text-[12px] font-semibold text-fuchsia-700 tabular-nums" />
+                <Sep />
+                <DetailStat label="Inactifs" value={equipeCounts.inactif} valueClassName="text-[12px] font-semibold text-zinc-700 tabular-nums" />
+              </DetailRow>
+            }
           />
           <StatCard
             title="Athletes"
             value={athleteCounts.total}
             icon={Users}
             href="/dashboard/athletes"
-            detail={`Hommes ${athleteCounts.hommes}  Femmes ${athleteCounts.femmes}  Inactifs ${athleteCounts.inactif}`}
+            detail={
+              <DetailRowNoWrap>
+                <DetailStat label="Hommes" value={athleteCounts.hommes} valueClassName="text-[12px] font-semibold text-indigo-700 tabular-nums" />
+                <Sep />
+                <DetailStat label="Femmes" value={athleteCounts.femmes} valueClassName="text-[12px] font-semibold text-rose-700 tabular-nums" />
+                <Sep />
+                <DetailStat label="Inactifs" value={athleteCounts.inactif} valueClassName="text-[12px] font-semibold text-zinc-700 tabular-nums" />
+              </DetailRowNoWrap>
+            }
           />
-        </div>
-
-        {/* Second row of stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Entraineurs"
             value={coachCounts.total}
             icon={UserCog}
             href="/dashboard/coachs"
-            detail={`Local ${coachCounts.local}  National ${coachCounts.national}  International ${coachCounts.international}`}
+            detail={
+              <DetailRow>
+                <DetailStat label="Local" value={coachCounts.local} valueClassName="text-[12px] font-semibold text-amber-800 tabular-nums" />
+                <Sep />
+                <DetailStat label="National" value={coachCounts.national} valueClassName="text-[12px] font-semibold text-violet-800 tabular-nums" />
+                <Sep />
+                <DetailStat label="International" value={coachCounts.international} valueClassName="text-[12px] font-semibold text-cyan-800 tabular-nums" />
+              </DetailRow>
+            }
           />
           <StatCard
             title="Arbitres"

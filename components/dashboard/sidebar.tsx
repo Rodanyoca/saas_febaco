@@ -55,6 +55,7 @@ export function Sidebar() {
                   width={40}
                   height={40}
                   className="object-contain"
+                  style={{ width: "auto", height: "auto" }}
                 />
               </div>
               <span className="text-lg font-bold text-sidebar-foreground">
@@ -70,6 +71,7 @@ export function Sidebar() {
                 width={40}
                 height={40}
                 className="object-contain"
+                style={{ width: "auto", height: "auto" }}
               />
             </div>
           )}

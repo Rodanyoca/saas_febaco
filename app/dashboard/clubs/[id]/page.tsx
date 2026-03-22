@@ -7,7 +7,7 @@ import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Club, Equipe } from "@/lib/demo-data"
+import { Athlete, Club, Equipe } from "@/lib/demo-data"
 import { ArrowLeft, FileDown, Shield, MapPin, Users, Layers } from "lucide-react"
 
 export default function ClubDetailPage() {
@@ -20,6 +20,7 @@ export default function ClubDetailPage() {
 
   const [clubs, setClubs] = useState<Club[]>([])
   const [equipes, setEquipes] = useState<Equipe[]>([])
+  const [athletes, setAthletes] = useState<Athlete[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -62,6 +63,25 @@ export default function ClubDetailPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/athletes", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
+        }
+      } catch {
+        if (!canceled) setAthletes([])
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
   const club = useMemo(() => {
     if (!idParam) return undefined
     return clubs.find((c) => String(c.id) === String(idParam))
@@ -75,6 +95,13 @@ export default function ClubDetailPage() {
 
     return equipes.filter((e) => normalize(e.club) === clubName)
   }, [club?.nom, equipes])
+
+  const clubAthletes = useMemo(() => {
+    const clubName = normalize(club?.nom)
+    if (!clubName) return []
+
+    return athletes.filter((a) => normalize(a.club) === clubName)
+  }, [athletes, club?.nom])
 
   if (loading) {
     return (
@@ -179,8 +206,8 @@ export default function ClubDetailPage() {
             title="Effectif sportif"
             icon={Users}
             fields={[
-              { label: "Nombre d'équipes", value: club.nombreEquipes },
-              { label: "Nombre d'athlètes", value: club.nombreAthletes },
+              { label: "Nombre d'équipes", value: clubEquipes.length },
+              { label: "Nombre d'athlètes", value: clubAthletes.length },
             ]}
           />
         </div>

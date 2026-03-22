@@ -8,9 +8,20 @@ import { Club, getFilterOptions } from "@/lib/demo-data"
 
 const columns: Column<Club>[] = [
   { key: "id", header: "ID Club", className: "font-mono text-sm" },
-  { key: "nom", header: "Nom Club", className: "font-medium" },
+  {
+    key: "nom",
+    header: "Club",
+    className: "min-w-[220px]",
+    render: (item) => (
+      <div className="flex flex-col leading-tight">
+        <span className="font-medium text-foreground">{item.nom}</span>
+        {item.entente ? (
+          <span className="text-xs text-muted-foreground">{item.entente}</span>
+        ) : null}
+      </div>
+    ),
+  },
   { key: "categorie", header: "Catégorie" },
-  { key: "entente", header: "Entente" },
   { key: "ligue", header: "Ligue" },
   { key: "province", header: "Province" },
   { key: "dateAffiliation", header: "Date d'affiliation" },
