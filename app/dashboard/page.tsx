@@ -15,13 +15,20 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import { Pie, PieChart, Cell } from "recharts"
 
 export default function DashboardPage() {
   const [ligues, setLigues] = useState<{ statut?: string }[]>([])
   const [ententes, setEntentes] = useState<{ statut?: string }[]>([])
   const [clubs, setClubs] = useState<{ statut?: string }[]>([])
   const [equipes, setEquipes] = useState<{ statut?: string; genre?: string }[]>([])
-  const [athletes, setAthletes] = useState<{ statut?: string; sexe?: string }[]>([])
+  const [athletes, setAthletes] = useState<{ statut?: string; sexe?: string; province?: string }[]>([])
   const [coachs, setCoachs] = useState<{ statut?: string; niveau?: string }[]>([])
 
   const DetailStat = ({
@@ -190,6 +197,46 @@ export default function DashboardPage() {
     return { total, local, national, international }
   }, [coachs])
 
+  const athletesByProvince = useMemo(() => {
+    const normalize = (v: unknown) => String(v ?? "").trim()
+    const map = new Map<string, number>()
+
+    for (const a of athletes) {
+      const province = normalize(a?.province) || "-"
+      map.set(province, (map.get(province) ?? 0) + 1)
+    }
+
+    return Array.from(map.entries())
+      .map(([province, count]) => ({ province, count }))
+      .sort((a, b) => b.count - a.count)
+  }, [athletes])
+
+  const athletesByProvinceChart = useMemo(() => {
+    const colorForIndex = (index: number, total: number) => {
+      const hue = Math.round((index * 360) / Math.max(total, 1))
+      return `hsl(${hue} 70% 50%)`
+    }
+
+    const provincesAlpha = Array.from(
+      new Set(athletesByProvince.map((i) => i.province))
+    ).sort((a, b) => a.localeCompare(b, "fr"))
+
+    const colorByProvince = new Map(
+      provincesAlpha.map((p, index) => [p, colorForIndex(index, provincesAlpha.length)])
+    )
+
+    const data = athletesByProvince.map((item) => ({
+      ...item,
+      fill: colorByProvince.get(item.province) ?? "hsl(var(--chart-1))",
+    }))
+
+    const config: ChartConfig = Object.fromEntries(
+      data.map((item) => [item.province, { label: item.province }])
+    )
+
+    return { data, config }
+  }, [athletesByProvince])
+
   return (
     <div className="flex flex-col">
       <Header
@@ -304,51 +351,79 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Additional info cards */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Repartition par province */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Repartition par province</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-24 flex items-center justify-center text-sm text-muted-foreground">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Nombre d’athlètes par province</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {athletesByProvinceChart.data.length === 0 ? (
+              <div className="h-[480px] flex items-center justify-center text-sm text-muted-foreground">
                 Aucune donnée
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[520px_1fr] lg:items-start">
+                <ChartContainer
+                  config={athletesByProvinceChart.config}
+                  className="h-[480px] w-full max-w-[520px] aspect-auto"
+                >
+                  <PieChart>
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          nameKey="province"
+                          formatter={(value, name) => (
+                            <div className="flex w-full items-center justify-between gap-4">
+                              <span className="text-muted-foreground">{name}</span>
+                              <span className="font-mono font-medium tabular-nums">{Number(value).toLocaleString()}</span>
+                            </div>
+                          )}
+                        />
+                      }
+                    />
+                    <Pie
+                      data={athletesByProvinceChart.data}
+                      dataKey="count"
+                      nameKey="province"
+                      innerRadius={70}
+                      outerRadius={110}
+                      paddingAngle={1}
+                      strokeWidth={2}
+                    >
+                      {athletesByProvinceChart.data.map((entry) => (
+                        <Cell key={entry.province} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
 
-          {/* Repartition par sexe */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Repartition des equipes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 rounded-full bg-chart-1" />
-                    <span className="text-sm font-medium">Masculin</span>
+                <div className="flex-1 lg:justify-self-end lg:w-full lg:max-w-[420px]">
+                  <div className="flex items-center justify-between lg:justify-end lg:gap-6">
+                    <p className="text-sm font-medium">Légende</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
+                      {athletesByProvinceChart.data.length} provinces
+                    </p>
                   </div>
-                  <span className="text-2xl font-bold">{equipeCounts.masculin}</span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                  <div className="h-full w-[0%] rounded-full bg-chart-1" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 rounded-full bg-chart-2" />
-                    <span className="text-sm font-medium">Féminin</span>
+                  <div className="mt-3 grid grid-cols-1 gap-2">
+                    {athletesByProvinceChart.data.map((item) => (
+                      <div key={item.province} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className="h-2.5 w-2.5 rounded-[2px] shrink-0"
+                            style={{ backgroundColor: item.fill }}
+                          />
+                          <span className="text-xs text-foreground truncate">{item.province}</span>
+                        </div>
+                        <span className="text-xs font-mono text-muted-foreground tabular-nums">
+                          {item.count.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  <span className="text-2xl font-bold">{equipeCounts.feminin}</span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                  <div className="h-full w-[0%] rounded-full bg-chart-2" />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
