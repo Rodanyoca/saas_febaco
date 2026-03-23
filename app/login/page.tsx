@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,11 +10,12 @@ import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
   })
 
@@ -23,14 +24,28 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
-    // Simulate authentication - will be replaced with real auth
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      })
 
-    // Demo credentials check
-    if (formData.username === "admin" && formData.password === "admin") {
-      router.push("/dashboard")
-    } else {
-      setError("Identifiants incorrects. Utilisez admin/admin pour la demo.")
+      const json = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setError(String(json?.error ?? "Connexion impossible."))
+        setIsLoading(false)
+        return
+      }
+
+      const next = searchParams.get("next")
+      router.push(next && next.startsWith("/") ? next : "/dashboard")
+    } catch {
+      setError("Connexion impossible.")
       setIsLoading(false)
     }
   }
@@ -46,8 +61,7 @@ export default function LoginPage() {
               alt="Logo FEBACO"
               width={96}
               height={96}
-              className="object-contain"
-              style={{ width: "auto", height: "auto" }}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
               priority
             />
           </div>
@@ -77,18 +91,18 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <label
-                  htmlFor="username"
+                  htmlFor="email"
                   className="text-sm font-medium text-sidebar-foreground"
                 >
-                  Identifiant
+                  Email
                 </label>
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="Entrez votre identifiant"
-                  value={formData.username}
+                  id="email"
+                  type="email"
+                  placeholder="Entrez votre email"
+                  value={formData.email}
                   onChange={(e) =>
-                    setFormData({ ...formData, username: e.target.value })
+                    setFormData({ ...formData, email: e.target.value })
                   }
                   className="bg-sidebar border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-muted"
                   required
@@ -146,7 +160,6 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center text-sm text-sidebar-muted">
               <p>Version 1.0 - Consultation uniquement</p>
-              <p className="mt-1">Identifiants de demo: admin / admin</p>
             </div>
           </CardContent>
         </Card>

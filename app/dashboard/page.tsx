@@ -55,7 +55,7 @@ export default function DashboardPage() {
   )
 
   const DetailRowNoWrap = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
+    <div className="flex w-full flex-nowrap items-center justify-between gap-2">
       {children}
     </div>
   )
@@ -309,9 +309,7 @@ export default function DashboardPage() {
             detail={
               <DetailRowNoWrap>
                 <DetailStat label="Hommes" value={athleteCounts.hommes} valueClassName="text-[12px] font-semibold text-indigo-700 tabular-nums" />
-                <Sep />
                 <DetailStat label="Femmes" value={athleteCounts.femmes} valueClassName="text-[12px] font-semibold text-rose-700 tabular-nums" />
-                <Sep />
                 <DetailStat label="Inactifs" value={athleteCounts.inactif} valueClassName="text-[12px] font-semibold text-zinc-700 tabular-nums" />
               </DetailRowNoWrap>
             }

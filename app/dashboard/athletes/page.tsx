@@ -39,11 +39,18 @@ const columns: Column<Athlete>[] = [
 
 export default function AthletesPage() {
   const [athletes, setAthletes] = useState<Athlete[]>([])
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     let canceled = false
     ;(async () => {
       try {
+        const meRes = await fetch("/api/auth/me", { cache: "no-store" })
+        const meJson = await meRes.json()
+        if (!canceled) {
+          setUserRole(String(meJson?.user?.role ?? ""))
+        }
+
         const res = await fetch("/api/athletes", { cache: "no-store" })
         const json = await res.json()
 
@@ -51,7 +58,10 @@ export default function AthletesPage() {
           setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
         }
       } catch {
-        if (!canceled) setAthletes([])
+        if (!canceled) {
+          setUserRole(null)
+          setAthletes([])
+        }
       }
     })()
 
@@ -60,8 +70,8 @@ export default function AthletesPage() {
     }
   }, [])
 
-  const filters: Filter[] = useMemo(
-    () => [
+  const filters: Filter[] = useMemo(() => {
+    const base: Filter[] = [
       {
         key: "province",
         label: "Province",
@@ -95,9 +105,14 @@ export default function AthletesPage() {
         label: "Statut",
         options: getFilterOptions(athletes, "statut"),
       },
-    ],
-    [athletes]
-  )
+    ]
+
+    if (userRole === "ligue" || userRole === "entente") {
+      return base.filter((f) => f.key !== "ligue")
+    }
+
+    return base
+  }, [athletes, userRole])
 
   return (
     <div className="flex flex-col">

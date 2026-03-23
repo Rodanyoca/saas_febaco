@@ -50,18 +50,28 @@ const filters: Filter[] = [
 
 export default function EntentesPage() {
   const [ententes, setEntentes] = useState<Entente[]>([])
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     let canceled = false
     ;(async () => {
       try {
+        const meRes = await fetch("/api/auth/me", { cache: "no-store" })
+        const meJson = await meRes.json()
+        if (!canceled) {
+          setUserRole(String(meJson?.user?.role ?? ""))
+        }
+
         const res = await fetch("/api/ententes", { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setEntentes(Array.isArray(json?.ententes) ? json.ententes : [])
         }
       } catch {
-        if (!canceled) setEntentes([])
+        if (!canceled) {
+          setUserRole(null)
+          setEntentes([])
+        }
       }
     })()
     return () => {
@@ -70,7 +80,7 @@ export default function EntentesPage() {
   }, [])
 
   const filtersComputed: Filter[] = useMemo(() => {
-    return [
+    const base: Filter[] = [
       {
         key: "province",
         label: "Province",
@@ -87,7 +97,13 @@ export default function EntentesPage() {
         options: getFilterOptions(ententes, "statut"),
       },
     ]
-  }, [ententes])
+
+    if (userRole === "ligue" || userRole === "entente") {
+      return base.filter((f) => f.key !== "ligue")
+    }
+
+    return base
+  }, [ententes, userRole])
 
   return (
     <div className="flex flex-col">

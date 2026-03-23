@@ -15,7 +15,6 @@ import {
   Flag,
   BadgeCheck,
   Stethoscope,
-  LogOut,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
@@ -54,8 +53,7 @@ export function Sidebar() {
                   alt="Logo FEBACO"
                   width={40}
                   height={40}
-                  className="object-contain"
-                  style={{ width: "auto", height: "auto" }}
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
                 />
               </div>
               <span className="text-lg font-bold text-sidebar-foreground">
@@ -70,8 +68,7 @@ export function Sidebar() {
                 alt="Logo FEBACO"
                 width={40}
                 height={40}
-                className="object-contain"
-                style={{ width: "auto", height: "auto" }}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
               />
             </div>
           )}
@@ -114,18 +111,6 @@ export function Sidebar() {
             )
           })}
         </nav>
-
-        {/* Logout */}
-        <div className="border-t border-sidebar-border p-2">
-          <Link
-            href="/login"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-            title={collapsed ? "Deconnexion" : undefined}
-          >
-            <LogOut className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span>Deconnexion</span>}
-          </Link>
-        </div>
       </div>
     </aside>
   )

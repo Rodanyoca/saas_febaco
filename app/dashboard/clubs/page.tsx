@@ -62,18 +62,28 @@ const filters: Filter[] = [
 
 export default function ClubsPage() {
   const [clubs, setClubs] = useState<Club[]>([])
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     let canceled = false
     ;(async () => {
       try {
+        const meRes = await fetch("/api/auth/me", { cache: "no-store" })
+        const meJson = await meRes.json()
+        if (!canceled) {
+          setUserRole(String(meJson?.user?.role ?? ""))
+        }
+
         const res = await fetch("/api/clubs", { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setClubs(Array.isArray(json?.clubs) ? json.clubs : [])
         }
       } catch {
-        if (!canceled) setClubs([])
+        if (!canceled) {
+          setUserRole(null)
+          setClubs([])
+        }
       }
     })()
     return () => {
@@ -82,7 +92,7 @@ export default function ClubsPage() {
   }, [])
 
   const filtersComputed: Filter[] = useMemo(() => {
-    return [
+    const base: Filter[] = [
       {
         key: "province",
         label: "Province",
@@ -109,7 +119,17 @@ export default function ClubsPage() {
         options: getFilterOptions(clubs, "statut"),
       },
     ]
-  }, [clubs])
+
+    if (userRole === "entente") {
+      return base.filter((f) => f.key !== "ligue" && f.key !== "entente")
+    }
+
+    if (userRole === "ligue") {
+      return base.filter((f) => f.key !== "ligue")
+    }
+
+    return base
+  }, [clubs, userRole])
 
   return (
     <div className="flex flex-col">

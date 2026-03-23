@@ -1,13 +1,42 @@
 import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
+import { getSessionUser } from "@/lib/auth-session"
+import { scopeFromSession } from "@/lib/auth-scope"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
+    const user = await getSessionUser()
+    if (!user) {
+      return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
+    }
+
+    const scope = scopeFromSession(user)
     const rows = await readSheetRows("ligues")
 
-    const ligues = rows.map((row, index) => {
+    let allowedLigueId: string | null = null
+    if (scope.role === "ligue") {
+      allowedLigueId = scope.ligueId
+    } else if (scope.role === "entente") {
+      const ententes = await readSheetRows("ententes")
+      const ententeRow = ententes.find((r) => {
+        const id = pickFirst(r, ["id_entente", "id", "code_entente", "code"])
+        return String(id ?? "") === scope.ententeId
+      })
+
+      const ligueId = ententeRow ? pickFirst(ententeRow, ["id_ligue", "ligue_id", "idligue"]) : null
+      allowedLigueId = ligueId ? String(ligueId) : null
+    }
+
+    const filteredRows =
+      scope.role === "federal" ? rows : rows.filter((row) => {
+        if (!allowedLigueId) return false
+        const id = pickFirst(row, ["id_ligue", "id", "code_ligue", "code"])
+        return String(id ?? "") === allowedLigueId
+      })
+
+    const ligues = filteredRows.map((row, index) => {
       const id = pickFirst(row, ["id_ligue", "id", "code_ligue", "code"])
       const nom = pickFirst(row, ["nom_ligue", "nom", "ligue", "designation"])
       const pseudo = pickFirst(row, ["pseudo_ligue", "pseudo", "sigle", "abreviation", "abbreviation"])
