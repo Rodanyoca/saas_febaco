@@ -1,18 +1,33 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
+import { useRef, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { officiels } from "@/lib/demo-data"
-import { ArrowLeft, FileDown, BadgeCheck, MapPin, Briefcase } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ArrowLeft, Camera, FileDown, BadgeCheck, MapPin, Briefcase } from "lucide-react"
+
+function initials(prenom?: string, nom?: string): string {
+  const p = String(prenom ?? "").trim()
+  const n = String(nom ?? "").trim()
+  const a = p ? p[0] : ""
+  const b = n ? n[0] : ""
+  const v = `${a}${b}`.toUpperCase()
+  return v || "OF"
+}
 
 export default function OfficielDetailPage() {
   const params = useParams()
   const router = useRouter()
   const officiel = officiels.find((o) => o.id === params.id)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
+
+  const avatarSrc = localAvatarUrl || officiel?.avatarUrl || null
 
   if (!officiel) {
     return (
@@ -53,9 +68,10 @@ export default function OfficielDetailPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                  <BadgeCheck className="h-10 w-10 text-primary" />
-                </div>
+                <Avatar className="size-20">
+                  <AvatarImage src={avatarSrc || undefined} alt={`${officiel.prenom} ${officiel.nom}`} />
+                  <AvatarFallback className="text-lg">{initials(officiel.prenom, officiel.nom)}</AvatarFallback>
+                </Avatar>
                 <div>
                   <h2 className="text-2xl font-bold">
                     {officiel.prenom} {officiel.nom}
@@ -68,8 +84,31 @@ export default function OfficielDetailPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">ID Officiel</p>
+                <p className="text-sm text-muted-foreground">Code Officiel</p>
                 <p className="font-mono font-medium">{officiel.id}</p>
+                <div className="mt-3 flex justify-end">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const url = URL.createObjectURL(file)
+                      setLocalAvatarUrl(url)
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Ajouter la photo
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -80,11 +119,13 @@ export default function OfficielDetailPage() {
             title="Identité"
             icon={BadgeCheck}
             fields={[
-              { label: "ID Officiel", value: officiel.id },
+              { label: "Code Officiel", value: officiel.id },
               { label: "Nom complet", value: `${officiel.prenom} ${officiel.nom}` },
               { label: "Sexe", value: officiel.sexe === "M" ? "Masculin" : "Féminin" },
               { label: "Date de naissance", value: officiel.dateNaissance },
               { label: "Nationalité", value: officiel.nationalite },
+              { label: "Téléphone", value: officiel.telephone },
+              { label: "Email", value: officiel.email },
             ]}
           />
 

@@ -4,9 +4,32 @@ import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { officiels, Officiel, getFilterOptions } from "@/lib/demo-data"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
+function initials(prenom?: string, nom?: string): string {
+  const p = String(prenom ?? "").trim()
+  const n = String(nom ?? "").trim()
+  const a = p ? p[0] : ""
+  const b = n ? n[0] : ""
+  const v = `${a}${b}`.toUpperCase()
+  return v || "OF"
+}
 
 const columns: Column<Officiel>[] = [
-  { key: "id", header: "ID", className: "font-mono text-sm" },
+  {
+    key: "id",
+    header: "Code",
+    className: "font-mono text-sm",
+    render: (item) => (
+      <div className="flex items-center gap-2">
+        <span>{item.id}</span>
+        <Avatar className="size-7">
+          <AvatarImage src={item.avatarUrl || undefined} alt={`${item.prenom} ${item.nom}`} />
+          <AvatarFallback className="text-[10px]">{initials(item.prenom, item.nom)}</AvatarFallback>
+        </Avatar>
+      </div>
+    ),
+  },
   {
     key: "nom",
     header: "Nom complet",

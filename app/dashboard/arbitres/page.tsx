@@ -4,9 +4,39 @@ import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { arbitres, Arbitre, getFilterOptions } from "@/lib/demo-data"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
+function formatMatricule(value: unknown): string {
+  const raw = String(value ?? "").trim()
+  const digits = raw.replace(/\D/g, "")
+  if (!digits) return raw
+  return digits.slice(-3).padStart(3, "0")
+}
+
+function initials(prenom?: string, nom?: string): string {
+  const p = String(prenom ?? "").trim()
+  const n = String(nom ?? "").trim()
+  const a = p ? p[0] : ""
+  const b = n ? n[0] : ""
+  const v = `${a}${b}`.toUpperCase()
+  return v || "AR"
+}
 
 const columns: Column<Arbitre>[] = [
-  { key: "id", header: "ID", className: "font-mono text-sm" },
+  {
+    key: "id",
+    header: "Matricule",
+    className: "font-mono text-sm",
+    render: (item) => (
+      <div className="flex items-center gap-2">
+        <span>{formatMatricule(item.id)}</span>
+        <Avatar className="size-7">
+          <AvatarImage src={item.avatarUrl || undefined} alt={`${item.prenom} ${item.nom}`} />
+          <AvatarFallback className="text-[10px]">{initials(item.prenom, item.nom)}</AvatarFallback>
+        </Avatar>
+      </div>
+    ),
+  },
   {
     key: "nom",
     header: "Nom complet",
@@ -15,8 +45,17 @@ const columns: Column<Arbitre>[] = [
   },
   { key: "sexe", header: "Sexe", className: "text-center" },
   { key: "niveau", header: "Niveau" },
-  { key: "ligue", header: "Ligue" },
-  { key: "entente", header: "Entente" },
+  {
+    key: "ligue",
+    header: "Ligue / Entente",
+    className: "min-w-0",
+    render: (item) => (
+      <div className="flex flex-col leading-tight min-w-0">
+        <span className="font-medium text-foreground truncate">{item.ligue}</span>
+        <span className="text-xs text-muted-foreground truncate">{item.entente}</span>
+      </div>
+    ),
+  },
   {
     key: "statut",
     header: "Statut",

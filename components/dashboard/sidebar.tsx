@@ -17,13 +17,23 @@ import {
   Stethoscope,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 
-const navigation = [
+type NavItem = { name: string; href: string; icon: React.ComponentType<{ className?: string }> }
+
+const navigationDashboard: NavItem[] = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
+]
+
+const navigationTerritoriale: NavItem[] = [
   { name: "Ligues", href: "/dashboard/ligues", icon: MapPin },
   { name: "Ententes", href: "/dashboard/ententes", icon: Building2 },
   { name: "Clubs", href: "/dashboard/clubs", icon: Shield },
+]
+
+const navigationActeurs: NavItem[] = [
   { name: "Athletes", href: "/dashboard/athletes", icon: Users },
   { name: "Entraineurs", href: "/dashboard/coachs", icon: UserCog },
   { name: "Arbitres", href: "/dashboard/arbitres", icon: Flag },
@@ -31,9 +41,84 @@ const navigation = [
   { name: "Medecins", href: "/dashboard/medecins", icon: Stethoscope },
 ]
 
+const navigationCompetition: NavItem[] = []
+
+function NavLink({ item, collapsed, pathname }: { item: NavItem; collapsed: boolean; pathname: string }) {
+  const isDashboardRoot = item.href === "/dashboard"
+  const isActive = isDashboardRoot
+    ? pathname === "/dashboard"
+    : pathname === item.href || pathname.startsWith(item.href + "/")
+
+  return (
+    <Link
+      key={item.name}
+      href={item.href}
+      className={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+        isActive
+          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+          : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+      )}
+      title={collapsed ? item.name : undefined}
+    >
+      <item.icon className="h-5 w-5 flex-shrink-0" />
+      {!collapsed && <span>{item.name}</span>}
+    </Link>
+  )
+}
+
+function NavGroup({
+  title,
+  items,
+  open,
+  setOpen,
+  collapsed,
+  pathname,
+}: {
+  title: string
+  items: NavItem[]
+  open: boolean
+  setOpen: (v: boolean) => void
+  collapsed: boolean
+  pathname: string
+}) {
+  if (collapsed) {
+    return (
+      <>
+        {items.map((item) => (
+          <NavLink key={item.name} item={item} collapsed={collapsed} pathname={pathname} />
+        ))}
+      </>
+    )
+  }
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+      >
+        <span className="uppercase tracking-wide">{title}</span>
+        {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </button>
+      {open ? (
+        <div className="pl-2 space-y-1">
+          {items.map((item) => (
+            <NavLink key={item.name} item={item} collapsed={collapsed} pathname={pathname} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [openTerritoriale, setOpenTerritoriale] = useState(true)
+  const [openActeurs, setOpenActeurs] = useState(true)
+  const [openCompetition, setOpenCompetition] = useState(true)
 
   return (
     <aside
@@ -88,28 +173,36 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-2 py-4">
-          {navigation.map((item) => {
-            const isDashboardRoot = item.href === "/dashboard"
-            const isActive = isDashboardRoot
-              ? pathname === "/dashboard"
-              : pathname === item.href || pathname.startsWith(item.href + "/")
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                )}
-                title={collapsed ? item.name : undefined}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && <span>{item.name}</span>}
-              </Link>
-            )
-          })}
+          {navigationDashboard.map((item) => (
+            <NavLink key={item.name} item={item} collapsed={collapsed} pathname={pathname} />
+          ))}
+
+          <NavGroup
+            title="Structure territoriale"
+            items={navigationTerritoriale}
+            open={openTerritoriale}
+            setOpen={setOpenTerritoriale}
+            collapsed={collapsed}
+            pathname={pathname}
+          />
+
+          <NavGroup
+            title="Acteurs"
+            items={navigationActeurs}
+            open={openActeurs}
+            setOpen={setOpenActeurs}
+            collapsed={collapsed}
+            pathname={pathname}
+          />
+
+          <NavGroup
+            title="Competition"
+            items={navigationCompetition}
+            open={openCompetition}
+            setOpen={setOpenCompetition}
+            collapsed={collapsed}
+            pathname={pathname}
+          />
         </nav>
       </div>
     </aside>

@@ -8,7 +8,18 @@ import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Athlete } from "@/lib/demo-data"
-import { ArrowLeft, FileDown, User, MapPin, Trophy, Info } from "lucide-react"
+import { useRef } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ArrowLeft, Camera, FileDown, User, MapPin, Trophy, Info } from "lucide-react"
+
+function initials(prenom?: string, nom?: string): string {
+  const p = String(prenom ?? "").trim()
+  const n = String(nom ?? "").trim()
+  const a = p ? p[0] : ""
+  const b = n ? n[0] : ""
+  const v = `${a}${b}`.toUpperCase()
+  return v || "AT"
+}
 
 export default function AthleteDetailPage() {
   const params = useParams()
@@ -22,6 +33,8 @@ export default function AthleteDetailPage() {
 
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [loading, setLoading] = useState(true)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
     let canceled = false
@@ -48,6 +61,8 @@ export default function AthleteDetailPage() {
     if (!athleteId) return undefined
     return athletes.find((a) => a.id === athleteId || a.__key === athleteId)
   }, [athletes, athleteId])
+
+  const avatarSrc = localAvatarUrl || (athlete?.avatarUrl as string | undefined) || null
 
   if (loading) {
     return (
@@ -101,9 +116,10 @@ export default function AthleteDetailPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                  <User className="h-10 w-10 text-primary" />
-                </div>
+                <Avatar className="size-20">
+                  <AvatarImage src={avatarSrc || undefined} alt={`${athlete.prenom} ${athlete.nom}`} />
+                  <AvatarFallback className="text-lg">{initials(athlete.prenom, athlete.nom)}</AvatarFallback>
+                </Avatar>
                 <div>
                   <h2 className="text-2xl font-bold">
                     {athlete.prenom} {athlete.nom}
@@ -122,6 +138,29 @@ export default function AthleteDetailPage() {
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">ID Athlète</p>
                 <p className="font-mono font-medium">{athlete.id}</p>
+                <div className="mt-3 flex justify-end">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const url = URL.createObjectURL(file)
+                      setLocalAvatarUrl(url)
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Ajouter la photo
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

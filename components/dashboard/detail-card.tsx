@@ -23,9 +23,9 @@ export function DetailCard({ title, icon: Icon, fields }: DetailCardProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {fields.map((field, index) => (
-          <div key={index} className="flex justify-between items-start">
-            <span className="text-sm text-muted-foreground">{field.label}</span>
-            <span className="text-sm font-medium text-foreground text-right max-w-[60%]">
+          <div key={index} className="flex items-start justify-between gap-3">
+            <span className="text-sm text-muted-foreground shrink-0">{field.label}</span>
+            <span className="text-sm font-medium text-foreground text-right min-w-0 max-w-[70%] whitespace-normal break-words">
               {field.value ?? "-"}
             </span>
           </div>

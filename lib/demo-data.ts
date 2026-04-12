@@ -56,6 +56,7 @@ export interface Athlete {
   nom: string
   prenom: string
   sexe: string
+  avatarUrl?: string
   dateNaissance: string
   lieuNaissance: string
   nationalite: string
@@ -96,6 +97,11 @@ export interface Arbitre {
   sexe: string
   dateNaissance: string
   nationalite: string
+  avatarUrl?: string
+  telephone?: string
+  email?: string
+  tailleCm?: number
+  poidsKg?: number
   niveau: string
   province: string
   ligue: string
@@ -110,6 +116,9 @@ export interface Officiel {
   sexe: string
   dateNaissance: string
   nationalite: string
+  avatarUrl?: string
+  telephone?: string
+  email?: string
   fonction: string
   structure: string
   province: string
@@ -126,6 +135,9 @@ export interface Medecin {
   sexe: string
   dateNaissance: string
   nationalite: string
+  avatarUrl?: string
+  telephone?: string
+  email?: string
   specialite: string
   structureMedicale: string
   province: string
@@ -187,26 +199,264 @@ export const coachs: Coach[] = [
 ]
 
 export const arbitres: Arbitre[] = [
-  { id: "ARB001", nom: "KASHALA", prenom: "Victor", sexe: "M", dateNaissance: "1988-04-12", nationalite: "Congolaise", niveau: "FIBA", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", statut: "Actif" },
-  { id: "ARB002", nom: "MWELA", prenom: "Brigitte", sexe: "F", dateNaissance: "1990-08-22", nationalite: "Congolaise", niveau: "National", province: "Haut-Katanga", ligue: "Ligue du Katanga", entente: "Entente de Lubumbashi", statut: "Actif" },
-  { id: "ARB003", nom: "TSHILOMBO", prenom: "Éric", sexe: "M", dateNaissance: "1985-12-05", nationalite: "Congolaise", niveau: "National", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de Ngaliema", statut: "Actif" },
-  { id: "ARB004", nom: "KABWE", prenom: "Josué", sexe: "M", dateNaissance: "1992-02-18", nationalite: "Congolaise", niveau: "Provincial", province: "Kongo Central", ligue: "Ligue du Kongo Central", entente: "Entente de Matadi", statut: "Actif" },
-  { id: "ARB005", nom: "MUKALAY", prenom: "Sandra", sexe: "F", dateNaissance: "1995-07-30", nationalite: "Congolaise", niveau: "Provincial", province: "Sud-Kivu", ligue: "Ligue du Sud-Kivu", entente: "Entente de Bukavu", statut: "Actif" },
+  {
+    id: "ARB001",
+    nom: "KASHALA",
+    prenom: "Victor",
+    sexe: "M",
+    dateNaissance: "1988-04-12",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 000 0001",
+    email: "victor.kashala@febaco.cd",
+    tailleCm: 182,
+    poidsKg: 78,
+    niveau: "FIBA",
+    province: "Kinshasa",
+    ligue: "Ligue de Kinshasa",
+    entente: "Entente de la Gombe",
+    statut: "Actif",
+  },
+  {
+    id: "ARB002",
+    nom: "MWELA",
+    prenom: "Brigitte",
+    sexe: "F",
+    dateNaissance: "1990-08-22",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 000 0002",
+    email: "brigitte.mwela@febaco.cd",
+    tailleCm: 168,
+    poidsKg: 62,
+    niveau: "National",
+    province: "Haut-Katanga",
+    ligue: "Ligue du Katanga",
+    entente: "Entente de Lubumbashi",
+    statut: "Actif",
+  },
+  {
+    id: "ARB003",
+    nom: "TSHILOMBO",
+    prenom: "Éric",
+    sexe: "M",
+    dateNaissance: "1985-12-05",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 000 0003",
+    email: "eric.tshilombo@febaco.cd",
+    tailleCm: 176,
+    poidsKg: 74,
+    niveau: "National",
+    province: "Kinshasa",
+    ligue: "Ligue de Kinshasa",
+    entente: "Entente de Ngaliema",
+    statut: "Actif",
+  },
+  {
+    id: "ARB004",
+    nom: "KABWE",
+    prenom: "Josué",
+    sexe: "M",
+    dateNaissance: "1992-02-18",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 000 0004",
+    email: "josue.kabwe@febaco.cd",
+    tailleCm: 179,
+    poidsKg: 80,
+    niveau: "Provincial",
+    province: "Kongo Central",
+    ligue: "Ligue du Kongo Central",
+    entente: "Entente de Matadi",
+    statut: "Actif",
+  },
+  {
+    id: "ARB005",
+    nom: "MUKALAY",
+    prenom: "Sandra",
+    sexe: "F",
+    dateNaissance: "1995-07-30",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 000 0005",
+    email: "sandra.mukalay@febaco.cd",
+    tailleCm: 165,
+    poidsKg: 58,
+    niveau: "Provincial",
+    province: "Sud-Kivu",
+    ligue: "Ligue du Sud-Kivu",
+    entente: "Entente de Bukavu",
+    statut: "Actif",
+  },
 ]
 
 export const officiels: Officiel[] = [
-  { id: "OFF001", nom: "KABAMBA", prenom: "Robert", sexe: "M", dateNaissance: "1970-05-15", nationalite: "Congolaise", fonction: "Président", structure: "FEBACO", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "-", statut: "Actif" },
-  { id: "OFF002", nom: "LWAMBA", prenom: "Marie-Claire", sexe: "F", dateNaissance: "1978-09-22", nationalite: "Congolaise", fonction: "Secrétaire Général", structure: "FEBACO", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de Ngaliema", club: "-", statut: "Actif" },
-  { id: "OFF003", nom: "KALUBI", prenom: "François", sexe: "M", dateNaissance: "1975-03-10", nationalite: "Congolaise", fonction: "Président", structure: "Ligue du Katanga", province: "Haut-Katanga", ligue: "Ligue du Katanga", entente: "Entente de Lubumbashi", club: "-", statut: "Actif" },
-  { id: "OFF004", nom: "MUTEBA", prenom: "Jeanne", sexe: "F", dateNaissance: "1982-11-08", nationalite: "Congolaise", fonction: "Trésorier", structure: "BC Renaissance", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "BC Renaissance", statut: "Actif" },
-  { id: "OFF005", nom: "NKONGOLO", prenom: "David", sexe: "M", dateNaissance: "1980-06-25", nationalite: "Congolaise", fonction: "Directeur Technique", structure: "FEBACO", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "-", statut: "Actif" },
+  {
+    id: "OFF001",
+    nom: "KABAMBA",
+    prenom: "Robert",
+    sexe: "M",
+    dateNaissance: "1970-05-15",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 100 0001",
+    email: "robert.kabamba@febaco.cd",
+    fonction: "Président",
+    structure: "FEBACO",
+    province: "Kinshasa",
+    ligue: "Ligue de Kinshasa",
+    entente: "Entente de la Gombe",
+    club: "-",
+    statut: "Actif",
+  },
+  {
+    id: "OFF002",
+    nom: "LWAMBA",
+    prenom: "Marie-Claire",
+    sexe: "F",
+    dateNaissance: "1978-09-22",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 100 0002",
+    email: "marieclaire.lwamba@febaco.cd",
+    fonction: "Secrétaire Général",
+    structure: "FEBACO",
+    province: "Kinshasa",
+    ligue: "Ligue de Kinshasa",
+    entente: "Entente de Ngaliema",
+    club: "-",
+    statut: "Actif",
+  },
+  {
+    id: "OFF003",
+    nom: "KALUBI",
+    prenom: "François",
+    sexe: "M",
+    dateNaissance: "1975-03-10",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 100 0003",
+    email: "francois.kalubi@fecobasket.cd",
+    fonction: "Président",
+    structure: "Ligue du Katanga",
+    province: "Haut-Katanga",
+    ligue: "Ligue du Katanga",
+    entente: "Entente de Lubumbashi",
+    club: "-",
+    statut: "Actif",
+  },
+  {
+    id: "OFF004",
+    nom: "MUTEBA",
+    prenom: "Jeanne",
+    sexe: "F",
+    dateNaissance: "1982-11-08",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 100 0004",
+    email: "jeanne.muteba@bcrenaissance.cd",
+    fonction: "Trésorier",
+    structure: "BC Renaissance",
+    province: "Kinshasa",
+    ligue: "Ligue de Kinshasa",
+    entente: "Entente de la Gombe",
+    club: "BC Renaissance",
+    statut: "Actif",
+  },
+  {
+    id: "OFF005",
+    nom: "NKONGOLO",
+    prenom: "David",
+    sexe: "M",
+    dateNaissance: "1980-06-25",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 100 0005",
+    email: "david.nkongolo@febaco.cd",
+    fonction: "Directeur Technique",
+    structure: "FEBACO",
+    province: "Kinshasa",
+    ligue: "Ligue de Kinshasa",
+    entente: "Entente de la Gombe",
+    club: "-",
+    statut: "Actif",
+  },
 ]
 
 export const medecins: Medecin[] = [
-  { id: "MED001", nom: "KABONGO", prenom: "Dr. Antoine", sexe: "M", dateNaissance: "1972-08-14", nationalite: "Congolaise", specialite: "Médecine du sport", structureMedicale: "Clinique des Sports Kinshasa", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de la Gombe", club: "BC Renaissance", statut: "Actif" },
-  { id: "MED002", nom: "MWENZE", prenom: "Dr. Pauline", sexe: "F", dateNaissance: "1980-02-28", nationalite: "Congolaise", specialite: "Traumatologie", structureMedicale: "Hôpital Provincial Lubumbashi", province: "Haut-Katanga", ligue: "Ligue du Katanga", entente: "Entente de Lubumbashi", club: "BC Lubumbashi", statut: "Actif" },
-  { id: "MED003", nom: "TSHISEKEDI", prenom: "Dr. Bruno", sexe: "M", dateNaissance: "1978-11-10", nationalite: "Congolaise", specialite: "Kinésithérapie", structureMedicale: "Centre Médical FEBACO", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de Ngaliema", club: "AS Dragons", statut: "Actif" },
-  { id: "MED004", nom: "LUKUSA", prenom: "Dr. Grace", sexe: "F", dateNaissance: "1985-05-20", nationalite: "Congolaise", specialite: "Médecine générale", structureMedicale: "Polyclinique Bukavu", province: "Sud-Kivu", ligue: "Ligue du Sud-Kivu", entente: "Entente de Bukavu", club: "AS Bukavu", statut: "Actif" },
+  {
+    id: "MED001",
+    nom: "KABONGO",
+    prenom: "Dr. Antoine",
+    sexe: "M",
+    dateNaissance: "1972-08-14",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 200 0001",
+    email: "antoine.kabongo@febaco.cd",
+    specialite: "Médecine du sport",
+    structureMedicale: "Clinique des Sports Kinshasa",
+    province: "Kinshasa",
+    ligue: "Ligue de Kinshasa",
+    entente: "Entente de la Gombe",
+    club: "BC Renaissance",
+    statut: "Actif",
+  },
+  {
+    id: "MED002",
+    nom: "MWENZE",
+    prenom: "Dr. Pauline",
+    sexe: "F",
+    dateNaissance: "1980-02-28",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 200 0002",
+    email: "pauline.mwenze@febaco.cd",
+    specialite: "Traumatologie",
+    structureMedicale: "Hôpital Provincial Lubumbashi",
+    province: "Haut-Katanga",
+    ligue: "Ligue du Katanga",
+    entente: "Entente de Lubumbashi",
+    club: "BC Lubumbashi",
+    statut: "Actif",
+  },
+  {
+    id: "MED003",
+    nom: "TSHISEKEDI",
+    prenom: "Dr. Bruno",
+    sexe: "M",
+    dateNaissance: "1978-11-10",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 200 0003",
+    email: "bruno.tshisekedi@febaco.cd",
+    specialite: "Kinésithérapie",
+    structureMedicale: "Centre Médical FEBACO",
+    province: "Kinshasa",
+    ligue: "Ligue de Kinshasa",
+    entente: "Entente de Ngaliema",
+    club: "AS Dragons",
+    statut: "Actif",
+  },
+  {
+    id: "MED004",
+    nom: "LUKUSA",
+    prenom: "Dr. Grace",
+    sexe: "F",
+    dateNaissance: "1985-05-20",
+    nationalite: "Congolaise",
+    avatarUrl: "",
+    telephone: "+243 81 200 0004",
+    email: "grace.lukusa@febaco.cd",
+    specialite: "Médecine générale",
+    structureMedicale: "Polyclinique Bukavu",
+    province: "Sud-Kivu",
+    ligue: "Ligue du Sud-Kivu",
+    entente: "Entente de Bukavu",
+    club: "AS Bukavu",
+    statut: "Actif",
+  },
 ]
 
 // Statistiques globales
