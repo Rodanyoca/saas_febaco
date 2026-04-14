@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Arbitre } from "@/lib/demo-data"
+import { Arbitre } from "@/lib/models"
 
 function formatMatricule(value: unknown): string {
   const raw = String(value ?? "").trim()

@@ -1,9 +1,10 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { medecins, Medecin, getFilterOptions } from "@/lib/demo-data"
+import { Medecin, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function formatCode(value: unknown): string {
@@ -54,30 +55,53 @@ const columns: Column<Medecin>[] = [
   },
 ]
 
-const filters: Filter[] = [
-  {
-    key: "province",
-    label: "Province",
-    options: getFilterOptions(medecins, "province"),
-  },
-  {
-    key: "ligue",
-    label: "Ligue",
-    options: getFilterOptions(medecins, "ligue"),
-  },
-  {
-    key: "specialite",
-    label: "Spécialité",
-    options: getFilterOptions(medecins, "specialite"),
-  },
-  {
-    key: "statut",
-    label: "Statut",
-    options: getFilterOptions(medecins, "statut"),
-  },
-]
-
 export default function MedecinsPage() {
+  const [medecins, setMedecins] = useState<Medecin[]>([])
+
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/medecins", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setMedecins(Array.isArray(json?.medecins) ? json.medecins : [])
+        }
+      } catch {
+        if (!canceled) setMedecins([])
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  const filters: Filter[] = useMemo(() => {
+    return [
+      {
+        key: "province",
+        label: "Province",
+        options: getFilterOptions(medecins, "province"),
+      },
+      {
+        key: "ligue",
+        label: "Ligue",
+        options: getFilterOptions(medecins, "ligue"),
+      },
+      {
+        key: "specialite",
+        label: "Spécialité",
+        options: getFilterOptions(medecins, "specialite"),
+      },
+      {
+        key: "statut",
+        label: "Statut",
+        options: getFilterOptions(medecins, "statut"),
+      },
+    ]
+  }, [medecins])
+
   return (
     <div className="flex flex-col">
       <Header
@@ -92,7 +116,7 @@ export default function MedecinsPage() {
           filters={filters}
           searchPlaceholder="Rechercher un médecin..."
           detailHref={(item) => `/dashboard/medecins/${item.id}`}
-          idKey="id"
+          idKey="__key"
         />
       </div>
     </div>

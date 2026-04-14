@@ -1,9 +1,10 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { officiels, Officiel, getFilterOptions } from "@/lib/demo-data"
+import { Officiel, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function initials(prenom?: string, nom?: string): string {
@@ -39,7 +40,6 @@ const columns: Column<Officiel>[] = [
   { key: "fonction", header: "Fonction" },
   { key: "structure", header: "Structure" },
   { key: "ligue", header: "Ligue" },
-  { key: "club", header: "Club" },
   {
     key: "statut",
     header: "Statut",
@@ -47,30 +47,48 @@ const columns: Column<Officiel>[] = [
   },
 ]
 
-const filters: Filter[] = [
-  {
-    key: "province",
-    label: "Province",
-    options: getFilterOptions(officiels, "province"),
-  },
-  {
-    key: "ligue",
-    label: "Ligue",
-    options: getFilterOptions(officiels, "ligue"),
-  },
-  {
-    key: "fonction",
-    label: "Fonction",
-    options: getFilterOptions(officiels, "fonction"),
-  },
-  {
-    key: "statut",
-    label: "Statut",
-    options: getFilterOptions(officiels, "statut"),
-  },
-]
-
 export default function OfficielsPage() {
+  const [officiels, setOfficiels] = useState<Officiel[]>([])
+
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/officiels", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setOfficiels(Array.isArray(json?.officiels) ? json.officiels : [])
+        }
+      } catch {
+        if (!canceled) setOfficiels([])
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  const filters: Filter[] = useMemo(() => {
+    return [
+      {
+        key: "province",
+        label: "Province",
+        options: getFilterOptions(officiels, "province"),
+      },
+      {
+        key: "structure",
+        label: "Structure",
+        options: getFilterOptions(officiels, "structure"),
+      },
+      {
+        key: "statut",
+        label: "Statut",
+        options: getFilterOptions(officiels, "statut"),
+      },
+    ]
+  }, [officiels])
+
   return (
     <div className="flex flex-col">
       <Header
@@ -85,7 +103,7 @@ export default function OfficielsPage() {
           filters={filters}
           searchPlaceholder="Rechercher un officiel..."
           detailHref={(item) => `/dashboard/officiels/${item.id}`}
-          idKey="id"
+          idKey="__key"
         />
       </div>
     </div>

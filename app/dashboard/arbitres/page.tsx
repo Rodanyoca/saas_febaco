@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Arbitre, getFilterOptions } from "@/lib/demo-data"
+import { Arbitre, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function formatMatricule(value: unknown): string {
@@ -42,15 +42,15 @@ const columns: Column<Arbitre>[] = [
     key: "nom",
     header: "Nom complet",
     className: "font-medium",
-    render: (item) => `${item.prenom} ${item.nom}`,
+    render: (item) => (
+      <div className="flex flex-col leading-tight min-w-0">
+        <span className="truncate">{item.prenom} {item.nom}</span>
+        <span className="text-xs text-muted-foreground truncate">
+          {String(item.niveau ?? "").trim()} · {String(item.sexe ?? "").trim()}
+        </span>
+      </div>
+    ),
   },
-  {
-    key: "sexe",
-    header: "S",
-    className: "w-[44px] text-center",
-    render: (item) => <span className="text-xs font-medium">{String(item.sexe ?? "").trim()}</span>,
-  },
-  { key: "niveau", header: "Niveau" },
   {
     key: "ligue",
     header: "Ligue / Entente",

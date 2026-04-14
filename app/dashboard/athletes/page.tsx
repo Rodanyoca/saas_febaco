@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Athlete, getFilterOptions } from "@/lib/demo-data"
+import { Athlete, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function initials(prenom?: string, nom?: string): string {

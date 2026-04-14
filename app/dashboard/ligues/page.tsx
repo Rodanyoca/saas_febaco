@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Ligue, getFilterOptions } from "@/lib/demo-data"
+import { Ligue, getFilterOptions } from "@/lib/models"
 
 function formatLigueId(value: unknown): string {
   const raw = String(value ?? "").trim()

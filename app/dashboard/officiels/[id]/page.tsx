@@ -1,13 +1,13 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { officiels } from "@/lib/demo-data"
+import { Officiel } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowLeft, Camera, BadgeCheck, MapPin, Briefcase } from "lucide-react"
 
@@ -23,11 +23,56 @@ function initials(prenom?: string, nom?: string): string {
 export default function OfficielDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const officiel = officiels.find((o) => o.id === params.id)
+  const idParam = useMemo(() => {
+    const raw = (params as { id?: string | string[] })?.id
+    return Array.isArray(raw) ? raw[0] : raw
+  }, [params])
+
+  const [officiels, setOfficiels] = useState<Officiel[]>([])
+  const [loading, setLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
 
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/officiels", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setOfficiels(Array.isArray(json?.officiels) ? json.officiels : [])
+        }
+      } catch {
+        if (!canceled) setOfficiels([])
+      } finally {
+        if (!canceled) setLoading(false)
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  const officiel = useMemo(() => {
+    if (!idParam) return undefined
+    return officiels.find(
+      (o) => String(o.id) === String(idParam) || String((o as unknown as { __key?: unknown }).__key) === String(idParam)
+    )
+  }, [officiels, idParam])
+
   const avatarSrc = localAvatarUrl || officiel?.avatarUrl || null
+
+  if (loading) {
+    return (
+      <div className="flex flex-col">
+        <Header title="Chargement..." />
+        <div className="flex-1 p-6">
+          <p className="text-muted-foreground">Chargement de la fiche officiel.</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!officiel) {
     return (

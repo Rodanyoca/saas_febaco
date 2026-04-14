@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Coach, getFilterOptions } from "@/lib/demo-data"
+import { Coach, getFilterOptions } from "@/lib/models"
 
 const columns: Column<Coach>[] = [
   { key: "id", header: "ID", className: "font-mono text-sm" },

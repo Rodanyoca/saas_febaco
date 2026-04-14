@@ -1,14 +1,14 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { medecins } from "@/lib/demo-data"
+import { Medecin } from "@/lib/models"
 import { ArrowLeft, Camera, Stethoscope, MapPin, Activity } from "lucide-react"
 
 function formatCode(value: unknown): string {
@@ -30,12 +30,57 @@ function initials(prenom?: string, nom?: string): string {
 export default function MedecinDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const medecin = medecins.find((m) => m.id === params.id)
+  const idParam = useMemo(() => {
+    const raw = (params as { id?: string | string[] })?.id
+    return Array.isArray(raw) ? raw[0] : raw
+  }, [params])
+
+  const [medecins, setMedecins] = useState<Medecin[]>([])
+  const [loading, setLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
 
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/medecins", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setMedecins(Array.isArray(json?.medecins) ? json.medecins : [])
+        }
+      } catch {
+        if (!canceled) setMedecins([])
+      } finally {
+        if (!canceled) setLoading(false)
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  const medecin = useMemo(() => {
+    if (!idParam) return undefined
+    return medecins.find(
+      (m) => String(m.id) === String(idParam) || String((m as unknown as { __key?: unknown }).__key) === String(idParam)
+    )
+  }, [medecins, idParam])
+
   const avatarSrc = localAvatarUrl || medecin?.avatarUrl || null
   const code = useMemo(() => formatCode(medecin?.id), [medecin?.id])
+
+  if (loading) {
+    return (
+      <div className="flex flex-col">
+        <Header title="Chargement..." />
+        <div className="flex-1 p-6">
+          <p className="text-muted-foreground">Chargement de la fiche médecin.</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!medecin) {
     return (
