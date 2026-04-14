@@ -86,6 +86,7 @@ const columns: Column<Athlete>[] = [
 export default function AthletesPage() {
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let canceled = false
@@ -101,7 +102,26 @@ export default function AthletesPage() {
         const json = await res.json()
 
         if (!canceled) {
-          setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
+          const normalize = (value: unknown) => String(value ?? "").trim()
+          const normalizeSexe = (value: unknown) => {
+            const v = normalize(value).toLowerCase()
+            if (v === "f" || v.startsWith("f")) return "F"
+            return "M"
+          }
+
+          const raw = Array.isArray(json?.athletes) ? (json.athletes as Athlete[]) : []
+          const cleaned = raw.map((a) => {
+            const next = { ...a } as Athlete
+            next.sexe = normalizeSexe(a.sexe)
+            next.statut = normalize((a as unknown as { statut?: unknown }).statut)
+            next.province = normalize((a as unknown as { province?: unknown }).province)
+            next.ligue = normalize((a as unknown as { ligue?: unknown }).ligue)
+            next.entente = normalize((a as unknown as { entente?: unknown }).entente)
+            next.club = normalize((a as unknown as { club?: unknown }).club)
+            return next
+          })
+
+          setAthletes(cleaned)
         }
       } catch {
         if (!canceled) {
@@ -117,34 +137,29 @@ export default function AthletesPage() {
   }, [])
 
   const filters: Filter[] = useMemo(() => {
+    const selectedEntente = filterValues.entente
+    const athletesForClubs = selectedEntente && selectedEntente !== "all"
+      ? athletes.filter((a) => String(a.entente) === String(selectedEntente))
+      : athletes
+
     const base: Filter[] = [
       {
-        key: "province",
-        label: "Province",
-        options: getFilterOptions(athletes, "province"),
-      },
-      {
-        key: "ligue",
-        label: "Ligue",
-        options: getFilterOptions(athletes, "ligue"),
+        key: "entente",
+        label: "Entente",
+        options: getFilterOptions(athletes, "entente"),
       },
       {
         key: "club",
         label: "Club",
-        options: getFilterOptions(athletes, "club"),
+        options: getFilterOptions(athletesForClubs, "club"),
       },
       {
         key: "sexe",
         label: "Sexe",
         options: [
-          { value: "M", label: "Masculin" },
-          { value: "F", label: "Féminin" },
+          { value: "M", label: "M" },
+          { value: "F", label: "F" },
         ],
-      },
-      {
-        key: "categorie",
-        label: "Catégorie",
-        options: getFilterOptions(athletes, "categorie"),
       },
       {
         key: "statut",
@@ -153,12 +168,12 @@ export default function AthletesPage() {
       },
     ]
 
-    if (userRole === "ligue" || userRole === "entente") {
-      return base.filter((f) => f.key !== "ligue")
+    if (userRole === "entente") {
+      return base.filter((f) => f.key !== "entente")
     }
 
     return base
-  }, [athletes, userRole])
+  }, [athletes, filterValues.entente, userRole])
 
   return (
     <div className="flex flex-col">
@@ -172,6 +187,8 @@ export default function AthletesPage() {
           data={athletes}
           columns={columns}
           filters={filters}
+          filterValues={filterValues}
+          onFilterValuesChange={setFilterValues}
           searchPlaceholder="Rechercher un athlète..."
           detailHref={(item) => `/dashboard/athletes/${item.id}`}
           idKey="__key"

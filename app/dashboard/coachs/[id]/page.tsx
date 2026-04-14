@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { coachs } from "@/lib/demo-data"
-import { ArrowLeft, FileDown, UserCog, MapPin, Award } from "lucide-react"
+import { ArrowLeft, UserCog, MapPin, Award } from "lucide-react"
 
 export default function CoachDetailPage() {
   const params = useParams()
@@ -29,23 +29,15 @@ export default function CoachDetailPage() {
     )
   }
 
-  const handleExportPDF = () => {
-    alert("Export PDF - Cette fonctionnalité sera connectée à l'API")
-  }
-
   return (
     <div className="flex flex-col">
       <Header title={`Fiche Entraîneur: ${coach.prenom} ${coach.nom}`} />
 
       <div className="flex-1 p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => router.back()}>
+          <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour à la liste
-          </Button>
-          <Button onClick={handleExportPDF}>
-            <FileDown className="mr-2 h-4 w-4" />
-            Exporter PDF
           </Button>
         </div>
 

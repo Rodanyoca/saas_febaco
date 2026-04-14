@@ -1,9 +1,10 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { arbitres, Arbitre, getFilterOptions } from "@/lib/demo-data"
+import { Arbitre, getFilterOptions } from "@/lib/demo-data"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function formatMatricule(value: unknown): string {
@@ -43,7 +44,12 @@ const columns: Column<Arbitre>[] = [
     className: "font-medium",
     render: (item) => `${item.prenom} ${item.nom}`,
   },
-  { key: "sexe", header: "Sexe", className: "text-center" },
+  {
+    key: "sexe",
+    header: "S",
+    className: "w-[44px] text-center",
+    render: (item) => <span className="text-xs font-medium">{String(item.sexe ?? "").trim()}</span>,
+  },
   { key: "niveau", header: "Niveau" },
   {
     key: "ligue",
@@ -63,41 +69,51 @@ const columns: Column<Arbitre>[] = [
   },
 ]
 
-const filters: Filter[] = [
-  {
-    key: "province",
-    label: "Province",
-    options: getFilterOptions(arbitres, "province"),
-  },
-  {
-    key: "ligue",
-    label: "Ligue",
-    options: getFilterOptions(arbitres, "ligue"),
-  },
-  {
-    key: "entente",
-    label: "Entente",
-    options: getFilterOptions(arbitres, "entente"),
-  },
-  {
-    key: "niveau",
-    label: "Niveau",
-    options: getFilterOptions(arbitres, "niveau"),
-  },
-  {
-    key: "statut",
-    label: "Statut",
-    options: getFilterOptions(arbitres, "statut"),
-  },
-]
-
 export default function ArbitresPage() {
+  const [arbitres, setArbitres] = useState<Arbitre[]>([])
+
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/arbitres", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setArbitres(Array.isArray(json?.arbitres) ? json.arbitres : [])
+        }
+      } catch {
+        if (!canceled) setArbitres([])
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  const filters: Filter[] = useMemo(() => {
+    return [
+      {
+        key: "province",
+        label: "Province",
+        options: getFilterOptions(arbitres, "province"),
+      },
+      {
+        key: "niveau",
+        label: "Niveau",
+        options: getFilterOptions(arbitres, "niveau"),
+      },
+      {
+        key: "statut",
+        label: "Statut",
+        options: getFilterOptions(arbitres, "statut"),
+      },
+    ]
+  }, [arbitres])
+
   return (
     <div className="flex flex-col">
-      <Header
-        title="Arbitres"
-        subtitle="Liste des arbitres officiels de la FECOBASKET"
-      />
+      <Header title="Arbitres" subtitle="Liste des arbitres affiliés à la FEBACO" />
 
       <div className="flex-1 p-6">
         <DataTable
@@ -106,7 +122,7 @@ export default function ArbitresPage() {
           filters={filters}
           searchPlaceholder="Rechercher un arbitre..."
           detailHref={(item) => `/dashboard/arbitres/${item.id}`}
-          idKey="id"
+          idKey="__key"
         />
       </div>
     </div>

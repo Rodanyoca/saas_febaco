@@ -26,6 +26,7 @@ export interface Club {
   id: string
   nom: string
   categorie: string
+  avatarUrl?: string
   entente: string
   ligue: string
   province: string
@@ -196,99 +197,6 @@ export const coachs: Coach[] = [
   { id: "COA003", nom: "LUNDA", prenom: "Albert", sexe: "M", dateNaissance: "1980-03-15", nationalite: "Congolaise", niveau: "Provincial", specialite: "Formation", province: "Kinshasa", ligue: "Ligue de Kinshasa", entente: "Entente de Ngaliema", club: "AS Dragons", equipe: "U18 Hommes", statut: "Actif" },
   { id: "COA004", nom: "KASANDA", prenom: "Michel", sexe: "M", dateNaissance: "1978-09-08", nationalite: "Congolaise", niveau: "Fédéral", specialite: "Seniors", province: "Sud-Kivu", ligue: "Ligue du Sud-Kivu", entente: "Entente de Bukavu", club: "AS Bukavu", equipe: "Senior Hommes", statut: "Actif" },
   { id: "COA005", nom: "NGANDU", prenom: "Félicien", sexe: "M", dateNaissance: "1985-01-30", nationalite: "Congolaise", niveau: "Provincial", specialite: "Juniors", province: "Lualaba", ligue: "Ligue du Katanga", entente: "Entente de Kolwezi", club: "Sporting Club Kolwezi", equipe: "U20 Hommes", statut: "Actif" },
-]
-
-export const arbitres: Arbitre[] = [
-  {
-    id: "ARB001",
-    nom: "KASHALA",
-    prenom: "Victor",
-    sexe: "M",
-    dateNaissance: "1988-04-12",
-    nationalite: "Congolaise",
-    avatarUrl: "",
-    telephone: "+243 81 000 0001",
-    email: "victor.kashala@febaco.cd",
-    tailleCm: 182,
-    poidsKg: 78,
-    niveau: "FIBA",
-    province: "Kinshasa",
-    ligue: "Ligue de Kinshasa",
-    entente: "Entente de la Gombe",
-    statut: "Actif",
-  },
-  {
-    id: "ARB002",
-    nom: "MWELA",
-    prenom: "Brigitte",
-    sexe: "F",
-    dateNaissance: "1990-08-22",
-    nationalite: "Congolaise",
-    avatarUrl: "",
-    telephone: "+243 81 000 0002",
-    email: "brigitte.mwela@febaco.cd",
-    tailleCm: 168,
-    poidsKg: 62,
-    niveau: "National",
-    province: "Haut-Katanga",
-    ligue: "Ligue du Katanga",
-    entente: "Entente de Lubumbashi",
-    statut: "Actif",
-  },
-  {
-    id: "ARB003",
-    nom: "TSHILOMBO",
-    prenom: "Éric",
-    sexe: "M",
-    dateNaissance: "1985-12-05",
-    nationalite: "Congolaise",
-    avatarUrl: "",
-    telephone: "+243 81 000 0003",
-    email: "eric.tshilombo@febaco.cd",
-    tailleCm: 176,
-    poidsKg: 74,
-    niveau: "National",
-    province: "Kinshasa",
-    ligue: "Ligue de Kinshasa",
-    entente: "Entente de Ngaliema",
-    statut: "Actif",
-  },
-  {
-    id: "ARB004",
-    nom: "KABWE",
-    prenom: "Josué",
-    sexe: "M",
-    dateNaissance: "1992-02-18",
-    nationalite: "Congolaise",
-    avatarUrl: "",
-    telephone: "+243 81 000 0004",
-    email: "josue.kabwe@febaco.cd",
-    tailleCm: 179,
-    poidsKg: 80,
-    niveau: "Provincial",
-    province: "Kongo Central",
-    ligue: "Ligue du Kongo Central",
-    entente: "Entente de Matadi",
-    statut: "Actif",
-  },
-  {
-    id: "ARB005",
-    nom: "MUKALAY",
-    prenom: "Sandra",
-    sexe: "F",
-    dateNaissance: "1995-07-30",
-    nationalite: "Congolaise",
-    avatarUrl: "",
-    telephone: "+243 81 000 0005",
-    email: "sandra.mukalay@febaco.cd",
-    tailleCm: 165,
-    poidsKg: 58,
-    niveau: "Provincial",
-    province: "Sud-Kivu",
-    ligue: "Ligue du Sud-Kivu",
-    entente: "Entente de Bukavu",
-    statut: "Actif",
-  },
 ]
 
 export const officiels: Officiel[] = [
@@ -467,7 +375,7 @@ export const stats = {
   equipes: clubs.reduce((acc, club) => acc + club.nombreEquipes, 0),
   athletes: athletes.length,
   coachs: coachs.length,
-  arbitres: arbitres.length,
+  arbitres: 0,
   officiels: officiels.length,
   medecins: medecins.length,
 }
@@ -478,6 +386,19 @@ export function getFilterOptions<T extends Record<string, unknown>>(
   key: keyof T | string
 ): { value: string; label: string }[] {
   const k = String(key)
-  const uniqueValues = [...new Set(data.map((item) => String(item[k as keyof T])))]
-  return uniqueValues.filter(Boolean).map((value) => ({ value, label: value }))
+  const seen = new Set<string>()
+  const options: { value: string; label: string }[] = []
+
+  for (const item of data) {
+    const raw = String(item[k as keyof T] ?? "")
+    const value = raw.trim()
+    if (!value) continue
+
+    const dedupeKey = value.toLowerCase()
+    if (seen.has(dedupeKey)) continue
+    seen.add(dedupeKey)
+    options.push({ value, label: value })
+  }
+
+  return options
 }

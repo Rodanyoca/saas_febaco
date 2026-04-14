@@ -8,7 +8,15 @@ import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Athlete, Club, Equipe } from "@/lib/demo-data"
-import { ArrowLeft, FileDown, Shield, MapPin, Users, Layers } from "lucide-react"
+import { useRef } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ArrowLeft, Camera, Shield, MapPin, Users, Layers } from "lucide-react"
+
+function initials(nom?: string): string {
+  const n = String(nom ?? "").trim()
+  const a = n ? n[0] : ""
+  return (a || "CL").toUpperCase()
+}
 
 export default function ClubDetailPage() {
   const params = useParams()
@@ -22,6 +30,8 @@ export default function ClubDetailPage() {
   const [equipes, setEquipes] = useState<Equipe[]>([])
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [loading, setLoading] = useState(true)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
     let canceled = false
@@ -87,6 +97,8 @@ export default function ClubDetailPage() {
     return clubs.find((c) => String(c.id) === String(idParam))
   }, [clubs, idParam])
 
+  const avatarSrc = localAvatarUrl || (club?.avatarUrl as string | undefined) || null
+
   const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase()
 
   const clubEquipes = useMemo(() => {
@@ -129,11 +141,6 @@ export default function ClubDetailPage() {
     )
   }
 
-  const handleExportPDF = () => {
-    // Placeholder for PDF export
-    alert("Export PDF - Cette fonctionnalité sera connectée à l'API")
-  }
-
   return (
     <div className="flex flex-col">
       <Header title={`Fiche Club: ${club.nom}`} />
@@ -141,13 +148,9 @@ export default function ClubDetailPage() {
       <div className="flex-1 p-6 space-y-6">
         {/* Back button and actions */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => router.back()}>
+          <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour à la liste
-          </Button>
-          <Button onClick={handleExportPDF}>
-            <FileDown className="mr-2 h-4 w-4" />
-            Exporter PDF
           </Button>
         </div>
 
@@ -156,9 +159,10 @@ export default function ClubDetailPage() {
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10">
-                  <Shield className="h-8 w-8 text-primary" />
-                </div>
+                <Avatar className="h-16 w-16 rounded-xl">
+                  <AvatarImage src={avatarSrc || undefined} alt={club.nom} />
+                  <AvatarFallback className="rounded-xl">{initials(club.nom)}</AvatarFallback>
+                </Avatar>
                 <div>
                   <h2 className="text-2xl font-bold">{club.nom}</h2>
                   <p className="text-muted-foreground">{club.categorie}</p>
@@ -170,6 +174,29 @@ export default function ClubDetailPage() {
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">ID Club</p>
                 <p className="font-mono font-medium">{club.id}</p>
+                <div className="mt-3 flex justify-end">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const url = URL.createObjectURL(file)
+                      setLocalAvatarUrl(url)
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Ajouter la photo
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

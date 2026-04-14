@@ -5,26 +5,54 @@ import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Club, getFilterOptions } from "@/lib/demo-data"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
+function initials(nom?: string): string {
+  const n = String(nom ?? "").trim()
+  const a = n ? n[0] : ""
+  return (a || "CL").toUpperCase()
+}
 
 const columns: Column<Club>[] = [
-  { key: "id", header: "ID Club", className: "font-mono text-sm" },
+  {
+    key: "id",
+    header: "ID Club",
+    className: "font-mono text-sm",
+    render: (item) => (
+      <div className="flex items-center gap-2">
+        <span>{item.id}</span>
+        <Avatar className="size-7">
+          <AvatarImage src={(item.avatarUrl as string | undefined) || undefined} alt={item.nom} />
+          <AvatarFallback className="text-[10px]">{initials(item.nom)}</AvatarFallback>
+        </Avatar>
+      </div>
+    ),
+  },
   {
     key: "nom",
     header: "Club",
-    className: "min-w-[220px]",
+    className: "min-w-0",
     render: (item) => (
-      <div className="flex flex-col leading-tight">
-        <span className="font-medium text-foreground">{item.nom}</span>
+      <div className="flex flex-col leading-tight min-w-0">
+        <span className="font-medium text-foreground truncate">{item.nom}</span>
         {item.entente ? (
-          <span className="text-xs text-muted-foreground">{item.entente}</span>
+          <span className="text-xs text-muted-foreground truncate">{item.entente}</span>
         ) : null}
       </div>
     ),
   },
   { key: "categorie", header: "Catégorie" },
-  { key: "ligue", header: "Ligue" },
-  { key: "province", header: "Province" },
-  { key: "dateAffiliation", header: "Date d'affiliation" },
+  {
+    key: "dateAffiliation",
+    header: "Date d'affiliation",
+    className: "min-w-0",
+    render: (item) => (
+      <div className="flex flex-col leading-tight min-w-0">
+        <span className="font-medium text-foreground truncate">{item.dateAffiliation ?? "-"}</span>
+        <span className="text-xs text-muted-foreground truncate">{item.ligue}</span>
+      </div>
+    ),
+  },
   {
     key: "statut",
     header: "Statut",
@@ -63,6 +91,7 @@ const filters: Filter[] = [
 export default function ClubsPage() {
   const [clubs, setClubs] = useState<Club[]>([])
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let canceled = false
@@ -92,12 +121,12 @@ export default function ClubsPage() {
   }, [])
 
   const filtersComputed: Filter[] = useMemo(() => {
+    const selectedLigue = filterValues.ligue
+    const clubsForEntentes = selectedLigue && selectedLigue !== "all"
+      ? clubs.filter((c) => String(c.ligue) === String(selectedLigue))
+      : clubs
+
     const base: Filter[] = [
-      {
-        key: "province",
-        label: "Province",
-        options: getFilterOptions(clubs, "province"),
-      },
       {
         key: "ligue",
         label: "Ligue",
@@ -106,12 +135,7 @@ export default function ClubsPage() {
       {
         key: "entente",
         label: "Entente",
-        options: getFilterOptions(clubs, "entente"),
-      },
-      {
-        key: "categorie",
-        label: "Catégorie",
-        options: getFilterOptions(clubs, "categorie"),
+        options: getFilterOptions(clubsForEntentes, "entente"),
       },
       {
         key: "statut",
@@ -129,7 +153,7 @@ export default function ClubsPage() {
     }
 
     return base
-  }, [clubs, userRole])
+  }, [clubs, filterValues.ligue, userRole])
 
   return (
     <div className="flex flex-col">
@@ -143,6 +167,8 @@ export default function ClubsPage() {
           data={clubs}
           columns={columns}
           filters={filtersComputed}
+          filterValues={filterValues}
+          onFilterValuesChange={setFilterValues}
           searchPlaceholder="Rechercher un club..."
           detailHref={(item) => `/dashboard/clubs/${item.id}`}
           idKey="__key"

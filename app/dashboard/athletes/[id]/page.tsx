@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Athlete } from "@/lib/demo-data"
 import { useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Camera, FileDown, User, MapPin, Trophy, Info } from "lucide-react"
+import { ArrowLeft, Camera, User, MapPin, Trophy, Info } from "lucide-react"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
@@ -90,10 +90,6 @@ export default function AthleteDetailPage() {
     )
   }
 
-  const handleExportPDF = () => {
-    alert("Export PDF - Cette fonctionnalité sera connectée à l'API")
-  }
-
   return (
     <div className="flex flex-col">
       <Header title={`Fiche Athlète: ${athlete.prenom} ${athlete.nom}`} />
@@ -101,13 +97,9 @@ export default function AthleteDetailPage() {
       <div className="flex-1 p-6 space-y-6">
         {/* Back button and actions */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => router.back()}>
+          <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour à la liste
-          </Button>
-          <Button onClick={handleExportPDF}>
-            <FileDown className="mr-2 h-4 w-4" />
-            Exporter PDF
           </Button>
         </div>
 

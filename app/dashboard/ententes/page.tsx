@@ -19,10 +19,24 @@ const columns: Column<Entente>[] = [
     className: "font-mono text-sm",
     render: (item) => formatEntenteCode(item.id),
   },
-  { key: "nom", header: "Nom Entente", className: "font-medium" },
-  { key: "pseudo", header: "Pseudo", className: "text-muted-foreground" },
-  { key: "ligue", header: "Ligue" },
-  { key: "province", header: "Province" },
+  {
+    key: "nom",
+    header: "Nom Entente",
+    className: "font-medium min-w-0",
+    render: (item) => <span className="block truncate">{item.nom}</span>,
+  },
+  {
+    key: "pseudo",
+    header: "Pseudo",
+    className: "text-muted-foreground min-w-0",
+    render: (item) => <span className="block truncate">{item.pseudo}</span>,
+  },
+  {
+    key: "ligue",
+    header: "Ligue",
+    className: "min-w-0",
+    render: (item) => <span className="block truncate">{item.ligue}</span>,
+  },
   {
     key: "statut",
     header: "Statut",
@@ -87,11 +101,6 @@ export default function EntentesPage() {
         options: getFilterOptions(ententes, "province"),
       },
       {
-        key: "ligue",
-        label: "Ligue",
-        options: getFilterOptions(ententes, "ligue"),
-      },
-      {
         key: "statut",
         label: "Statut",
         options: getFilterOptions(ententes, "statut"),
@@ -99,7 +108,7 @@ export default function EntentesPage() {
     ]
 
     if (userRole === "ligue" || userRole === "entente") {
-      return base.filter((f) => f.key !== "ligue")
+      return base
     }
 
     return base

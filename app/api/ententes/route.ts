@@ -32,7 +32,7 @@ export async function GET() {
       const nom = pickFirst(row, ["nom_entente", "nom", "entente", "designation"])
       const pseudo = pickFirst(row, ["pseudo_entente", "pseudo", "sigle", "abreviation", "abbreviation"])
       const ligueId = pickFirst(row, ["id_ligue", "ligue_id", "idligue"])
-      const ligue = pickFirst(row, ["nom_ligue", "ligue", "ligue_nom"])
+      const ligue = pickFirst(row, ["pseudo_ligue", "nom_ligue", "ligue", "ligue_nom"])
       const province = pickFirst(row, ["nom_province", "province", "province_nom"])
       const statut = pickFirst(row, ["statut", "status", "etat"])
 

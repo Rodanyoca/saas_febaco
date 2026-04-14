@@ -1,15 +1,15 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useMemo, useRef, useState } from "react"
-import { ArrowLeft, Camera, FileDown, Flag, MapPin, Award } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { ArrowLeft, Camera, Flag, MapPin, Award } from "lucide-react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { arbitres } from "@/lib/demo-data"
+import { Arbitre } from "@/lib/demo-data"
 
 function formatMatricule(value: unknown): string {
   const raw = String(value ?? "").trim()
@@ -30,13 +30,56 @@ function initials(prenom?: string, nom?: string): string {
 export default function ArbitreDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const arbitre = arbitres.find((a) => a.id === params.id)
+  const idParam = useMemo(() => {
+    const raw = (params as { id?: string | string[] })?.id
+    return Array.isArray(raw) ? raw[0] : raw
+  }, [params])
+
+  const [arbitres, setArbitres] = useState<Arbitre[]>([])
+  const [loading, setLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let canceled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/arbitres", { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setArbitres(Array.isArray(json?.arbitres) ? json.arbitres : [])
+        }
+      } catch {
+        if (!canceled) setArbitres([])
+      } finally {
+        if (!canceled) setLoading(false)
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  const arbitre = useMemo(() => {
+    if (!idParam) return undefined
+    return arbitres.find((a) => String(a.id) === String(idParam) || String((a as unknown as { __key?: unknown }).__key) === String(idParam))
+  }, [arbitres, idParam])
 
   const avatarSrc = localAvatarUrl || arbitre?.avatarUrl || null
 
   const matricule = useMemo(() => formatMatricule(arbitre?.id), [arbitre?.id])
+
+  if (loading) {
+    return (
+      <div className="flex flex-col">
+        <Header title="Chargement..." />
+        <div className="flex-1 p-6">
+          <p className="text-muted-foreground">Chargement de la fiche arbitre.</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!arbitre) {
     return (
@@ -53,23 +96,15 @@ export default function ArbitreDetailPage() {
     )
   }
 
-  const handleExportPDF = () => {
-    alert("Export PDF - Cette fonctionnalite sera connectee a l API")
-  }
-
   return (
     <div className="flex flex-col">
-      <Header title={`Fiche Arbitre: ${arbitre.prenom} ${arbitre.nom}`} />
+      <Header title={`${arbitre.prenom} ${arbitre.nom}`} subtitle={`Matricule ${matricule}`} />
 
       <div className="flex-1 p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => router.back()}>
+          <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour a la liste
-          </Button>
-          <Button onClick={handleExportPDF}>
-            <FileDown className="mr-2 h-4 w-4" />
-            Exporter PDF
           </Button>
         </div>
 

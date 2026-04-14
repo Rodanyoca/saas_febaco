@@ -18,7 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Search, ChevronLeft, ChevronRight, Eye, FileDown } from "lucide-react"
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+} from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
@@ -43,6 +48,8 @@ interface DataTableProps<T> {
   detailHref?: (item: T) => string
   onExportPDF?: () => void
   idKey?: keyof T
+  filterValues?: Record<string, string>
+  onFilterValuesChange?: (next: Record<string, string>) => void
 }
 
 export function DataTable<T extends Record<string, unknown>>({
@@ -53,11 +60,25 @@ export function DataTable<T extends Record<string, unknown>>({
   detailHref,
   onExportPDF,
   idKey = "id" as keyof T,
+  filterValues: controlledFilterValues,
+  onFilterValuesChange,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("")
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({})
+  const [uncontrolledFilterValues, setUncontrolledFilterValues] = useState<Record<string, string>>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+
+  const filterValues = controlledFilterValues ?? uncontrolledFilterValues
+
+  const setFilterValues = (updater: (prev: Record<string, string>) => Record<string, string>) => {
+    const prev = filterValues
+    const next = updater(prev)
+    if (onFilterValuesChange) {
+      onFilterValuesChange(next)
+      return
+    }
+    setUncontrolledFilterValues(next)
+  }
 
   // Filter and search data
   const filteredData = data.filter((item) => {
@@ -124,12 +145,7 @@ export function DataTable<T extends Record<string, unknown>>({
           </Select>
         ))}
 
-        {onExportPDF && (
-          <Button variant="outline" onClick={onExportPDF} className="ml-auto">
-            <FileDown className="mr-2 h-4 w-4" />
-            Exporter PDF
-          </Button>
-        )}
+        {onExportPDF && null}
       </div>
 
       {/* Table */}

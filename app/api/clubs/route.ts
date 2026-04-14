@@ -34,6 +34,13 @@ export async function GET() {
       const entente = pickFirst(row, ["nom_entente", "entente", "entente_nom"])
       const ligue = pickFirst(row, ["nom_ligue", "ligue", "ligue_nom"])
       const province = pickFirst(row, ["nom_province", "province", "province_nom"])
+      const avatarUrl = pickFirst(row, [
+        "avatar_drive_url",
+        "avatar_url",
+        "photo_url",
+        "avatar",
+      ])
+      const avatarDriveId = pickFirst(row, ["avatar_drive_id", "drive_id", "avatar_id"])
       const dateAffiliation = pickFirst(row, [
         "date_affiliation",
         "date_d_affiliation",
@@ -50,6 +57,7 @@ export async function GET() {
         id: id || fallbackId,
         nom: nom || "-",
         categorie: categorie || "-",
+        avatarUrl: avatarUrl || (avatarDriveId ? String(avatarDriveId) : "") || "",
         entente: entente || "-",
         ligue: ligue || "-",
         province: province || "-",

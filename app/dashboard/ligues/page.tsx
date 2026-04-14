@@ -69,11 +69,6 @@ export default function LiguesPage() {
   const filtersComputed: Filter[] = useMemo(() => {
     return [
       {
-        key: "province",
-        label: "Province",
-        options: getFilterOptions(ligues, "province"),
-      },
-      {
         key: "statut",
         label: "Statut",
         options: getFilterOptions(ligues, "statut"),
