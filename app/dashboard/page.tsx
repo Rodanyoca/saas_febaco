@@ -22,6 +22,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { Pie, PieChart, Cell } from "recharts"
+import { Progress } from "@/components/ui/progress"
 
 export default function DashboardPage() {
   const [ligues, setLigues] = useState<{ statut?: string }[]>([])
@@ -29,7 +30,7 @@ export default function DashboardPage() {
   const [clubs, setClubs] = useState<{ statut?: string }[]>([])
   const [equipes, setEquipes] = useState<{ statut?: string; genre?: string }[]>([])
   const [athletes, setAthletes] = useState<{ statut?: string; sexe?: string; province?: string }[]>([])
-  const [coachs, setCoachs] = useState<{ statut?: string; niveau?: string }[]>([])
+  const [coachs, setCoachs] = useState<{ statut?: string; niveau?: string; sexe?: string }[]>([])
   const [arbitres, setArbitres] = useState<{ statut?: string; sexe?: string }[]>([])
   const [officiels, setOfficiels] = useState<{ statut?: string; sexe?: string }[]>([])
   const [medecins, setMedecins] = useState<{ statut?: string; sexe?: string }[]>([])
@@ -210,6 +211,85 @@ export default function DashboardPage() {
 
     return { total, hommes, femmes, inactif }
   }, [athletes])
+
+  const dataCompleteness = useMemo(() => {
+    const isFilled = (v: unknown) => {
+      if (v == null) return false
+      if (typeof v === "number") return Number.isFinite(v)
+      const s = String(v).trim()
+      if (!s) return false
+      const l = s.toLowerCase()
+      return l !== "-" && l !== "n/a" && l !== "na" && l !== "null" && l !== "undefined"
+    }
+
+    const compute = (rows: Record<string, unknown>[]) => {
+      if (!rows || rows.length === 0) return { filled: 0, total: 0, pct: 0 }
+
+      let total = 0
+      let filled = 0
+
+      for (const r of rows) {
+        const obj = (r ?? {}) as Record<string, unknown>
+        const keys = Object.keys(obj).filter((k) => k !== "__key")
+        total += keys.length
+        for (const k of keys) {
+          if (isFilled(obj[k])) filled += 1
+        }
+      }
+
+      const pct = total === 0 ? 0 : Math.round((filled / total) * 100)
+      return { filled, total, pct }
+    }
+
+    const liguesC = compute(ligues as unknown as Record<string, unknown>[])
+    const ententesC = compute(ententes as unknown as Record<string, unknown>[])
+    const clubsC = compute(clubs as unknown as Record<string, unknown>[])
+    const equipesC = compute(equipes as unknown as Record<string, unknown>[])
+    const athletesC = compute(athletes as unknown as Record<string, unknown>[])
+    const coachsC = compute(coachs as unknown as Record<string, unknown>[])
+    const officielsC = compute(officiels as unknown as Record<string, unknown>[])
+    const medecinsC = compute(medecins as unknown as Record<string, unknown>[])
+    const arbitresC = compute(arbitres as unknown as Record<string, unknown>[])
+
+    const globalFilled =
+      liguesC.filled +
+      ententesC.filled +
+      clubsC.filled +
+      equipesC.filled +
+      athletesC.filled +
+      coachsC.filled +
+      officielsC.filled +
+      medecinsC.filled +
+      arbitresC.filled
+
+    const globalTotal =
+      liguesC.total +
+      ententesC.total +
+      clubsC.total +
+      equipesC.total +
+      athletesC.total +
+      coachsC.total +
+      officielsC.total +
+      medecinsC.total +
+      arbitresC.total
+
+    const globalPct = globalTotal === 0 ? 0 : Math.round((globalFilled / globalTotal) * 100)
+
+    return {
+      global: { filled: globalFilled, total: globalTotal, pct: globalPct },
+      items: [
+        { label: "Ligues", value: liguesC },
+        { label: "Ententes", value: ententesC },
+        { label: "Clubs", value: clubsC },
+        { label: "Équipes", value: equipesC },
+        { label: "Athlètes", value: athletesC },
+        { label: "Entraîneurs", value: coachsC },
+        { label: "Officiels", value: officielsC },
+        { label: "Médecins", value: medecinsC },
+        { label: "Arbitres", value: arbitresC },
+      ],
+    }
+  }, [arbitres, athletes, clubs, coachs, equipes, ententes, ligues, medecins, officiels])
 
   const coachCounts = useMemo(() => {
     const total = coachs.length
@@ -507,6 +587,48 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Complétude des données</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="rounded-lg border border-border p-4">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Taux de complétude total</p>
+                  <p className="text-2xl font-semibold tabular-nums">{dataCompleteness.global.pct}%</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Cellules remplies</p>
+                  <p className="text-sm font-medium tabular-nums">
+                    {dataCompleteness.global.filled} / {dataCompleteness.global.total}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <Progress value={dataCompleteness.global.pct} />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {dataCompleteness.items.map((it) => (
+                <div key={it.label} className="rounded-lg border border-border p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium">{it.label}</p>
+                    <p className="text-sm font-semibold tabular-nums">{it.value.pct}%</p>
+                  </div>
+                  <div className="mt-2">
+                    <Progress value={it.value.pct} />
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+                    {it.value.filled} / {it.value.total} cellules
+                  </p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
