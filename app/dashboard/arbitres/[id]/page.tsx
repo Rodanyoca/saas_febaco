@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ArrowLeft, Camera, Flag, MapPin, Award } from "lucide-react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
 import { Arbitre } from "@/lib/models"
 
 function formatMatricule(value: unknown): string {
@@ -37,8 +38,8 @@ export default function ArbitreDetailPage() {
 
   const [arbitres, setArbitres] = useState<Arbitre[]>([])
   const [loading, setLoading] = useState(true)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false)
 
   useEffect(() => {
     let canceled = false
@@ -131,24 +132,7 @@ export default function ArbitreDetailPage() {
                 <p className="text-sm text-muted-foreground">Matricule</p>
                 <p className="font-mono font-medium">{matricule}</p>
                 <div className="mt-3 flex justify-end">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      const url = URL.createObjectURL(file)
-                      setLocalAvatarUrl(url)
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={() => setAvatarModalOpen(true)}>
                     <Camera className="mr-2 h-4 w-4" />
                     Ajouter la photo
                   </Button>
@@ -157,6 +141,21 @@ export default function ArbitreDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        <AvatarUploadModal
+          open={avatarModalOpen}
+          onOpenChange={setAvatarModalOpen}
+          title="Ajouter la photo"
+          description="Vérifie les informations avant de confirmer la photo."
+          currentImageUrl={avatarSrc}
+          fallbackText={initials(arbitre.prenom, arbitre.nom)}
+          verificationFields={[
+            { label: "Nom", value: `${arbitre.prenom} ${arbitre.nom}` },
+            { label: "Sexe", value: arbitre.sexe === "M" ? "Masculin" : "Feminin" },
+          ]}
+          dateNaissanceForAge={arbitre.dateNaissance}
+          onConfirm={(url) => setLocalAvatarUrl(url)}
+        />
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <DetailCard

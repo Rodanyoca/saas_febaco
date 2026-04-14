@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Athlete } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
 import { ArrowLeft, Camera, User, MapPin, Trophy, Info } from "lucide-react"
 
 function initials(prenom?: string, nom?: string): string {
@@ -32,8 +33,8 @@ export default function AthleteDetailPage() {
 
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [loading, setLoading] = useState(true)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false)
 
   useEffect(() => {
     let canceled = false
@@ -130,24 +131,7 @@ export default function AthleteDetailPage() {
                 <p className="text-sm text-muted-foreground">ID Athlète</p>
                 <p className="font-mono font-medium">{athlete.id}</p>
                 <div className="mt-3 flex justify-end">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      const url = URL.createObjectURL(file)
-                      setLocalAvatarUrl(url)
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={() => setAvatarModalOpen(true)}>
                     <Camera className="mr-2 h-4 w-4" />
                     Ajouter la photo
                   </Button>
@@ -156,6 +140,21 @@ export default function AthleteDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        <AvatarUploadModal
+          open={avatarModalOpen}
+          onOpenChange={setAvatarModalOpen}
+          title="Ajouter la photo"
+          description="Vérifie les informations avant de confirmer la photo."
+          currentImageUrl={avatarSrc}
+          fallbackText={initials(athlete.prenom, athlete.nom)}
+          verificationFields={[
+            { label: "Nom", value: `${athlete.prenom} ${athlete.nom}` },
+            { label: "Sexe", value: athlete.sexe === "M" ? "Masculin" : "Féminin" },
+          ]}
+          dateNaissanceForAge={athlete.dateNaissance}
+          onConfirm={(url) => setLocalAvatarUrl(url)}
+        />
 
         {/* Details grid */}
         <div className="grid gap-6 md:grid-cols-2">
