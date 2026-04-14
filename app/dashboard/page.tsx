@@ -30,6 +30,9 @@ export default function DashboardPage() {
   const [equipes, setEquipes] = useState<{ statut?: string; genre?: string }[]>([])
   const [athletes, setAthletes] = useState<{ statut?: string; sexe?: string; province?: string }[]>([])
   const [coachs, setCoachs] = useState<{ statut?: string; niveau?: string }[]>([])
+  const [arbitres, setArbitres] = useState<{ statut?: string; sexe?: string }[]>([])
+  const [officiels, setOfficiels] = useState<{ statut?: string; sexe?: string }[]>([])
+  const [medecins, setMedecins] = useState<{ statut?: string; sexe?: string }[]>([])
 
   const DetailStat = ({
     label,
@@ -66,22 +69,48 @@ export default function DashboardPage() {
     let canceled = false
     const load = async () => {
       try {
-        const [liguesRes, ententesRes, clubsRes, equipesRes, athletesRes, coachsRes] = await Promise.all([
+        const [
+          liguesRes,
+          ententesRes,
+          clubsRes,
+          equipesRes,
+          athletesRes,
+          coachsRes,
+          arbitresRes,
+          officielsRes,
+          medecinsRes,
+        ] = await Promise.all([
           fetch("/api/ligues", { cache: "no-store" }),
           fetch("/api/ententes", { cache: "no-store" }),
           fetch("/api/clubs", { cache: "no-store" }),
           fetch("/api/equipes", { cache: "no-store" }),
           fetch("/api/athletes", { cache: "no-store" }),
           fetch("/api/coachs", { cache: "no-store" }),
+          fetch("/api/arbitres", { cache: "no-store" }),
+          fetch("/api/officiels", { cache: "no-store" }),
+          fetch("/api/medecins", { cache: "no-store" }),
         ])
 
-        const [liguesJson, ententesJson, clubsJson, equipesJson, athletesJson, coachsJson] = await Promise.all([
+        const [
+          liguesJson,
+          ententesJson,
+          clubsJson,
+          equipesJson,
+          athletesJson,
+          coachsJson,
+          arbitresJson,
+          officielsJson,
+          medecinsJson,
+        ] = await Promise.all([
           liguesRes.json(),
           ententesRes.json(),
           clubsRes.json(),
           equipesRes.json(),
           athletesRes.json(),
           coachsRes.json(),
+          arbitresRes.json(),
+          officielsRes.json(),
+          medecinsRes.json(),
         ])
 
         if (!canceled) {
@@ -91,6 +120,9 @@ export default function DashboardPage() {
           setEquipes(Array.isArray(equipesJson?.equipes) ? equipesJson.equipes : [])
           setAthletes(Array.isArray(athletesJson?.athletes) ? athletesJson.athletes : [])
           setCoachs(Array.isArray(coachsJson?.coachs) ? coachsJson.coachs : [])
+          setArbitres(Array.isArray(arbitresJson?.arbitres) ? arbitresJson.arbitres : [])
+          setOfficiels(Array.isArray(officielsJson?.officiels) ? officielsJson.officiels : [])
+          setMedecins(Array.isArray(medecinsJson?.medecins) ? medecinsJson.medecins : [])
         }
       } catch {
         if (!canceled) {
@@ -100,6 +132,9 @@ export default function DashboardPage() {
           setEquipes([])
           setAthletes([])
           setCoachs([])
+          setArbitres([])
+          setOfficiels([])
+          setMedecins([])
         }
       }
     }
@@ -179,23 +214,60 @@ export default function DashboardPage() {
   const coachCounts = useMemo(() => {
     const total = coachs.length
 
-    const local = coachs.filter((c) => {
-      const n = String(c?.niveau ?? "").toLowerCase()
-      return n.includes("local")
+    const hommes = coachs.filter((c) => {
+      const s = String(c?.sexe ?? "").toLowerCase()
+      return s === "m" || s === "masculin" || s === "homme" || s === "male"
     }).length
 
-    const national = coachs.filter((c) => {
-      const n = String(c?.niveau ?? "").toLowerCase()
-      return n.includes("national")
+    const femmes = coachs.filter((c) => {
+      const s = String(c?.sexe ?? "").toLowerCase()
+      return s === "f" || s === "feminin" || s === "féminin" || s === "femme" || s === "female"
     }).length
 
-    const international = coachs.filter((c) => {
-      const n = String(c?.niveau ?? "").toLowerCase()
-      return n.includes("international")
-    }).length
-
-    return { total, local, national, international }
+    return { total, hommes, femmes }
   }, [coachs])
+
+  const arbitreSexCounts = useMemo(() => {
+    const hommes = arbitres.filter((a) => {
+      const s = String(a?.sexe ?? "").toLowerCase()
+      return s === "m" || s === "masculin" || s === "homme" || s === "male"
+    }).length
+
+    const femmes = arbitres.filter((a) => {
+      const s = String(a?.sexe ?? "").toLowerCase()
+      return s === "f" || s === "feminin" || s === "féminin" || s === "femme" || s === "female"
+    }).length
+
+    return { hommes, femmes }
+  }, [arbitres])
+
+  const officielSexCounts = useMemo(() => {
+    const hommes = officiels.filter((o) => {
+      const s = String(o?.sexe ?? "").toLowerCase()
+      return s === "m" || s === "masculin" || s === "homme" || s === "male"
+    }).length
+
+    const femmes = officiels.filter((o) => {
+      const s = String(o?.sexe ?? "").toLowerCase()
+      return s === "f" || s === "feminin" || s === "féminin" || s === "femme" || s === "female"
+    }).length
+
+    return { hommes, femmes }
+  }, [officiels])
+
+  const medecinSexCounts = useMemo(() => {
+    const hommes = medecins.filter((m) => {
+      const s = String(m?.sexe ?? "").toLowerCase()
+      return s === "m" || s === "masculin" || s === "homme" || s === "male"
+    }).length
+
+    const femmes = medecins.filter((m) => {
+      const s = String(m?.sexe ?? "").toLowerCase()
+      return s === "f" || s === "feminin" || s === "féminin" || s === "femme" || s === "female"
+    }).length
+
+    return { hommes, femmes }
+  }, [medecins])
 
   const athletesByProvince = useMemo(() => {
     const normalize = (v: unknown) => String(v ?? "").trim()
@@ -320,32 +392,47 @@ export default function DashboardPage() {
             icon={UserCog}
             href="/dashboard/coachs"
             detail={
-              <DetailRow>
-                <DetailStat label="Local" value={coachCounts.local} valueClassName="text-[12px] font-semibold text-amber-800 tabular-nums" />
-                <Sep />
-                <DetailStat label="National" value={coachCounts.national} valueClassName="text-[12px] font-semibold text-violet-800 tabular-nums" />
-                <Sep />
-                <DetailStat label="International" value={coachCounts.international} valueClassName="text-[12px] font-semibold text-cyan-800 tabular-nums" />
-              </DetailRow>
+              <DetailRowNoWrap>
+                <DetailStat label="Hommes" value={coachCounts.hommes} valueClassName="text-[12px] font-semibold text-indigo-700 tabular-nums" />
+                <DetailStat label="Femmes" value={coachCounts.femmes} valueClassName="text-[12px] font-semibold text-rose-700 tabular-nums" />
+              </DetailRowNoWrap>
             }
           />
           <StatCard
             title="Arbitres"
-            value={0}
+            value={arbitres.length}
             icon={Flag}
             href="/dashboard/arbitres"
+            detail={
+              <DetailRowNoWrap>
+                <DetailStat label="Hommes" value={arbitreSexCounts.hommes} valueClassName="text-[12px] font-semibold text-indigo-700 tabular-nums" />
+                <DetailStat label="Femmes" value={arbitreSexCounts.femmes} valueClassName="text-[12px] font-semibold text-rose-700 tabular-nums" />
+              </DetailRowNoWrap>
+            }
           />
           <StatCard
             title="Officiels"
-            value={0}
+            value={officiels.length}
             icon={BadgeCheck}
             href="/dashboard/officiels"
+            detail={
+              <DetailRowNoWrap>
+                <DetailStat label="Hommes" value={officielSexCounts.hommes} valueClassName="text-[12px] font-semibold text-indigo-700 tabular-nums" />
+                <DetailStat label="Femmes" value={officielSexCounts.femmes} valueClassName="text-[12px] font-semibold text-rose-700 tabular-nums" />
+              </DetailRowNoWrap>
+            }
           />
           <StatCard
             title="Medecins"
-            value={0}
+            value={medecins.length}
             icon={Stethoscope}
             href="/dashboard/medecins"
+            detail={
+              <DetailRowNoWrap>
+                <DetailStat label="Hommes" value={medecinSexCounts.hommes} valueClassName="text-[12px] font-semibold text-indigo-700 tabular-nums" />
+                <DetailStat label="Femmes" value={medecinSexCounts.femmes} valueClassName="text-[12px] font-semibold text-rose-700 tabular-nums" />
+              </DetailRowNoWrap>
+            }
           />
         </div>
 
