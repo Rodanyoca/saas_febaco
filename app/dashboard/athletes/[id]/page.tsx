@@ -36,6 +36,16 @@ export default function AthleteDetailPage() {
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
 
+  const reloadAthletes = async () => {
+    try {
+      const res = await fetch("/api/athletes", { cache: "no-store" })
+      const json = await res.json()
+      setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
+    } catch {
+      setAthletes([])
+    }
+  }
+
   useEffect(() => {
     let canceled = false
     ;(async () => {
@@ -154,6 +164,31 @@ export default function AthleteDetailPage() {
           ]}
           dateNaissanceForAge={athlete.dateNaissance}
           onConfirm={(url) => setLocalAvatarUrl(url)}
+          onConfirmFile={async (file) => {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("entityType", "athlete")
+            formData.append("entityId", String(athlete.id))
+
+            const res = await fetch("/api/upload/avatar", {
+              method: "POST",
+              body: formData,
+            })
+
+            const json = await res.json()
+            if (!res.ok) {
+              throw new Error(String(json?.error ?? "Upload avatar échoué"))
+            }
+
+            const url = String(json?.avatar_drive_url ?? "")
+            if (!url) {
+              throw new Error("Upload avatar échoué")
+            }
+
+            setLocalAvatarUrl(url)
+            await reloadAthletes()
+            return url
+          }}
         />
 
         {/* Details grid */}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
 import { scopeFromSession } from "@/lib/auth-scope"
+import { buildDrivePublicUrl } from "@/lib/google-drive-url"
 
 export const dynamic = "force-dynamic"
 
@@ -41,6 +42,7 @@ export async function GET() {
         "avatar",
       ])
       const avatarDriveId = pickFirst(row, ["avatar_drive_id", "drive_id", "avatar_id"])
+      const resolvedAvatarUrl = avatarDriveId ? buildDrivePublicUrl(avatarDriveId) : avatarUrl || ""
       const dateAffiliation = pickFirst(row, [
         "date_affiliation",
         "date_d_affiliation",
@@ -57,7 +59,9 @@ export async function GET() {
         id: id || fallbackId,
         nom: nom || "-",
         categorie: categorie || "-",
-        avatarUrl: avatarUrl || (avatarDriveId ? String(avatarDriveId) : "") || "",
+        avatar_drive_id: avatarDriveId ? String(avatarDriveId) : "",
+        avatar_drive_url: avatarUrl ? String(avatarUrl) : "",
+        avatarUrl: resolvedAvatarUrl,
         entente: entente || "-",
         ligue: ligue || "-",
         province: province || "-",

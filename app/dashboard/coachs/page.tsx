@@ -5,6 +5,16 @@ import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Coach, getFilterOptions } from "@/lib/models"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
+function initials(prenom?: string, nom?: string): string {
+  const p = String(prenom ?? "").trim()
+  const n = String(nom ?? "").trim()
+  const a = p ? p[0] : ""
+  const b = n ? n[0] : ""
+  const v = `${a}${b}`.toUpperCase()
+  return v || "EN"
+}
 
 const columns: Column<Coach>[] = [
   { key: "id", header: "ID", className: "font-mono text-sm" },
@@ -12,12 +22,23 @@ const columns: Column<Coach>[] = [
     key: "nom",
     header: "Nom complet",
     className: "font-medium",
-    render: (item) => `${item.prenom} ${item.nom}`,
+    render: (item) => (
+      <div className="flex items-center gap-3 min-w-0">
+        <Avatar className="size-7">
+          <AvatarImage src={(item as unknown as { avatarUrl?: string }).avatarUrl || undefined} alt={`${item.prenom} ${item.nom}`} />
+          <AvatarFallback className="text-[10px]">{initials(item.prenom, item.nom)}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <div className="truncate">{item.prenom} {item.nom}</div>
+          <div className="text-xs text-muted-foreground">
+            {String(item.sexe ?? "").trim() ? `Sexe: ${item.sexe}` : ""}
+          </div>
+        </div>
+      </div>
+    ),
   },
-  { key: "sexe", header: "Sexe", className: "text-center" },
   { key: "niveau", header: "Niveau" },
   { key: "club", header: "Club" },
-  { key: "equipe", header: "Équipe" },
   { key: "ligue", header: "Ligue" },
   {
     key: "statut",

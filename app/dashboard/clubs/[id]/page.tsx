@@ -92,6 +92,16 @@ export default function ClubDetailPage() {
     }
   }, [])
 
+  const reloadClubs = async () => {
+    try {
+      const res = await fetch("/api/clubs", { cache: "no-store" })
+      const json = await res.json()
+      setClubs(Array.isArray(json?.clubs) ? json.clubs : [])
+    } catch {
+      setClubs([])
+    }
+  }
+
   const club = useMemo(() => {
     if (!idParam) return undefined
     return clubs.find((c) => String(c.id) === String(idParam))
@@ -202,6 +212,31 @@ export default function ClubDetailPage() {
             { label: "Catégorie", value: club.categorie },
           ]}
           onConfirm={(url) => setLocalAvatarUrl(url)}
+          onConfirmFile={async (file) => {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("entityType", "club")
+            formData.append("entityId", String(club.id))
+
+            const res = await fetch("/api/upload/avatar", {
+              method: "POST",
+              body: formData,
+            })
+
+            const json = await res.json()
+            if (!res.ok) {
+              throw new Error(String(json?.error ?? "Upload avatar échoué"))
+            }
+
+            const url = String(json?.avatar_drive_url ?? "")
+            if (!url) {
+              throw new Error("Upload avatar échoué")
+            }
+
+            setLocalAvatarUrl(url)
+            await reloadClubs()
+            return url
+          }}
         />
 
         {/* Details grid */}

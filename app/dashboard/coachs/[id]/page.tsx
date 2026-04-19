@@ -35,6 +35,16 @@ export default function CoachDetailPage() {
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
 
+  const reloadCoachs = async () => {
+    try {
+      const res = await fetch("/api/coachs", { cache: "no-store" })
+      const json = await res.json()
+      setCoachs(Array.isArray(json?.coachs) ? json.coachs : [])
+    } catch {
+      setCoachs([])
+    }
+  }
+
   useEffect(() => {
     let canceled = false
     ;(async () => {
@@ -61,7 +71,7 @@ export default function CoachDetailPage() {
     return coachs.find((c) => String(c.id) === String(coachId) || String((c as unknown as { __key?: unknown }).__key) === String(coachId))
   }, [coachs, coachId])
 
-  const avatarSrc = localAvatarUrl || null
+  const avatarSrc = localAvatarUrl || (coach as unknown as { avatarUrl?: string })?.avatarUrl || null
 
   if (loading) {
     return (
@@ -151,6 +161,31 @@ export default function CoachDetailPage() {
           ]}
           dateNaissanceForAge={coach.dateNaissance}
           onConfirm={(url) => setLocalAvatarUrl(url)}
+          onConfirmFile={async (file) => {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("entityType", "entraineur")
+            formData.append("entityId", String(coach.id))
+
+            const res = await fetch("/api/upload/avatar", {
+              method: "POST",
+              body: formData,
+            })
+
+            const json = await res.json()
+            if (!res.ok) {
+              throw new Error(String(json?.error ?? "Upload avatar échoué"))
+            }
+
+            const url = String(json?.avatar_drive_url ?? "")
+            if (!url) {
+              throw new Error("Upload avatar échoué")
+            }
+
+            setLocalAvatarUrl(url)
+            await reloadCoachs()
+            return url
+          }}
         />
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

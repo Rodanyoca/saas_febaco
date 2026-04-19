@@ -61,6 +61,7 @@ export function AvatarUploadModal({
   verificationFields,
   dateNaissanceForAge,
   onConfirm,
+  onConfirmFile,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -70,14 +71,19 @@ export function AvatarUploadModal({
   fallbackText: string
   verificationFields: VerificationField[]
   dateNaissanceForAge?: string
-  onConfirm: (localObjectUrl: string) => void
+  onConfirm?: (localObjectUrl: string) => void
+  onConfirmFile?: (file: File) => Promise<string>
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!open) {
       setSelectedUrl(null)
+      setSelectedFile(null)
+      setSubmitting(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }, [open])
@@ -120,6 +126,7 @@ export function AvatarUploadModal({
                   if (!file) return
                   const url = URL.createObjectURL(file)
                   setSelectedUrl(url)
+                  setSelectedFile(file)
                 }}
               />
               <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
@@ -147,14 +154,29 @@ export function AvatarUploadModal({
           </Button>
           <Button
             type="button"
-            disabled={!selectedUrl}
-            onClick={() => {
+            disabled={submitting || (!selectedUrl && !selectedFile)}
+            onClick={async () => {
+              if (submitting) return
+
+              if (onConfirmFile) {
+                if (!selectedFile) return
+                try {
+                  setSubmitting(true)
+                  const url = await onConfirmFile(selectedFile)
+                  onConfirm?.(url)
+                  onOpenChange(false)
+                } finally {
+                  setSubmitting(false)
+                }
+                return
+              }
+
               if (!selectedUrl) return
-              onConfirm(selectedUrl)
+              onConfirm?.(selectedUrl)
               onOpenChange(false)
             }}
           >
-            Confirmer
+            {submitting ? "Envoi..." : "Confirmer"}
           </Button>
         </DialogFooter>
       </DialogContent>

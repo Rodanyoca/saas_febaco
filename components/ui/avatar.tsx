@@ -25,10 +25,14 @@ function AvatarImage({
   className,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  const src = (props as { src?: string }).src
   return (
     <AvatarPrimitive.Image
+      key={src || "__no_src__"}
       data-slot="avatar-image"
       className={cn('aspect-square size-full', className)}
+      referrerPolicy="no-referrer"
+      crossOrigin="anonymous"
       {...props}
     />
   )

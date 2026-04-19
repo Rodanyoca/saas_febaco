@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
 import { scopeFromSession } from "@/lib/auth-scope"
+import { buildDrivePublicUrl } from "@/lib/google-drive-url"
 
 export const dynamic = "force-dynamic"
 
@@ -67,6 +68,14 @@ export async function GET() {
       const poste = pickFirst(row, ["poste", "position"]) || "-"
       const statut = pickFirst(row, ["statut", "status", "etat"]) || "-"
 
+      const avatarDriveId = pickFirst(row, ["avatar_drive_id", "drive_id", "avatar_id"])
+      const avatarDriveUrl = pickFirst(row, ["avatar_drive_url", "avatar_url", "photo_url", "avatar"])
+      const avatarUrl = avatarDriveId
+        ? buildDrivePublicUrl(avatarDriveId)
+        : avatarDriveUrl
+          ? String(avatarDriveUrl)
+          : ""
+
       const fallbackId = `row_${index + 2}`
       const __key = `${id || fallbackId}__${index + 2}`
 
@@ -75,6 +84,9 @@ export async function GET() {
         id: id || fallbackId,
         nom,
         prenom,
+        avatar_drive_id: avatarDriveId ? String(avatarDriveId) : "",
+        avatar_drive_url: avatarDriveUrl ? String(avatarDriveUrl) : "",
+        avatarUrl,
         sexe,
         dateNaissance,
         lieuNaissance,
