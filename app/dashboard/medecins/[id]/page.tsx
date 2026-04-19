@@ -62,6 +62,12 @@ export default function MedecinDetailPage() {
     }
   }, [])
 
+  async function reloadMedecins() {
+    const res = await fetch("/api/medecins", { cache: "no-store" })
+    const json = await res.json()
+    setMedecins(Array.isArray(json?.medecins) ? json.medecins : [])
+  }
+
   const medecin = useMemo(() => {
     if (!idParam) return undefined
     return medecins.find(
@@ -156,6 +162,31 @@ export default function MedecinDetailPage() {
           ]}
           dateNaissanceForAge={medecin.dateNaissance}
           onConfirm={(url) => setLocalAvatarUrl(url)}
+          onConfirmFile={async (file) => {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("entityType", "medecin")
+            formData.append("entityId", String(medecin.id))
+
+            const res = await fetch("/api/upload/avatar", {
+              method: "POST",
+              body: formData,
+            })
+
+            const json = await res.json()
+            if (!res.ok) {
+              throw new Error(String(json?.error ?? "Upload avatar échoué"))
+            }
+
+            const url = String(json?.avatar_drive_url ?? "")
+            if (!url) {
+              throw new Error("Upload avatar échoué")
+            }
+
+            setLocalAvatarUrl(url)
+            await reloadMedecins()
+            return url
+          }}
         />
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

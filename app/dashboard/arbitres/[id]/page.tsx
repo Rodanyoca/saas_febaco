@@ -62,6 +62,12 @@ export default function ArbitreDetailPage() {
     }
   }, [])
 
+  async function reloadArbitres() {
+    const res = await fetch("/api/arbitres", { cache: "no-store" })
+    const json = await res.json()
+    setArbitres(Array.isArray(json?.arbitres) ? json.arbitres : [])
+  }
+
   const arbitre = useMemo(() => {
     if (!idParam) return undefined
     return arbitres.find((a) => String(a.id) === String(idParam) || String((a as unknown as { __key?: unknown }).__key) === String(idParam))
@@ -155,6 +161,31 @@ export default function ArbitreDetailPage() {
           ]}
           dateNaissanceForAge={arbitre.dateNaissance}
           onConfirm={(url) => setLocalAvatarUrl(url)}
+          onConfirmFile={async (file) => {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("entityType", "arbitre")
+            formData.append("entityId", String(arbitre.id))
+
+            const res = await fetch("/api/upload/avatar", {
+              method: "POST",
+              body: formData,
+            })
+
+            const json = await res.json()
+            if (!res.ok) {
+              throw new Error(String(json?.error ?? "Upload avatar échoué"))
+            }
+
+            const url = String(json?.avatar_drive_url ?? "")
+            if (!url) {
+              throw new Error("Upload avatar échoué")
+            }
+
+            setLocalAvatarUrl(url)
+            await reloadArbitres()
+            return url
+          }}
         />
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

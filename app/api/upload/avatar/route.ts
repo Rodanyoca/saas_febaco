@@ -50,6 +50,11 @@ export async function POST(req: Request) {
     const normalizedEntityType = (() => {
       if (entityType === "club" || entityType === "clubs") return "club"
       if (entityType === "athlete" || entityType === "athletes") return "athlete"
+      if (entityType === "officiel" || entityType === "officiels") return "officiel"
+      if (entityType === "arbitre" || entityType === "arbitres") return "arbitre"
+      if (entityType === "medecin" || entityType === "medecins" || entityType === "médecin" || entityType === "médecins") {
+        return "medecin"
+      }
       if (
         entityType === "entraineur" ||
         entityType === "entraineurs" ||
@@ -99,6 +104,27 @@ export async function POST(req: Request) {
         return {
           sheetName: "athletes",
           entityIdHeaderCandidates: ["id_athlete", "id", "code_athlete", "code"],
+        }
+      }
+
+      if (normalizedEntityType === "officiel") {
+        return {
+          sheetName: "officiels",
+          entityIdHeaderCandidates: ["id_officiel", "id", "code_officiel", "code"],
+        }
+      }
+
+      if (normalizedEntityType === "arbitre") {
+        return {
+          sheetName: "arbitres",
+          entityIdHeaderCandidates: ["id_arbitre", "id", "code_arbitre", "code"],
+        }
+      }
+
+      if (normalizedEntityType === "medecin") {
+        return {
+          sheetName: "medecins",
+          entityIdHeaderCandidates: ["id_medecin", "id", "code_medecin", "code"],
         }
       }
 

@@ -31,7 +31,7 @@ const columns: Column<Coach>[] = [
         <div className="min-w-0">
           <div className="truncate">{item.prenom} {item.nom}</div>
           <div className="text-xs text-muted-foreground">
-            {String(item.sexe ?? "").trim() ? `Sexe: ${item.sexe}` : ""}
+            {String(item.sexe ?? "").trim() ? String(item.sexe) : ""}
           </div>
         </div>
       </div>

@@ -55,6 +55,12 @@ export default function OfficielDetailPage() {
     }
   }, [])
 
+  async function reloadOfficiels() {
+    const res = await fetch("/api/officiels", { cache: "no-store" })
+    const json = await res.json()
+    setOfficiels(Array.isArray(json?.officiels) ? json.officiels : [])
+  }
+
   const officiel = useMemo(() => {
     if (!idParam) return undefined
     return officiels.find(
@@ -148,6 +154,31 @@ export default function OfficielDetailPage() {
           ]}
           dateNaissanceForAge={officiel.dateNaissance}
           onConfirm={(url) => setLocalAvatarUrl(url)}
+          onConfirmFile={async (file) => {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("entityType", "officiel")
+            formData.append("entityId", String(officiel.id))
+
+            const res = await fetch("/api/upload/avatar", {
+              method: "POST",
+              body: formData,
+            })
+
+            const json = await res.json()
+            if (!res.ok) {
+              throw new Error(String(json?.error ?? "Upload avatar échoué"))
+            }
+
+            const url = String(json?.avatar_drive_url ?? "")
+            if (!url) {
+              throw new Error("Upload avatar échoué")
+            }
+
+            setLocalAvatarUrl(url)
+            await reloadOfficiels()
+            return url
+          }}
         />
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
