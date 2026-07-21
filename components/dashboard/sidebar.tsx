@@ -15,6 +15,12 @@ import {
   Flag,
   BadgeCheck,
   Stethoscope,
+  ArrowRightLeft,
+  Trophy,
+  UserCheck,
+  ListChecks,
+  ClipboardList,
+  ListOrdered,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -41,7 +47,21 @@ const navigationActeurs: NavItem[] = [
   { name: "Medecins", href: "/dashboard/medecins", icon: Stethoscope },
 ]
 
-const navigationCompetition: NavItem[] = []
+const navigationCompetition: NavItem[] = [
+  { name: "Toutes les compétitions", href: "/dashboard/competitions", icon: Trophy },
+  { name: "Participants", href: "/dashboard/competitions-participants", icon: UserCheck },
+  { name: "Équipes engagées", href: "/dashboard/competitions-unites", icon: ListChecks },
+  { name: "Résultats", href: "/dashboard/competitions-resultats", icon: ClipboardList },
+  { name: "Classements", href: "/dashboard/competitions-classement", icon: ListOrdered },
+]
+
+const navigationEquipeNationale: NavItem[] = [
+  { name: "Équipes nationales", href: "/dashboard/equipe-nationale", icon: Flag },
+  { name: "Sélections", href: "/dashboard/equipe-nationale-selections", icon: UserCheck },
+  { name: "Compétitions EN", href: "/dashboard/equipe-nationale-competitions", icon: Trophy },
+  { name: "Participants EN", href: "/dashboard/equipe-nationale-participants", icon: Users },
+  { name: "Résultats EN", href: "/dashboard/equipe-nationale-resultats", icon: ClipboardList },
+]
 
 function NavLink({ item, collapsed, pathname }: { item: NavItem; collapsed: boolean; pathname: string }) {
   const isDashboardRoot = item.href === "/dashboard"
@@ -119,6 +139,7 @@ export function Sidebar() {
   const [openTerritoriale, setOpenTerritoriale] = useState(true)
   const [openActeurs, setOpenActeurs] = useState(true)
   const [openCompetition, setOpenCompetition] = useState(true)
+  const [openEquipeNationale, setOpenEquipeNationale] = useState(true)
 
   return (
     <aside
@@ -127,9 +148,9 @@ export function Sidebar() {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-4">
           {!collapsed && (
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white overflow-hidden">
@@ -172,7 +193,7 @@ export function Sidebar() {
         </button>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-2 py-4">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {navigationDashboard.map((item) => (
             <NavLink key={item.name} item={item} collapsed={collapsed} pathname={pathname} />
           ))}
@@ -200,6 +221,21 @@ export function Sidebar() {
             items={navigationCompetition}
             open={openCompetition}
             setOpen={setOpenCompetition}
+            collapsed={collapsed}
+            pathname={pathname}
+          />
+
+          <NavLink
+            item={{ name: "Transferts", href: "/dashboard/transferts", icon: ArrowRightLeft }}
+            collapsed={collapsed}
+            pathname={pathname}
+          />
+
+          <NavGroup
+            title="Equipe nationale"
+            items={navigationEquipeNationale}
+            open={openEquipeNationale}
+            setOpen={setOpenEquipeNationale}
             collapsed={collapsed}
             pathname={pathname}
           />

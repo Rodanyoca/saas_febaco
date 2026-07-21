@@ -10,7 +10,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Officiel } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
-import { ArrowLeft, Camera, BadgeCheck, MapPin, Briefcase } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ArrowLeft, Camera, Contact, Fingerprint, Flag } from "lucide-react"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
@@ -96,9 +97,11 @@ export default function OfficielDetailPage() {
     )
   }
 
+  const nomComplet = officiel.nomComplet || `${officiel.prenom} ${officiel.nom}`.trim()
+
   return (
     <div className="flex flex-col">
-      <Header title={`Fiche Officiel: ${officiel.prenom} ${officiel.nom}`} />
+      <Header title={`Fiche Officiel: ${nomComplet}`} />
 
       <div className="flex-1 p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -113,15 +116,14 @@ export default function OfficielDetailPage() {
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
                 <Avatar className="size-20">
-                  <AvatarImage src={avatarSrc || undefined} alt={`${officiel.prenom} ${officiel.nom}`} />
+                  <AvatarImage src={avatarSrc || undefined} alt={nomComplet} />
                   <AvatarFallback className="text-lg">{initials(officiel.prenom, officiel.nom)}</AvatarFallback>
                 </Avatar>
                 <div>
                   <h2 className="text-2xl font-bold">
-                    {officiel.prenom} {officiel.nom}
+                    {nomComplet}
                   </h2>
-                  <p className="text-muted-foreground">{officiel.fonction}</p>
-                  <p className="text-sm text-muted-foreground">{officiel.structure}</p>
+                  <p className="text-muted-foreground">{officiel.idNational || officiel.id}</p>
                   <div className="mt-2">
                     <StatusBadge status={officiel.statut} />
                   </div>
@@ -149,7 +151,7 @@ export default function OfficielDetailPage() {
           currentImageUrl={avatarSrc}
           fallbackText={initials(officiel.prenom, officiel.nom)}
           verificationFields={[
-            { label: "Nom", value: `${officiel.prenom} ${officiel.nom}` },
+            { label: "Nom", value: nomComplet },
             { label: "Sexe", value: officiel.sexe === "M" ? "Masculin" : "Féminin" },
           ]}
           dateNaissanceForAge={officiel.dateNaissance}
@@ -181,42 +183,53 @@ export default function OfficielDetailPage() {
           }}
         />
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Tabs defaultValue="general" className="gap-4">
+          <TabsList className="grid h-auto w-full grid-cols-2">
+            <TabsTrigger value="general" className="w-full">Général</TabsTrigger>
+            <TabsTrigger value="affiliation" className="w-full">Affiliation</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="general">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           <DetailCard
             title="Identité"
-            icon={BadgeCheck}
+            icon={Flag}
             fields={[
-              { label: "Code Officiel", value: officiel.id },
-              { label: "Nom complet", value: `${officiel.prenom} ${officiel.nom}` },
+              { label: "ID officiel", value: officiel.id },
+              { label: "Nom complet", value: nomComplet },
               { label: "Sexe", value: officiel.sexe === "M" ? "Masculin" : "Féminin" },
               { label: "Date de naissance", value: officiel.dateNaissance },
               { label: "Nationalité", value: officiel.nationalite },
-              { label: "Téléphone", value: officiel.telephone },
-              { label: "Email", value: officiel.email },
             ]}
           />
 
           <DetailCard
-            title="Fonction"
-            icon={Briefcase}
+            title="Identifiants"
+            icon={Fingerprint}
             fields={[
-              { label: "Fonction", value: officiel.fonction },
-              { label: "Structure", value: officiel.structure },
+              { label: "ID national", value: officiel.idNational },
+              { label: "ID FIBA", value: officiel.idFiba },
               { label: "Statut", value: officiel.statut },
             ]}
           />
 
           <DetailCard
-            title="Rattachement"
-            icon={MapPin}
+            title="Contact"
+            icon={Contact}
             fields={[
-              { label: "Province", value: officiel.province },
-              { label: "Ligue", value: officiel.ligue },
-              { label: "Entente", value: officiel.entente },
-              { label: "Club", value: officiel.club },
+              { label: "Téléphone", value: officiel.telephone },
+              { label: "Email", value: officiel.email },
             ]}
           />
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="affiliation">
+            <Card>
+              <CardContent className="p-6 text-sm text-muted-foreground">Coming soon</CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

@@ -29,10 +29,14 @@ export async function GET() {
     const scope = scopeFromSession(user)
     const rows = await readSheetRows("officiels")
 
+    const rowsWithId = rows.filter(
+      (row) => pickFirst(row, ["id_officiel"]) !== ""
+    )
+
     const filteredRows =
       scope.role === "federal"
-        ? rows
-        : rows.filter((row) => {
+        ? rowsWithId
+        : rowsWithId.filter((row) => {
             if (scope.role === "ligue") {
               const ligueId = pickFirst(row, ["id_ligue", "ligue_id", "idligue"])
               return String(ligueId ?? "") === scope.ligueId
@@ -42,16 +46,20 @@ export async function GET() {
           })
 
     const officiels = filteredRows.map((row, index) => {
-      const id = pickFirst(row, ["id_officiel", "id", "code_officiel", "code"])
-      const nomComplet = pickFirst(row, ["nom_complet", "nom", "nom_prenom", "designation"])
+      const id = pickFirst(row, ["id_officiel"])
+      const idNational = pickFirst(row, ["id_national"])
+      const idFiba = pickFirst(row, ["id_fiba"])
+      const clubId = pickFirst(row, ["id_club", "club_id", "idclub"])
+      const equipeId = pickFirst(row, ["id_equipe", "equipe_id", "idequipe", "code_equipe"])
+      const nomComplet = pickFirst(row, ["nom_complet"])
       const { prenom, nom } = splitNomComplet(nomComplet)
 
-      const sexe = pickFirst(row, ["sexe", "genre", "sex"])
-      const dateNaissance = pickFirst(row, ["date_de_naissance", "date_naissance", "naissance", "dob"])
-      const nationalite = pickFirst(row, ["nationalite", "nationalité"])
+      const sexe = pickFirst(row, ["sexe"])
+      const dateNaissance = pickFirst(row, ["date_de_naissance"])
+      const nationalite = pickFirst(row, ["nationalite"])
 
-      const telephone = pickFirst(row, ["telephone", "téléphone", "phone"])
-      const email = pickFirst(row, ["email", "e-mail", "mail"])
+      const telephone = pickFirst(row, ["telephone"])
+      const email = pickFirst(row, ["email"])
       const fonction = pickFirst(row, ["fonction", "role"])
       const structure = pickFirst(row, ["structure", "organisation", "organisme"])
 
@@ -60,21 +68,25 @@ export async function GET() {
       const entente = pickFirst(row, ["nom_entente", "entente", "entente_nom"])
       const club = pickFirst(row, ["nom_club", "club", "club_nom"])
 
-      const statut = pickFirst(row, ["statut", "status", "etat"])
+      const statut = pickFirst(row, ["statut"])
       const observation = pickFirst(row, ["observation", "observations", "remarque", "remarques"])
 
-      const avatarUrl = pickFirst(row, ["avatar_drive_url", "avatar_url", "photo_url", "avatar"])
-      const avatarDriveId = pickFirst(row, ["avatar_drive_id", "drive_id", "avatar_id"])
+      const avatarUrl = pickFirst(row, ["avatar_drive_url"])
+      const avatarDriveId = pickFirst(row, ["avatar_drive_id"])
       const resolvedAvatarUrl = avatarDriveId ? buildDrivePublicUrl(avatarDriveId) : avatarUrl || ""
 
-      const fallbackId = `row_${index + 2}`
-      const __key = `${id || fallbackId}__${index + 2}`
+      const __key = `${id}__${index}`
 
       return {
         __key,
-        id: id || fallbackId,
+        id,
+        idNational,
+        idFiba,
+        clubId: clubId || "",
+        equipeId: equipeId || "",
         nom: nom || "",
         prenom: prenom || "-",
+        nomComplet: nomComplet || `${prenom} ${nom}`.trim(),
         sexe: String(sexe ?? "-") || "-",
         dateNaissance: String(dateNaissance ?? "-") || "-",
         nationalite: String(nationalite ?? "-") || "-",

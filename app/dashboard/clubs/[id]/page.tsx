@@ -2,21 +2,102 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { Header } from "@/components/dashboard/header"
+import { ArrowLeft, Briefcase, CalendarDays, Layers, Shield, Users } from "lucide-react"
+
+import { DataTable, type Column } from "@/components/dashboard/data-table"
 import { DetailCard } from "@/components/dashboard/detail-card"
+import { Header } from "@/components/dashboard/header"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Athlete, Club, Equipe } from "@/lib/models"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
-import { ArrowLeft, Camera, Shield, MapPin, Users, Layers } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import type { Arbitre, Athlete, Club, Coach, Equipe, Medecin, Officiel } from "@/lib/models"
 
-function initials(nom?: string): string {
-  const n = String(nom ?? "").trim()
-  const a = n ? n[0] : ""
-  return (a || "CL").toUpperCase()
+type AthletePagination = {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
 }
+
+type StaffMember = {
+  key: string
+  type: string
+  nom: string
+  fonction: string
+  telephone?: string
+  email?: string
+  statut: string
+}
+
+function normalize(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase()
+}
+
+function isSet(value: unknown): boolean {
+  const normalized = normalize(value)
+  return Boolean(normalized && normalized !== "-")
+}
+
+function same(value: unknown, expected: unknown): boolean {
+  return isSet(value) && isSet(expected) && normalize(value) === normalize(expected)
+}
+
+function buildQuery(params: Record<string, string | number | undefined>): string {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null || String(value).trim() === "") continue
+    query.set(key, String(value))
+  }
+  return query.toString()
+}
+
+async function loadList<T>(url: string, key: string): Promise<T[]> {
+  try {
+    const res = await fetch(url, { cache: "no-store" })
+    const json = await res.json()
+    return Array.isArray(json?.[key]) ? json[key] : []
+  } catch {
+    return []
+  }
+}
+
+function getFullName(person: { prenom?: string; nom?: string }): string {
+  return [person.prenom, person.nom].filter((part) => isSet(part)).join(" ") || "-"
+}
+
+const equipeColumns: Column<Equipe>[] = [
+  { key: "id", header: "ID équipe", className: "font-mono text-sm" },
+  { key: "nom", header: "Équipe", className: "font-medium" },
+  { key: "categorie", header: "Catégorie" },
+  { key: "genre", header: "Genre" },
+  { key: "saison", header: "Saison", render: (item) => item.saison || "-" },
+  { key: "statut", header: "Statut", render: (item) => <StatusBadge status={item.statut} /> },
+]
+
+const staffColumns: Column<StaffMember>[] = [
+  { key: "type", header: "Type" },
+  { key: "nom", header: "Nom", className: "font-medium" },
+  { key: "fonction", header: "Fonction" },
+  { key: "telephone", header: "Téléphone", render: (item) => item.telephone || "-" },
+  { key: "email", header: "Email", render: (item) => item.email || "-" },
+  { key: "statut", header: "Statut", render: (item) => <StatusBadge status={item.statut} /> },
+]
 
 export default function ClubDetailPage() {
   const params = useParams()
@@ -28,24 +109,45 @@ export default function ClubDetailPage() {
 
   const [clubs, setClubs] = useState<Club[]>([])
   const [equipes, setEquipes] = useState<Equipe[]>([])
+  const [coachs, setCoachs] = useState<Coach[]>([])
+  const [medecins, setMedecins] = useState<Medecin[]>([])
+  const [officiels, setOfficiels] = useState<Officiel[]>([])
+  const [arbitres, setArbitres] = useState<Arbitre[]>([])
   const [athletes, setAthletes] = useState<Athlete[]>([])
+  const [athletePagination, setAthletePagination] = useState<AthletePagination>({
+    page: 1,
+    pageSize: 25,
+    total: 0,
+    totalPages: 1,
+  })
   const [loading, setLoading] = useState(true)
-  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
-  const [avatarModalOpen, setAvatarModalOpen] = useState(false)
+  const [athletesLoading, setAthletesLoading] = useState(false)
+  const [athleteSearch, setAthleteSearch] = useState("")
+  const [athleteStatus, setAthleteStatus] = useState("all")
+  const [athleteSexe, setAthleteSexe] = useState("all")
+  const [athletePage, setAthletePage] = useState(1)
 
   useEffect(() => {
     let canceled = false
     ;(async () => {
-      try {
-        const res = await fetch("/api/clubs", { cache: "no-store" })
-        const json = await res.json()
-        if (!canceled) {
-          setClubs(Array.isArray(json?.clubs) ? json.clubs : [])
-        }
-      } catch {
-        if (!canceled) setClubs([])
-      } finally {
-        if (!canceled) setLoading(false)
+      const [clubsData, equipesData, coachsData, medecinsData, officielsData, arbitresData] =
+        await Promise.all([
+          loadList<Club>("/api/clubs", "clubs"),
+          loadList<Equipe>("/api/equipes", "equipes"),
+          loadList<Coach>("/api/coachs", "coachs"),
+          loadList<Medecin>("/api/medecins", "medecins"),
+          loadList<Officiel>("/api/officiels", "officiels"),
+          loadList<Arbitre>("/api/arbitres", "arbitres"),
+        ])
+
+      if (!canceled) {
+        setClubs(clubsData)
+        setEquipes(equipesData)
+        setCoachs(coachsData)
+        setMedecins(medecinsData)
+        setOfficiels(officielsData)
+        setArbitres(arbitresData)
+        setLoading(false)
       }
     })()
 
@@ -53,85 +155,139 @@ export default function ClubDetailPage() {
       canceled = true
     }
   }, [])
-
-  useEffect(() => {
-    let canceled = false
-    ;(async () => {
-      try {
-        const res = await fetch("/api/equipes", { cache: "no-store" })
-        const json = await res.json()
-        if (!canceled) {
-          setEquipes(Array.isArray(json?.equipes) ? json.equipes : [])
-        }
-      } catch {
-        if (!canceled) setEquipes([])
-      }
-    })()
-
-    return () => {
-      canceled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    let canceled = false
-    ;(async () => {
-      try {
-        const res = await fetch("/api/athletes", { cache: "no-store" })
-        const json = await res.json()
-        if (!canceled) {
-          setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
-        }
-      } catch {
-        if (!canceled) setAthletes([])
-      }
-    })()
-
-    return () => {
-      canceled = true
-    }
-  }, [])
-
-  const reloadClubs = async () => {
-    try {
-      const res = await fetch("/api/clubs", { cache: "no-store" })
-      const json = await res.json()
-      setClubs(Array.isArray(json?.clubs) ? json.clubs : [])
-    } catch {
-      setClubs([])
-    }
-  }
 
   const club = useMemo(() => {
     if (!idParam) return undefined
-    return clubs.find((c) => String(c.id) === String(idParam))
+    return clubs.find((item) => same(item.id, idParam))
   }, [clubs, idParam])
 
-  const avatarSrc = localAvatarUrl || (club?.avatarUrl as string | undefined) || null
-
-  const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase()
-
   const clubEquipes = useMemo(() => {
-    const clubName = normalize(club?.nom)
-    if (!clubName) return []
+    if (!club) return []
+    return equipes.filter((equipe) => {
+      if (same(equipe.clubId, club.id)) return true
+      return same(equipe.club, club.nom)
+    })
+  }, [club, equipes])
 
-    return equipes.filter((e) => normalize(e.club) === clubName)
-  }, [club?.nom, equipes])
+  const equipeIds = useMemo(() => {
+    return clubEquipes
+      .map((equipe) => String(equipe.id ?? "").trim())
+      .filter((id) => id && id !== "-")
+  }, [clubEquipes])
 
-  const clubAthletes = useMemo(() => {
-    const clubName = normalize(club?.nom)
-    if (!clubName) return []
+  const equipeIdsKey = equipeIds.join(",")
 
-    return athletes.filter((a) => normalize(a.club) === clubName)
-  }, [athletes, club?.nom])
+  const isLinkedToClub = (item: {
+    clubId?: string
+    equipeId?: string
+    club?: string
+    equipe?: string
+  }) => {
+    if (!club) return false
+    if (same(item.clubId, club.id)) return true
+    if (item.equipeId && equipeIds.some((id) => same(item.equipeId, id))) return true
+    return same(item.club, club.nom)
+  }
+
+  const linkedCoachs = useMemo(() => coachs.filter(isLinkedToClub), [coachs, club, equipeIdsKey])
+  const linkedMedecins = useMemo(() => medecins.filter(isLinkedToClub), [medecins, club, equipeIdsKey])
+  const linkedOfficiels = useMemo(() => officiels.filter(isLinkedToClub), [officiels, club, equipeIdsKey])
+  const linkedArbitres = useMemo(() => arbitres.filter(isLinkedToClub), [arbitres, club, equipeIdsKey])
+
+  const staffMembers: StaffMember[] = useMemo(() => {
+    return [
+      ...linkedCoachs.map((item) => ({
+        key: `coach-${item.__key ?? item.id}`,
+        type: "Coach",
+        nom: getFullName(item),
+        fonction: item.specialite || item.niveau || "-",
+        telephone: item.telephone,
+        email: item.email,
+        statut: item.statut,
+      })),
+      ...linkedMedecins.map((item) => ({
+        key: `medecin-${item.__key ?? item.id}`,
+        type: "Médecin",
+        nom: getFullName(item),
+        fonction: item.specialite || item.structureMedicale || "-",
+        telephone: item.telephone,
+        email: item.email,
+        statut: item.statut,
+      })),
+      ...linkedOfficiels.map((item) => ({
+        key: `officiel-${item.__key ?? item.id}`,
+        type: "Officiel",
+        nom: getFullName(item),
+        fonction: item.fonction || "-",
+        telephone: item.telephone,
+        email: item.email,
+        statut: item.statut,
+      })),
+      ...linkedArbitres.map((item) => ({
+        key: `arbitre-${item.__key ?? item.id}`,
+        type: "Arbitre",
+        nom: getFullName(item),
+        fonction: item.niveau || "-",
+        telephone: item.telephone,
+        email: item.email,
+        statut: item.statut,
+      })),
+    ]
+  }, [linkedArbitres, linkedCoachs, linkedMedecins, linkedOfficiels])
+
+  useEffect(() => {
+    setAthletePage(1)
+  }, [athleteSearch, athleteSexe, athleteStatus, equipeIdsKey])
+
+  useEffect(() => {
+    if (!club) {
+      setAthletes([])
+      setAthletePagination({ page: 1, pageSize: 25, total: 0, totalPages: 1 })
+      return
+    }
+
+    let canceled = false
+    ;(async () => {
+      setAthletesLoading(true)
+      try {
+        const query = buildQuery({
+          clubId: club.id,
+          club: club.nom,
+          equipeIds: equipeIdsKey,
+          search: athleteSearch,
+          statut: athleteStatus === "all" ? undefined : athleteStatus,
+          sexe: athleteSexe === "all" ? undefined : athleteSexe,
+          page: athletePage,
+          pageSize: 25,
+        })
+        const res = await fetch(`/api/athletes?${query}`, { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
+          setAthletePagination(
+            json?.pagination ?? { page: athletePage, pageSize: 25, total: 0, totalPages: 1 }
+          )
+        }
+      } catch {
+        if (!canceled) {
+          setAthletes([])
+          setAthletePagination({ page: athletePage, pageSize: 25, total: 0, totalPages: 1 })
+        }
+      } finally {
+        if (!canceled) setAthletesLoading(false)
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [athletePage, athleteSearch, athleteSexe, athleteStatus, club, equipeIdsKey])
 
   if (loading) {
     return (
       <div className="flex flex-col">
         <Header title="Chargement..." />
-        <div className="flex-1 p-6">
-          <p className="text-muted-foreground">Chargement du club...</p>
-        </div>
+        <div className="flex-1 p-6 text-muted-foreground">Chargement du club...</div>
       </div>
     )
   }
@@ -153,168 +309,231 @@ export default function ClubDetailPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title={`Fiche Club: ${club.nom}`} />
+      <Header title={`Fiche Club: ${club.nom}`} subtitle={club.entente || club.ligue || ""} />
 
-      <div className="flex-1 p-6 space-y-6">
-        {/* Back button and actions */}
-        <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour à la liste
-          </Button>
+      <div className="flex-1 space-y-6 p-6">
+        <Button variant="outline" onClick={() => router.back()}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour à la liste
+        </Button>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <DetailCard
+            title="Informations générales"
+            icon={Shield}
+            fields={[
+              { label: "ID Club", value: club.id },
+              { label: "Nom du club", value: club.nom },
+              { label: "Ligue", value: club.ligue },
+              { label: "Entente", value: club.entente },
+              { label: "Statut", value: club.statut },
+              { label: "Observation", value: club.observation || "-" },
+            ]}
+          />
+
+          <DetailCard
+            title="Affiliation"
+            icon={CalendarDays}
+            fields={[
+              { label: "Catégorie", value: club.categorie },
+              { label: "Version", value: club.version },
+              { label: "Date d'affiliation", value: club.dateAffiliation },
+            ]}
+          />
         </div>
 
-        {/* Club header card */}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <StatTile icon={Layers} label="Équipes" value={clubEquipes.length} />
+          <StatTile icon={Users} label="Athlètes" value={athletePagination.total} />
+          <StatTile icon={Briefcase} label="Coachs" value={linkedCoachs.length} />
+          <StatTile icon={Shield} label="Médecins" value={linkedMedecins.length} />
+          <StatTile icon={CalendarDays} label="Compétitions" value="En cours" />
+        </div>
+
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 rounded-xl">
-                  <AvatarImage src={avatarSrc || undefined} alt={club.nom} />
-                  <AvatarFallback className="rounded-xl">{initials(club.nom)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h2 className="text-2xl font-bold">{club.nom}</h2>
-                  <p className="text-muted-foreground">{club.categorie}</p>
-                  <div className="mt-2">
-                    <StatusBadge status={club.statut} />
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">ID Club</p>
-                <p className="font-mono font-medium">{club.id}</p>
-                <div className="mt-3 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAvatarModalOpen(true)}
-                  >
-                    <Camera className="mr-2 h-4 w-4" />
-                    Ajouter la photo
-                  </Button>
-                </div>
+          <CardHeader>
+            <CardTitle>Équipes du club</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              data={clubEquipes}
+              columns={equipeColumns}
+              searchPlaceholder="Rechercher une équipe..."
+              idKey="__key"
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Athlètes du club</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Input
+                type="search"
+                placeholder="Rechercher un athlète..."
+                value={athleteSearch}
+                onChange={(event) => setAthleteSearch(event.target.value)}
+                className="max-w-sm"
+              />
+              <Select value={athleteStatus} onValueChange={setAthleteStatus}>
+                <SelectTrigger className="w-[170px]">
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="actif">Actif</SelectItem>
+                  <SelectItem value="inactif">Inactif</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={athleteSexe} onValueChange={setAthleteSexe}>
+                <SelectTrigger className="w-[170px]">
+                  <SelectValue placeholder="Genre" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les genres</SelectItem>
+                  <SelectItem value="masculin">Masculin</SelectItem>
+                  <SelectItem value="féminin">Féminin</SelectItem>
+                  <SelectItem value="feminin">Feminin</SelectItem>
+                  <SelectItem value="m">M</SelectItem>
+                  <SelectItem value="f">F</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-lg border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID athlète</TableHead>
+                    <TableHead>Nom complet</TableHead>
+                    <TableHead>Genre</TableHead>
+                    <TableHead>Catégorie</TableHead>
+                    <TableHead>ID équipe</TableHead>
+                    <TableHead>Équipe</TableHead>
+                    <TableHead>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {athletesLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                        Chargement des athlètes...
+                      </TableCell>
+                    </TableRow>
+                  ) : athletes.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                        Aucun athlète trouvé.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    athletes.map((athlete) => (
+                      <TableRow key={athlete.__key ?? athlete.id}>
+                        <TableCell className="font-mono text-sm">{athlete.id}</TableCell>
+                        <TableCell className="font-medium">
+                          {athlete.prenom} {athlete.nom}
+                        </TableCell>
+                        <TableCell>{athlete.sexe}</TableCell>
+                        <TableCell>{athlete.categorie}</TableCell>
+                        <TableCell className="font-mono text-sm">{athlete.equipeId || "-"}</TableCell>
+                        <TableCell>{athlete.equipe}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={athlete.statut} />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                {athletePagination.total} résultat{athletePagination.total > 1 ? "s" : ""}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAthletePage((page) => Math.max(1, page - 1))}
+                  disabled={athletePage <= 1 || athletesLoading}
+                >
+                  Précédent
+                </Button>
+                <span>
+                  Page {athletePagination.page} sur {athletePagination.totalPages || 1}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setAthletePage((page) => Math.min(athletePagination.totalPages || 1, page + 1))
+                  }
+                  disabled={
+                    athletesLoading || athletePagination.page >= (athletePagination.totalPages || 1)
+                  }
+                >
+                  Suivant
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <AvatarUploadModal
-          open={avatarModalOpen}
-          onOpenChange={setAvatarModalOpen}
-          title="Ajouter la photo"
-          description="Vérifie les informations avant de confirmer la photo."
-          currentImageUrl={avatarSrc}
-          fallbackText={initials(club.nom)}
-          verificationFields={[
-            { label: "Nom", value: club.nom },
-            { label: "Catégorie", value: club.categorie },
-          ]}
-          onConfirm={(url) => setLocalAvatarUrl(url)}
-          onConfirmFile={async (file) => {
-            const formData = new FormData()
-            formData.append("file", file)
-            formData.append("entityType", "club")
-            formData.append("entityId", String(club.id))
-
-            const res = await fetch("/api/upload/avatar", {
-              method: "POST",
-              body: formData,
-            })
-
-            const json = await res.json()
-            if (!res.ok) {
-              throw new Error(String(json?.error ?? "Upload avatar échoué"))
-            }
-
-            const url = String(json?.avatar_drive_url ?? "")
-            if (!url) {
-              throw new Error("Upload avatar échoué")
-            }
-
-            setLocalAvatarUrl(url)
-            await reloadClubs()
-            return url
-          }}
-        />
-
-        {/* Details grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Identité */}
-          <DetailCard
-            title="Identité"
-            icon={Shield}
-            fields={[
-              { label: "ID Club", value: club.id },
-              { label: "Nom du club", value: club.nom },
-              { label: "Catégorie", value: club.categorie },
-              { label: "Date d'affiliation", value: club.dateAffiliation ?? "-" },
-              { label: "Statut", value: club.statut },
-            ]}
-          />
-
-          {/* Rattachement territorial */}
-          <DetailCard
-            title="Rattachement territorial"
-            icon={MapPin}
-            fields={[
-              { label: "Province", value: club.province },
-              { label: "Ligue", value: club.ligue },
-              { label: "Entente", value: club.entente },
-            ]}
-          />
-
-          {/* Effectif */}
-          <DetailCard
-            title="Effectif sportif"
-            icon={Users}
-            fields={[
-              { label: "Nombre d'équipes", value: clubEquipes.length },
-              { label: "Nombre d'athlètes", value: clubAthletes.length },
-            ]}
-          />
-        </div>
-
-        {/* Equipes list */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Layers className="h-5 w-5 text-primary" />
-              Équipes du club ({clubEquipes.length})
-            </CardTitle>
+            <CardTitle>Staff / entourage du club</CardTitle>
           </CardHeader>
           <CardContent>
-            {clubEquipes.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                Aucune équipe enregistrée pour ce club.
-              </p>
+            {staffMembers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">En cours de synchronisation.</p>
             ) : (
-              <div className="space-y-2">
-                {clubEquipes.map((equipe) => (
-                  <div
-                    key={(equipe as unknown as { __key?: string }).__key ?? equipe.id}
-                    className="flex items-center justify-between rounded-lg border border-border p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <Users className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{equipe.nom}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {equipe.categorie} - {equipe.genre}
-                        </p>
-                      </div>
-                    </div>
-                    <StatusBadge status={equipe.statut} />
-                  </div>
-                ))}
-              </div>
+              <DataTable
+                data={staffMembers}
+                columns={staffColumns}
+                searchPlaceholder="Rechercher dans le staff..."
+                idKey="key"
+              />
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Compétitions liées au club</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              En cours de synchronisation. Les compétitions seront rattachées via les équipes du club.
+            </p>
           </CardContent>
         </Card>
       </div>
     </div>
+  )
+}
+
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: number | string
+}) {
+  return (
+    <Card>
+      <CardContent className="flex items-center justify-between gap-3 p-5">
+        <div>
+          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="text-2xl font-bold">{value}</p>
+        </div>
+        <Icon className="h-6 w-6 text-primary" />
+      </CardContent>
+    </Card>
   )
 }

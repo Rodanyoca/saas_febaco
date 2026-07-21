@@ -7,13 +7,6 @@ import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Arbitre, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-function formatMatricule(value: unknown): string {
-  const raw = String(value ?? "").trim()
-  const digits = raw.replace(/\D/g, "")
-  if (!digits) return raw
-  return digits.slice(-3).padStart(3, "0")
-}
-
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
   const n = String(nom ?? "").trim()
@@ -23,48 +16,70 @@ function initials(prenom?: string, nom?: string): string {
   return v || "AR"
 }
 
+function calcAge(dateNaissance?: string): number | null {
+  if (!dateNaissance) return null
+  const d = new Date(dateNaissance)
+  if (Number.isNaN(d.getTime())) return null
+  const now = new Date()
+  let age = now.getFullYear() - d.getFullYear()
+  const m = now.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age -= 1
+  return age >= 0 ? age : null
+}
+
 const columns: Column<Arbitre>[] = [
   {
     key: "id",
-    header: "Matricule",
-    className: "font-mono text-sm",
-    render: (item) => (
-      <div className="flex items-center gap-2">
-        <span>{formatMatricule(item.id)}</span>
-        <Avatar className="size-7">
-          <AvatarImage src={item.avatarUrl || undefined} alt={`${item.prenom} ${item.nom}`} />
-          <AvatarFallback className="text-[10px]">{initials(item.prenom, item.nom)}</AvatarFallback>
-        </Avatar>
-      </div>
-    ),
+    header: "ID",
+    className: "w-[11%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block whitespace-normal break-all leading-snug">{item.id || "-"}</span>,
   },
   {
-    key: "nom",
+    key: "nomComplet",
     header: "Nom complet",
-    className: "font-medium",
-    render: (item) => (
-      <div className="flex flex-col leading-tight min-w-0">
-        <span className="truncate">{item.prenom} {item.nom}</span>
-        <span className="text-xs text-muted-foreground truncate">
-          {String(item.niveau ?? "").trim()} · {String(item.sexe ?? "").trim()}
-        </span>
-      </div>
-    ),
+    className: "w-[26%] whitespace-normal font-medium",
+    render: (item) => {
+      const age = calcAge(item.dateNaissance)
+      return (
+        <div className="flex items-center gap-3">
+          <Avatar className="size-10 shrink-0">
+            <AvatarImage src={item.avatarUrl || undefined} alt={item.nomComplet || `${item.prenom} ${item.nom}`} />
+            <AvatarFallback className="text-xs">{initials(item.prenom, item.nom)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <span className="block whitespace-normal break-words leading-snug">
+              {item.nomComplet || `${item.prenom} ${item.nom}`}
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              {age !== null ? `${age} ans` : "-"} / {item.sexe || "-"}
+            </span>
+          </div>
+        </div>
+      )
+    },
   },
   {
-    key: "ligue",
-    header: "Ligue / Entente",
-    className: "min-w-0",
-    render: (item) => (
-      <div className="flex flex-col leading-tight min-w-0">
-        <span className="font-medium text-foreground truncate">{item.ligue}</span>
-        <span className="text-xs text-muted-foreground truncate">{item.entente}</span>
-      </div>
-    ),
+    key: "niveau",
+    header: "Niveau",
+    className: "w-[11%] whitespace-normal break-words",
+    render: (item) => item.niveau || "-",
+  },
+  {
+    key: "idNational",
+    header: "ID national",
+    className: "w-[14%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block whitespace-normal break-all leading-snug">{item.idNational || "-"}</span>,
+  },
+  {
+    key: "idFiba",
+    header: "ID FIBA",
+    className: "w-[14%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block whitespace-normal break-all leading-snug">{item.idFiba || "-"}</span>,
   },
   {
     key: "statut",
     header: "Statut",
+    className: "w-[10%]",
     render: (item) => <StatusBadge status={item.statut} />,
   },
 ]
@@ -79,7 +94,21 @@ export default function ArbitresPage() {
         const res = await fetch("/api/arbitres", { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
-          setArbitres(Array.isArray(json?.arbitres) ? json.arbitres : [])
+          const normalize = (value: unknown) => String(value ?? "").trim()
+          const normalizeSexe = (value: unknown) => {
+            const v = normalize(value).toLowerCase()
+            if (v === "f" || v.startsWith("f")) return "F"
+            return "M"
+          }
+
+          const raw = Array.isArray(json?.arbitres) ? (json.arbitres as Arbitre[]) : []
+          setArbitres(
+            raw.map((arbitre) => ({
+              ...arbitre,
+              sexe: normalizeSexe(arbitre.sexe),
+              statut: normalize(arbitre.statut),
+            }))
+          )
         }
       } catch {
         if (!canceled) setArbitres([])
@@ -94,9 +123,12 @@ export default function ArbitresPage() {
   const filters: Filter[] = useMemo(() => {
     return [
       {
-        key: "province",
-        label: "Province",
-        options: getFilterOptions(arbitres, "province"),
+        key: "sexe",
+        label: "Sexe",
+        options: [
+          { value: "M", label: "M" },
+          { value: "F", label: "F" },
+        ],
       },
       {
         key: "niveau",
@@ -113,15 +145,17 @@ export default function ArbitresPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title="Arbitres" subtitle="Liste des arbitres affiliés à la FEBACO" />
+      <Header title="Arbitres" subtitle="Liste des arbitres affilies a la FEBACO" />
 
       <div className="flex-1 p-6">
         <DataTable
           data={arbitres}
           columns={columns}
           filters={filters}
+          tableClassName="table-fixed"
+          actionsClassName="w-[14%]"
           searchPlaceholder="Rechercher un arbitre..."
-          detailHref={(item) => `/dashboard/arbitres/${item.id}`}
+          detailHref={(item) => `/dashboard/arbitres/${encodeURIComponent(item.id || item.__key || "")}`}
           idKey="__key"
         />
       </div>

@@ -13,13 +13,13 @@ export async function GET() {
     }
 
     const scope = scopeFromSession(user)
-    const rows = await readSheetRows("ligues")
+    const rows = await readSheetRows({ block: "structure", sheet: "ligues", range: "A:ZZ" })
 
     let allowedLigueId: string | null = null
     if (scope.role === "ligue") {
       allowedLigueId = scope.ligueId
     } else if (scope.role === "entente") {
-      const ententes = await readSheetRows("ententes")
+      const ententes = await readSheetRows({ block: "structure", sheet: "ententes", range: "A:ZZ" })
       const ententeRow = ententes.find((r) => {
         const id = pickFirst(r, ["id_entente", "id", "code_entente", "code"])
         return String(id ?? "") === scope.ententeId
@@ -40,7 +40,27 @@ export async function GET() {
       const id = pickFirst(row, ["id_ligue", "id", "code_ligue", "code"])
       const nom = pickFirst(row, ["nom_ligue", "nom", "ligue", "designation"])
       const pseudo = pickFirst(row, ["pseudo_ligue", "pseudo", "sigle", "abreviation", "abbreviation"])
+      const provinceId = pickFirst(row, ["id_province", "province_id", "idprovince"])
       const province = pickFirst(row, ["nom_province", "province", "province_nom"])
+      const email = pickFirst(row, ["email_ligue", "email", "mail_ligue", "mail"])
+      const presidentId = pickFirst(row, ["id_president_ligue", "president_ligue_id", "id_president"])
+      const presidentNom = pickFirst(row, ["nom_president_ligue", "president_ligue", "president", "nom_president"])
+      const presidentTelephone = pickFirst(row, [
+        "telephone_president_ligue",
+        "tel_president_ligue",
+        "telephone_president",
+        "tel_president",
+      ])
+      const presidentEmail = pickFirst(row, ["email_president_ligue", "email_president"])
+      const secretaireId = pickFirst(row, ["id_secretaire_ligue", "secretaire_ligue_id", "id_secretaire"])
+      const secretaireNom = pickFirst(row, ["nom_secretaire_ligue", "secretaire_ligue", "secretaire", "nom_secretaire"])
+      const secretaireTelephone = pickFirst(row, [
+        "telephone_secretaire_ligue",
+        "tel_secretaire_ligue",
+        "telephone_secretaire",
+        "tel_secretaire",
+      ])
+      const secretaireEmail = pickFirst(row, ["email_secretaire_ligue", "email_secretaire"])
       const statut = pickFirst(row, ["statut", "status", "etat"])
 
       const fallbackId = `row_${index + 2}`
@@ -51,7 +71,17 @@ export async function GET() {
         id: id || fallbackId,
         nom: nom || "-",
         pseudo: pseudo || "-",
+        provinceId: provinceId || "",
         province: province || "-",
+        email: email || "-",
+        presidentId: presidentId || "",
+        presidentNom: presidentNom || "-",
+        presidentTelephone: presidentTelephone || "-",
+        presidentEmail: presidentEmail || "-",
+        secretaireId: secretaireId || "",
+        secretaireNom: secretaireNom || "-",
+        secretaireTelephone: secretaireTelephone || "-",
+        secretaireEmail: secretaireEmail || "-",
         statut: statut || "-",
       }
     })

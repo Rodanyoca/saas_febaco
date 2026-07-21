@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
-import { scopeFromSession } from "@/lib/auth-scope"
 import { buildDrivePublicUrl } from "@/lib/google-drive-url"
 
 export const dynamic = "force-dynamic"
+
+function normalize(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase()
+}
 
 function splitNomComplet(nomCompletRaw: string) {
   const parts = nomCompletRaw
@@ -18,92 +21,113 @@ function splitNomComplet(nomCompletRaw: string) {
   return { prenom: parts[0], nom: parts.slice(1).join(" ") }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url)
+    const hasAffiliationFilter = [
+      searchParams.get("ligueId"),
+      searchParams.get("clubId"),
+      searchParams.get("club"),
+      searchParams.get("equipeIds"),
+    ].some((value) => String(value ?? "").trim() !== "")
+    const search = normalize(searchParams.get("search"))
+    const statutFilter = normalize(searchParams.get("statut"))
+    const sexeFilter = normalize(searchParams.get("sexe"))
+    const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1)
+    const pageSizeRaw = Number(searchParams.get("pageSize") ?? "0") || 0
+    const pageSize = pageSizeRaw > 0 ? Math.min(100, Math.max(1, pageSizeRaw)) : 0
+
     const user = await getSessionUser()
     if (!user) {
-      return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
+      return NextResponse.json({ error: "Non authentifie." }, { status: 401 })
     }
 
-    const scope = scopeFromSession(user)
-    const rows = await readSheetRows("athletes")
+    const rows = await readSheetRows({ block: "acteurs", sheet: "athletes", range: "A:ZZ" })
 
-    const filteredRows =
-      scope.role === "federal"
-        ? rows
-        : rows.filter((row) => {
-            if (scope.role === "ligue") {
-              const ligueId = pickFirst(row, ["id_ligue", "ligue_id", "idligue"])
-              return String(ligueId ?? "") === scope.ligueId
-            }
-            const ententeId = pickFirst(row, ["id_entente", "entente_id", "identente"])
-            return String(ententeId ?? "") === scope.ententeId
-          })
+    const filteredRows = rows.filter((row) => {
+      const id = pickFirst(row, ["id_athlete"])
+      const rowStatut = normalize(pickFirst(row, ["statut"]))
+      const rowSexe = normalize(pickFirst(row, ["sexe"]))
 
-    const athletes = filteredRows.map((row, index) => {
-      const id = pickFirst(row, ["id_athlete", "id", "code_athlete", "code"])
-      const nomComplet = pickFirst(row, [
-        "nom_complet",
-        "nom complet",
-        "nom",
-        "athlete",
-        "athlète",
-      ])
+      if (!id) return false
+      if (hasAffiliationFilter) return false
+      if (statutFilter && rowStatut !== statutFilter) return false
+      if (sexeFilter && rowSexe !== sexeFilter) return false
 
+      if (search) {
+        const searchable = Object.values(row).join(" ").toLowerCase()
+        if (!searchable.includes(search)) return false
+      }
+
+      return true
+    })
+
+    const total = filteredRows.length
+    const paginatedRows =
+      pageSize > 0 ? filteredRows.slice((page - 1) * pageSize, page * pageSize) : filteredRows
+
+    const athletes = paginatedRows.map((row, index) => {
+      const id = pickFirst(row, ["id_athlete"])
+      const idNational = pickFirst(row, ["id_national"])
+      const idFiba = pickFirst(row, ["id_fiba"])
+      const nomComplet = pickFirst(row, ["nom_complet"])
       const { prenom, nom } = splitNomComplet(String(nomComplet ?? ""))
 
-      const sexe = pickFirst(row, ["sexe", "genre", "sex"]) || "-"
-      const dateNaissance = pickFirst(row, ["date_de_naissance", "date_naissance", "naissance"]) || "-"
-      const lieuNaissance = pickFirst(row, ["lieu_de_naissance", "lieu_naissance", "lieu"]) || "-"
-      const nationalite = pickFirst(row, ["nationalite", "nationalité", "pays"]) || "-"
-
-      const province = pickFirst(row, ["nom_province", "province", "province_nom"]) || "-"
-      const ligue = pickFirst(row, ["nom_ligue", "ligue", "ligue_nom"]) || "-"
-      const entente = pickFirst(row, ["nom_entente", "entente", "entente_nom"]) || "-"
-      const club = pickFirst(row, ["nom_club", "club", "club_nom"]) || "-"
-      const equipe = pickFirst(row, ["nom_equipe", "equipe", "équipe", "equipe_nom"]) || "-"
-
-      const categorie = pickFirst(row, ["categorie", "category"]) || "-"
-      const numeroMaillot = pickFirst(row, ["numero_maillot", "numero maillot", "maillot"]) || "-"
-      const poste = pickFirst(row, ["poste", "position"]) || "-"
-      const statut = pickFirst(row, ["statut", "status", "etat"]) || "-"
-
-      const avatarDriveId = pickFirst(row, ["avatar_drive_id", "drive_id", "avatar_id"])
-      const avatarDriveUrl = pickFirst(row, ["avatar_drive_url", "avatar_url", "photo_url", "avatar"])
+      const avatarDriveId = pickFirst(row, ["avatar_drive_id"])
+      const avatarDriveUrl = pickFirst(row, ["avatar_drive_url"])
       const avatarUrl = avatarDriveId
         ? buildDrivePublicUrl(avatarDriveId)
         : avatarDriveUrl
           ? String(avatarDriveUrl)
           : ""
 
-      const fallbackId = `row_${index + 2}`
-      const __key = `${id || fallbackId}__${index + 2}`
+      const __key = `${id}__${index}`
 
       return {
         __key,
-        id: id || fallbackId,
+        id: id || "",
+        idNational: idNational || "",
+        idFiba: idFiba || "",
+        clubId: "",
+        equipeId: "",
         nom,
         prenom,
+        nomComplet: nomComplet || `${prenom} ${nom}`.trim(),
+        dateNaissance: pickFirst(row, ["date_de_naissance"]) || "-",
+        lieuNaissance: pickFirst(row, ["lieu_de_naissance"]) || "-",
+        sexe: pickFirst(row, ["sexe"]) || "-",
+        nationalite: pickFirst(row, ["nationalite"]) || "-",
+        telephone: pickFirst(row, ["telephone"]) || "-",
+        email: pickFirst(row, ["email"]) || "-",
+        adresse: pickFirst(row, ["adresse"]) || "-",
         avatar_drive_id: avatarDriveId ? String(avatarDriveId) : "",
         avatar_drive_url: avatarDriveUrl ? String(avatarDriveUrl) : "",
         avatarUrl,
-        sexe,
-        dateNaissance,
-        lieuNaissance,
-        nationalite,
-        province,
-        ligue,
-        entente,
-        club,
-        equipe,
-        categorie,
-        numeroMaillot,
-        poste,
-        statut,
+        province: "-",
+        ligue: "-",
+        entente: "-",
+        club: "-",
+        equipe: "-",
+        dateDebut: "-",
+        dateFin: "-",
+        categorie: "-",
+        numeroMaillot: "-",
+        poste: "-",
+        statut: pickFirst(row, ["statut"]) || "-",
       }
     })
 
-    return NextResponse.json({ athletes })
+    return NextResponse.json({
+      athletes,
+      pagination: pageSize > 0
+        ? {
+            page,
+            pageSize,
+            total,
+            totalPages: Math.max(1, Math.ceil(total / pageSize)),
+          }
+        : undefined,
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json({ athletes: [], error: message }, { status: 500 })

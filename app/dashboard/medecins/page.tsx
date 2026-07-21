@@ -23,34 +23,69 @@ function initials(prenom?: string, nom?: string): string {
   return v || "MD"
 }
 
+function calcAge(dateNaissance?: string): number | null {
+  if (!dateNaissance) return null
+  const date = new Date(dateNaissance)
+  if (Number.isNaN(date.getTime())) return null
+  const today = new Date()
+  let age = today.getFullYear() - date.getFullYear()
+  const month = today.getMonth() - date.getMonth()
+  if (month < 0 || (month === 0 && today.getDate() < date.getDate())) age -= 1
+  return age >= 0 ? age : null
+}
+
 const columns: Column<Medecin>[] = [
   {
     key: "id",
-    header: "Code",
-    className: "font-mono text-sm",
-    render: (item) => (
-      <div className="flex items-center gap-2">
-        <span>{formatCode(item.id)}</span>
-        <Avatar className="size-7">
-          <AvatarImage src={item.avatarUrl || undefined} alt={`${item.prenom} ${item.nom}`} />
-          <AvatarFallback className="text-[10px]">{initials(item.prenom, item.nom)}</AvatarFallback>
-        </Avatar>
-      </div>
-    ),
+    header: "ID",
+    className: "w-[11%] font-mono text-sm",
+    render: (item) => <span className="block break-all">{formatCode(item.id) || "-"}</span>,
   },
   {
     key: "nom",
     header: "Nom complet",
-    className: "font-medium",
-    render: (item) => `${item.prenom} ${item.nom}`,
+    className: "w-[24%] font-medium",
+    render: (item) => (
+      <div className="flex items-center gap-3">
+        <Avatar className="size-10 shrink-0">
+          <AvatarImage src={item.avatarUrl || undefined} alt={`${item.prenom} ${item.nom}`} />
+          <AvatarFallback className="text-xs">{initials(item.prenom, item.nom)}</AvatarFallback>
+        </Avatar>
+        <span className="min-w-0 whitespace-normal break-words">{item.prenom} {item.nom}</span>
+      </div>
+    ),
   },
-  { key: "specialite", header: "Spécialité" },
-  { key: "structureMedicale", header: "Structure médicale" },
-  { key: "club", header: "Club" },
-  { key: "ligue", header: "Ligue" },
+  {
+    key: "sexe",
+    header: "Sexe / Âge",
+    className: "w-[13%]",
+    render: (item) => {
+      const age = calcAge(item.dateNaissance)
+      return (
+        <div className="space-y-1">
+          <span className="block">{item.sexe || "-"}</span>
+          <span className="block text-xs text-muted-foreground">{age !== null ? `${age} ans` : "-"}</span>
+        </div>
+      )
+    },
+  },
+  { key: "specialite", header: "Spécialité", className: "w-[15%]" },
+  {
+    key: "idNational",
+    header: "ID national",
+    className: "w-[14%] break-all font-mono text-sm",
+    render: (item) => item.idNational || "-",
+  },
+  {
+    key: "idFiba",
+    header: "ID FIBA",
+    className: "w-[14%] break-all font-mono text-sm",
+    render: (item) => item.idFiba || "-",
+  },
   {
     key: "statut",
     header: "Statut",
+    className: "w-[10%]",
     render: (item) => <StatusBadge status={item.statut} />,
   },
 ]
@@ -65,7 +100,14 @@ export default function MedecinsPage() {
         const res = await fetch("/api/medecins", { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
-          setMedecins(Array.isArray(json?.medecins) ? json.medecins : [])
+          const raw = Array.isArray(json?.medecins) ? (json.medecins as Medecin[]) : []
+          setMedecins(
+            raw.map((medecin) => ({
+              ...medecin,
+              sexe: String(medecin.sexe ?? "").trim().toUpperCase(),
+              statut: String(medecin.statut ?? "").trim(),
+            }))
+          )
         }
       } catch {
         if (!canceled) setMedecins([])
@@ -80,14 +122,12 @@ export default function MedecinsPage() {
   const filters: Filter[] = useMemo(() => {
     return [
       {
-        key: "province",
-        label: "Province",
-        options: getFilterOptions(medecins, "province"),
-      },
-      {
-        key: "ligue",
-        label: "Ligue",
-        options: getFilterOptions(medecins, "ligue"),
+        key: "sexe",
+        label: "Sexe",
+        options: [
+          { value: "M", label: "M" },
+          { value: "F", label: "F" },
+        ],
       },
       {
         key: "specialite",
@@ -114,8 +154,10 @@ export default function MedecinsPage() {
           data={medecins}
           columns={columns}
           filters={filters}
+          tableClassName="table-fixed"
+          actionsClassName="w-[10%]"
           searchPlaceholder="Rechercher un médecin..."
-          detailHref={(item) => `/dashboard/medecins/${item.id}`}
+          detailHref={(item) => `/dashboard/medecins/${encodeURIComponent(item.id)}`}
           idKey="__key"
         />
       </div>

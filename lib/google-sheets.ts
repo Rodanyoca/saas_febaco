@@ -2,10 +2,64 @@ import { google } from "googleapis"
 
 const SHEETS_REQUEST_TIMEOUT_MS = 10000
 
+export type SheetBlock =
+  | "structure"
+  | "users"
+  | "acteurs"
+  | "affiliations"
+  | "competitions"
+  | "equipeNationale"
+  | "importExport"
+
+const spreadsheetEnvByBlock: Record<SheetBlock, string> = {
+  structure: "GOOGLE_SHEETS_STRUCTURE_ID",
+  users: "GOOGLE_SHEETS_USERS_ID",
+  acteurs: "GOOGLE_SHEETS_ACTEURS_ID",
+  affiliations: "GOOGLE_SHEETS_AFFILIATIONS_ID",
+  competitions: "GOOGLE_SHEETS_COMPETITIONS_ID",
+  equipeNationale: "GOOGLE_SHEETS_EQUIPE_NATIONALE_ID",
+  importExport: "GOOGLE_SHEETS_IMPORT_EXPORT_ID",
+}
+
+const sheetBlockByName: Record<string, SheetBlock> = {
+  provinces: "structure",
+  ligues: "structure",
+  ententes: "structure",
+  clubs: "structure",
+  equipes: "structure",
+  athletes: "acteurs",
+  coachs: "acteurs",
+  medecins: "acteurs",
+  arbitres: "acteurs",
+  officiels: "acteurs",
+  affiliations: "affiliations",
+  affectations: "affiliations",
+  mandats: "affiliations",
+  transferts: "affiliations",
+  competitions: "competitions",
+  participants: "competitions",
+  unites: "competitions",
+  resultats: "competitions",
+  classement: "competitions",
+  selections: "equipeNationale",
+  competitions_nationales: "equipeNationale",
+  resultats_nationaux: "equipeNationale",
+  users: "users",
+}
+
 function requiredEnv(name: string): string {
   const value = process.env[name]
   if (!value) {
     throw new Error(`Missing environment variable: ${name}`)
+  }
+  return value
+}
+
+function getSpreadsheetId(block: SheetBlock): string {
+  const envName = spreadsheetEnvByBlock[block]
+  const value = process.env[envName]
+  if (!value) {
+    throw new Error(`Spreadsheet ID absent pour le bloc '${block}' (${envName}).`)
   }
   return value
 }
@@ -45,27 +99,86 @@ function createSheetsClientReadWrite() {
   return google.sheets({ version: "v4", auth })
 }
 
+function quoteSheetName(sheetName: string): string {
+  return `'${sheetName.replace(/'/g, "''")}'`
+}
+
+function inferBlockFromSheetName(sheetName: string): SheetBlock {
+  const normalized = normalizeHeader(sheetName)
+  const block = sheetBlockByName[normalized]
+  if (!block) {
+    throw new Error(`Bloc métier introuvable pour la feuille '${sheetName}'.`)
+  }
+  return block
+}
+
+function withGoogleSheetsErrorContext(error: unknown, block: SheetBlock, sheetName: string): Error {
+  const message = error instanceof Error ? error.message : String(error)
+  return new Error(`Lecture Google Sheets impossible pour '${block}/${sheetName}': ${message}`)
+}
+
 export type SheetRow = Record<string, string>
 
-export async function readSheetRows(sheetName: string): Promise<SheetRow[]> {
-  const spreadsheetId = requiredEnv("GOOGLE_SHEETS_SPREADSHEET_ID")
-  const sheets = createSheetsClient()
+type ReadSheetParams = {
+  block?: SheetBlock
+  sheet: string
+  range?: string
+}
 
-  const res = await sheets.spreadsheets.values.get(
-    {
-      spreadsheetId,
-      range: `${sheetName}!A:ZZ`,
-    },
-    {
-      timeout: SHEETS_REQUEST_TIMEOUT_MS,
+type ReadSheetRowsOptions = {
+  block?: SheetBlock
+  range?: string
+}
+
+export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
+  const block = params.block ?? inferBlockFromSheetName(params.sheet)
+  const spreadsheetId = getSpreadsheetId(block)
+  const sheets = createSheetsClient()
+  const range = params.range ?? "A:ZZ"
+
+  const sheetNameVariants = Array.from(new Set([params.sheet, params.sheet.toUpperCase(), params.sheet.toLowerCase()]))
+  let lastError: unknown
+
+  for (const candidate of sheetNameVariants) {
+    try {
+      const res = await sheets.spreadsheets.values.get(
+        {
+          spreadsheetId,
+          range: `${quoteSheetName(candidate)}!${range}`,
+        },
+        {
+          timeout: SHEETS_REQUEST_TIMEOUT_MS,
+        }
+      )
+
+      return res.data.values ?? []
+    } catch (error) {
+      lastError = error
     }
+  }
+
+  throw withGoogleSheetsErrorContext(lastError, block, params.sheet)
+}
+
+export async function readSheetRows(params: string | ReadSheetParams, options: ReadSheetRowsOptions = {}): Promise<SheetRow[]> {
+  const values = await readSheet(
+    typeof params === "string"
+      ? { sheet: params, block: options.block, range: options.range }
+      : params
   )
 
-  const values = res.data.values ?? []
   if (values.length === 0) return []
 
   const [headerRow, ...dataRows] = values
-  const headers = (headerRow ?? []).map((h) => normalizeHeader(String(h ?? "")))
+  const headerOccurrences = new Map<string, number>()
+  const headers = (headerRow ?? []).map((h) => {
+    const header = normalizeHeader(String(h ?? ""))
+    if (!header) return ""
+
+    const occurrence = (headerOccurrences.get(header) ?? 0) + 1
+    headerOccurrences.set(header, occurrence)
+    return occurrence === 1 ? header : `${header}_${occurrence}`
+  })
 
   return dataRows
     .filter((row) => row?.some((cell) => String(cell ?? "").trim() !== ""))
@@ -105,14 +218,17 @@ export async function updateAvatarFieldsByEntityId({
   entityIdHeaderCandidates,
   avatarDriveId,
   avatarDriveUrl,
+  block,
 }: {
   sheetName: string
   entityId: string
   entityIdHeaderCandidates: string[]
   avatarDriveId: string
   avatarDriveUrl: string
+  block?: SheetBlock
 }): Promise<{ rowNumber: number }> {
-  const spreadsheetId = requiredEnv("GOOGLE_SHEETS_SPREADSHEET_ID")
+  const resolvedBlock = block ?? inferBlockFromSheetName(sheetName)
+  const spreadsheetId = getSpreadsheetId(resolvedBlock)
   const sheets = createSheetsClientReadWrite()
 
   const res = await sheets.spreadsheets.values.get(

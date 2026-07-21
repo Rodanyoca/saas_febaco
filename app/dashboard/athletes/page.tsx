@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
-import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Athlete, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { StatusBadge } from "@/components/dashboard/status-badge"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
@@ -30,74 +30,76 @@ function calcAge(dateNaissance?: string): number | null {
 const columns: Column<Athlete>[] = [
   {
     key: "id",
-    header: "ID",
-    className: "font-mono text-sm",
+    header: "ID athlete",
+    className: "w-[22%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block whitespace-normal break-all leading-snug">{item.id || "-"}</span>,
+  },
+  {
+    key: "avatarUrl",
+    header: "Avatar",
+    className: "w-[76px] text-center",
     render: (item) => (
-      <div className="flex items-center gap-2">
-        <span>{item.id}</span>
-        <Avatar className="size-7">
+      <div className="flex justify-center">
+        <Avatar className="size-10">
           <AvatarImage src={(item.avatarUrl as string | undefined) || undefined} alt={`${item.prenom} ${item.nom}`} />
-          <AvatarFallback className="text-[10px]">{initials(item.prenom, item.nom)}</AvatarFallback>
+          <AvatarFallback className="text-xs">{initials(item.prenom, item.nom)}</AvatarFallback>
         </Avatar>
       </div>
     ),
   },
   {
-    key: "nom",
+    key: "nomComplet",
     header: "Nom complet",
-    className: "font-medium",
-    render: (item) => `${item.prenom} ${item.nom}`,
+    className: "w-[24%] whitespace-normal font-medium",
+    render: (item) => (
+      <span className="block whitespace-normal break-words leading-snug">
+        {item.nomComplet || `${item.prenom} ${item.nom}`}
+      </span>
+    ),
   },
   {
     key: "sexe",
-    header: "Sexe / Âge",
-    className: "text-center",
+    header: "Sexe / age",
+    className: "w-[90px] text-center",
     render: (item) => {
       const age = calcAge(item.dateNaissance)
       const sexe = item.sexe === "F" ? "F" : "M"
       return (
-        <div className="flex flex-col items-end leading-tight">
-          <span className="text-sm font-semibold tabular-nums">{age !== null ? age : "-"}</span>
-          <span className="text-[11px] text-muted-foreground">{sexe}</span>
+        <div className="flex flex-col items-center leading-tight">
+          <span className="text-sm font-semibold">{sexe}</span>
+          <span className="text-xs text-muted-foreground tabular-nums">{age !== null ? `${age} ans` : "-"}</span>
         </div>
       )
     },
   },
   {
-    key: "club",
-    header: "Club",
-    className: "min-w-0",
-    render: (item) => (
-      <div className="flex flex-col leading-tight">
-        <span className="font-medium text-foreground truncate">{item.club}</span>
-        {item.entente ? (
-          <span className="text-xs text-muted-foreground truncate">{item.entente}</span>
-        ) : null}
-      </div>
-    ),
+    key: "idNational",
+    header: "ID national",
+    className: "w-[19%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block whitespace-normal break-all leading-snug">{item.idNational || "-"}</span>,
+  },
+  {
+    key: "idFiba",
+    header: "ID FIBA",
+    className: "w-[19%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block whitespace-normal break-all leading-snug">{item.idFiba || "-"}</span>,
   },
   {
     key: "statut",
     header: "Statut",
+    className: "w-[10%]",
     render: (item) => <StatusBadge status={item.statut} />,
   },
 ]
 
 export default function AthletesPage() {
   const [athletes, setAthletes] = useState<Athlete[]>([])
-  const [userRole, setUserRole] = useState<string | null>(null)
   const [filterValues, setFilterValues] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let canceled = false
     ;(async () => {
       try {
-        const meRes = await fetch("/api/auth/me", { cache: "no-store" })
-        const meJson = await meRes.json()
-        if (!canceled) {
-          setUserRole(String(meJson?.user?.role ?? ""))
-        }
-
         const res = await fetch("/api/athletes", { cache: "no-store" })
         const json = await res.json()
 
@@ -114,20 +116,13 @@ export default function AthletesPage() {
             const next = { ...a } as Athlete
             next.sexe = normalizeSexe(a.sexe)
             next.statut = normalize((a as unknown as { statut?: unknown }).statut)
-            next.province = normalize((a as unknown as { province?: unknown }).province)
-            next.ligue = normalize((a as unknown as { ligue?: unknown }).ligue)
-            next.entente = normalize((a as unknown as { entente?: unknown }).entente)
-            next.club = normalize((a as unknown as { club?: unknown }).club)
             return next
           })
 
           setAthletes(cleaned)
         }
       } catch {
-        if (!canceled) {
-          setUserRole(null)
-          setAthletes([])
-        }
+        if (!canceled) setAthletes([])
       }
     })()
 
@@ -137,22 +132,7 @@ export default function AthletesPage() {
   }, [])
 
   const filters: Filter[] = useMemo(() => {
-    const selectedEntente = filterValues.entente
-    const athletesForClubs = selectedEntente && selectedEntente !== "all"
-      ? athletes.filter((a) => String(a.entente) === String(selectedEntente))
-      : athletes
-
-    const base: Filter[] = [
-      {
-        key: "entente",
-        label: "Entente",
-        options: getFilterOptions(athletes, "entente"),
-      },
-      {
-        key: "club",
-        label: "Club",
-        options: getFilterOptions(athletesForClubs, "club"),
-      },
+    return [
       {
         key: "sexe",
         label: "Sexe",
@@ -167,20 +147,11 @@ export default function AthletesPage() {
         options: getFilterOptions(athletes, "statut"),
       },
     ]
-
-    if (userRole === "entente") {
-      return base.filter((f) => f.key !== "entente")
-    }
-
-    return base
-  }, [athletes, filterValues.entente, userRole])
+  }, [athletes])
 
   return (
     <div className="flex flex-col">
-      <Header
-        title="Athlètes"
-        subtitle="Liste des athlètes affiliés à la FEBACO"
-      />
+      <Header title="Athletes" subtitle="Liste des athletes affilies a la FEBACO" />
 
       <div className="flex-1 p-6">
         <DataTable
@@ -189,8 +160,9 @@ export default function AthletesPage() {
           filters={filters}
           filterValues={filterValues}
           onFilterValuesChange={setFilterValues}
-          searchPlaceholder="Rechercher un athlète..."
-          detailHref={(item) => `/dashboard/athletes/${item.id}`}
+          tableClassName="table-fixed"
+          searchPlaceholder="Rechercher un athlete..."
+          detailHref={(item) => `/dashboard/athletes/${encodeURIComponent(item.id || item.__key || "")}`}
           idKey="__key"
         />
       </div>

@@ -1,36 +1,67 @@
 export interface Ligue {
+  __key?: string
   id: string
   nom: string
   pseudo: string
+  provinceId?: string
   province: string
+  email?: string
+  presidentId?: string
+  presidentNom?: string
+  presidentTelephone?: string
+  presidentEmail?: string
+  secretaireId?: string
+  secretaireNom?: string
+  secretaireTelephone?: string
+  secretaireEmail?: string
   statut: string
 }
 
 export interface Entente {
   id: string
+  ligueId?: string
   nom: string
   pseudo: string
   ligue: string
   province: string
+  email?: string
+  contact?: string
+  contactTelephone?: string
   statut: string
 }
 
 export interface Club {
   id: string
+  ligueId?: string
+  ententeId?: string
+  ligueKey?: string
+  ententeKey?: string
   nom: string
   categorie?: string
+  version?: string
   dateAffiliation?: string
   avatarUrl?: string
+  contact?: string
+  contactTelephone?: string
+  email?: string
+  president?: string
+  responsable?: string
+  secretaire?: string
+  observation?: string
   province: string
   ligue: string
   entente: string
   nombreEquipes: number
+  nombreAthletes?: number
   statut: string
 }
 
 export interface Equipe {
   __key?: string
   id: string
+  ligueId?: string
+  ententeId?: string
+  clubId?: string
   nom: string
   club: string
   entente: string
@@ -39,38 +70,286 @@ export interface Equipe {
   categorie: string
   genre: string
   coach: string
+  saison?: string
   statut: string
 }
 
 export interface Athlete {
   __key?: string
   id: string
+  clubId?: string
+  equipeId?: string
+  idNational?: string
+  idFiba?: string
   nom: string
   prenom: string
+  nomComplet?: string
   sexe: string
   dateNaissance: string
   lieuNaissance: string
   nationalite: string
+  telephone?: string
+  email?: string
+  adresse?: string
   avatarUrl?: string
   province: string
   ligue: string
   entente: string
   club: string
   equipe: string
+  dateDebut?: string
+  dateFin?: string
   categorie: string
   numeroMaillot: string
   poste: string
   statut: string
 }
 
-export interface Coach {
+export interface Transfert {
+  __key?: string
+  id: string
+  athleteId?: string
+  athleteNom: string
+  equipeOrigineId?: string
+  equipeOrigine: string
+  clubOrigineId?: string
+  clubOrigine: string
+  equipeBeneficiaireId?: string
+  equipeBeneficiaire: string
+  clubDestinationId?: string
+  clubDestination: string
+  typeTransfert: string
+  saison: string
+  dateDebut: string
+  dateFin: string
+  statut: string
+  observation: string
+}
+
+export interface AthleteLicence {
+  __key?: string
+  id: string
+  athleteId?: string
+  athleteNom: string
+  affiliationId?: string
+  equipeId?: string
+  equipeNom: string
+  clubId?: string
+  clubNom: string
+  structure: string
+  saison: string
+  numero: string
+  dateDelivrance: string
+  dateFinValidite: string
+  statut: string
+  observation: string
+}
+
+export interface Competition {
   __key?: string
   id: string
   nom: string
+  saison: string
+  categorie: string
+  genre: string
+  niveau: string
+  dateDebut: string
+  dateFin: string
+  lieu: string
+  statut: string
+}
+
+export interface CompetitionParticipant {
+  __key?: string
+  id: string
+  competitionId: string
+  competitionNom: string
+  athleteId: string
+  athleteNom: string
+  avatarUrl?: string
+  equipeId: string
+  equipeNom: string
+  clubId: string
+  clubNom: string
+  categorie: string
+  genre: string
+  statut: string
+}
+
+export interface CompetitionUnite {
+  __key?: string
+  id: string
+  competitionId: string
+  competitionNom: string
+  equipeId: string
+  equipeNom: string
+  clubId: string
+  clubNom: string
+  categorie: string
+  genre: string
+  poule: string
+  statut: string
+}
+
+export interface CompetitionResultat {
+  __key?: string
+  id: string
+  competitionId: string
+  competitionNom: string
+  dateMatch: string
+  phase: string
+  poule: string
+  uniteAId: string
+  uniteANom: string
+  uniteBId: string
+  uniteBNom: string
+  qt1A: string
+  qt1B: string
+  qt2A: string
+  qt2B: string
+  qt3A: string
+  qt3B: string
+  qt4A: string
+  qt4B: string
+  prolongationA: string
+  prolongationB: string
+  scoreTotalA: string
+  scoreTotalB: string
+  vainqueur: string
+  statut: string
+}
+
+export interface CompetitionClassement {
+  __key?: string
+  id: string
+  competitionId: string
+  competitionNom: string
+  phase: string
+  poule: string
+  uniteId: string
+  uniteNom: string
+  matchJoue: string
+  victoire: string
+  defaite: string
+  nul: string
+  points: string
+  scorePour: string
+  scoreContre: string
+  difference: string
+  rang: string
+}
+
+export interface EquipeNationale {
+  __key?: string
+  id: string
+  nom: string
+  categorie: string
+  genre: string
+  saison: string
+  statut: string
+  observation: string
+}
+
+export interface EquipeNationaleSelection {
+  __key?: string
+  id: string
+  equipeNationaleId: string
+  equipeNationaleNom: string
+  athleteId: string
+  athleteNom: string
+  avatarUrl?: string
+  equipeId: string
+  equipeNom: string
+  clubId: string
+  clubNom: string
+  categorie: string
+  genre: string
+  saison: string
+  dateDebutSelection: string
+  dateFinSelection: string
+  statutSelection: string
+  observation: string
+}
+
+export interface EquipeNationaleCompetition {
+  __key?: string
+  id: string
+  equipeNationaleId: string
+  equipeNationaleNom: string
+  competitionId: string
+  competitionNom: string
+  niveauCompetition: string
+  dateDebut: string
+  dateFin: string
+  lieu: string
+  statutParticipation: string
+  observation: string
+}
+
+export interface EquipeNationaleParticipant {
+  __key?: string
+  id: string
+  participationId: string
+  equipeNationaleId: string
+  equipeNationaleNom: string
+  selectionId: string
+  athleteId: string
+  athleteNom: string
+  avatarUrl?: string
+  equipeId: string
+  equipeNom: string
+  clubId: string
+  clubNom: string
+  poste: string
+  statutParticipant: string
+  observation: string
+}
+
+export interface EquipeNationaleResultat {
+  __key?: string
+  id: string
+  participationId: string
+  equipeNationaleId: string
+  equipeNationaleNom: string
+  competitionId: string
+  competitionNom: string
+  dateMatch: string
+  phase: string
+  adversaire: string
+  paysAdversaire: string
+  qt1Rdc: string
+  qt1Adversaire: string
+  qt2Rdc: string
+  qt2Adversaire: string
+  qt3Rdc: string
+  qt3Adversaire: string
+  qt4Rdc: string
+  qt4Adversaire: string
+  prolongationRdc: string
+  prolongationAdversaire: string
+  scoreTotalRdc: string
+  scoreTotalAdversaire: string
+  resultatMatch: string
+  statutMatch: string
+  observation: string
+}
+
+export interface Coach {
+  __key?: string
+  id: string
+  clubId?: string
+  equipeId?: string
+  idNational?: string
+  idFiba?: string
+  nom: string
   prenom: string
+  nomComplet?: string
+  avatarUrl?: string
   sexe: string
   dateNaissance: string
+  lieuNaissance?: string
   nationalite: string
+  adresse?: string
   niveau: string
   specialite: string
   province: string
@@ -78,14 +357,41 @@ export interface Coach {
   entente: string
   club: string
   equipe: string
+  telephone?: string
+  email?: string
   statut: string
+}
+
+export interface CoachAffiliation {
+  __key?: string
+  id: string
+  coachId?: string
+  coachNom: string
+  typeAffiliation: string
+  saison: string
+  equipeId?: string
+  equipeNom: string
+  clubId?: string
+  clubNom: string
+  equipeNationaleId?: string
+  equipeNationaleNom: string
+  fonction: string
+  dateDebut: string
+  dateFin: string
+  statut: string
+  observation: string
 }
 
 export interface Arbitre {
   __key?: string
   id: string
+  clubId?: string
+  equipeId?: string
+  idNational?: string
+  idFiba?: string
   nom: string
   prenom: string
+  nomComplet?: string
   sexe: string
   dateNaissance: string
   nationalite: string
@@ -104,8 +410,13 @@ export interface Arbitre {
 export interface Officiel {
   __key?: string
   id: string
+  idNational?: string
+  idFiba?: string
+  clubId?: string
+  equipeId?: string
   nom: string
   prenom: string
+  nomComplet?: string
   sexe: string
   dateNaissance: string
   nationalite: string
@@ -125,6 +436,10 @@ export interface Officiel {
 export interface Medecin {
   __key?: string
   id: string
+  idNational?: string
+  idFiba?: string
+  clubId?: string
+  equipeId?: string
   nom: string
   prenom: string
   sexe: string
@@ -142,7 +457,7 @@ export interface Medecin {
   statut: string
 }
 
-export function getFilterOptions<T extends Record<string, unknown>>(
+export function getFilterOptions<T extends object>(
   data: T[],
   key: keyof T | string
 ): { value: string; label: string }[] {

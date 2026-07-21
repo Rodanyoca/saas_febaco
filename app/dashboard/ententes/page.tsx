@@ -2,103 +2,83 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
-import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
+import { DataTable, type Column, type Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Entente, getFilterOptions } from "@/lib/models"
+import { type Entente, getFilterOptions } from "@/lib/models"
 
 function formatEntenteCode(value: unknown): string {
   const raw = String(value ?? "").trim()
   if (/^\d+$/.test(raw) && raw.length === 3) return `0${raw}`
-  return raw
+  return raw || "-"
 }
 
 const columns: Column<Entente>[] = [
   {
     key: "id",
-    header: "ID Entente",
-    className: "font-mono text-sm",
+    header: "ID",
+    className: "w-[96px] whitespace-normal font-mono text-sm",
     render: (item) => formatEntenteCode(item.id),
   },
   {
     key: "nom",
-    header: "Nom Entente",
-    className: "font-medium min-w-0",
-    render: (item) => <span className="block truncate">{item.nom}</span>,
+    header: "Nom",
+    className: "w-[42%] min-w-[260px] whitespace-normal font-medium",
+    render: (item) => <span className="block whitespace-normal break-words leading-snug">{item.nom}</span>,
   },
   {
     key: "pseudo",
     header: "Pseudo",
-    className: "text-muted-foreground min-w-0",
-    render: (item) => <span className="block truncate">{item.pseudo}</span>,
+    className: "w-[140px] whitespace-normal text-muted-foreground",
+    render: (item) => <span className="block whitespace-normal break-words leading-snug">{item.pseudo}</span>,
   },
   {
     key: "ligue",
     header: "Ligue",
-    className: "min-w-0",
-    render: (item) => <span className="block truncate">{item.ligue}</span>,
+    className: "w-[140px] whitespace-normal",
+    render: (item) => <span className="block whitespace-normal break-words leading-snug">{item.ligue}</span>,
+  },
+  {
+    key: "email",
+    header: "Email",
+    className: "w-[24%] min-w-[220px] whitespace-normal",
+    render: (item) => <span className="block whitespace-normal break-all leading-snug">{item.email || "-"}</span>,
   },
   {
     key: "statut",
     header: "Statut",
+    className: "w-[110px]",
     render: (item) => <StatusBadge status={item.statut} />,
-  },
-]
-
-const filters: Filter[] = [
-  {
-    key: "province",
-    label: "Province",
-    options: [],
-  },
-  {
-    key: "ligue",
-    label: "Ligue",
-    options: [],
-  },
-  {
-    key: "statut",
-    label: "Statut",
-    options: [],
   },
 ]
 
 export default function EntentesPage() {
   const [ententes, setEntentes] = useState<Entente[]>([])
-  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     let canceled = false
     ;(async () => {
       try {
-        const meRes = await fetch("/api/auth/me", { cache: "no-store" })
-        const meJson = await meRes.json()
-        if (!canceled) {
-          setUserRole(String(meJson?.user?.role ?? ""))
-        }
-
         const res = await fetch("/api/ententes", { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setEntentes(Array.isArray(json?.ententes) ? json.ententes : [])
         }
       } catch {
-        if (!canceled) {
-          setUserRole(null)
-          setEntentes([])
-        }
+        if (!canceled) setEntentes([])
       }
     })()
+
     return () => {
       canceled = true
     }
   }, [])
 
   const filtersComputed: Filter[] = useMemo(() => {
-    const base: Filter[] = [
+    return [
       {
-        key: "province",
-        label: "Province",
-        options: getFilterOptions(ententes, "province"),
+        key: "ligue",
+        label: "Ligue",
+        options: getFilterOptions(ententes, "ligue"),
       },
       {
         key: "statut",
@@ -106,19 +86,13 @@ export default function EntentesPage() {
         options: getFilterOptions(ententes, "statut"),
       },
     ]
-
-    if (userRole === "ligue" || userRole === "entente") {
-      return base
-    }
-
-    return base
-  }, [ententes, userRole])
+  }, [ententes])
 
   return (
     <div className="flex flex-col">
       <Header
         title="Ententes"
-        subtitle="Liste des ententes territoriales affiliées aux ligues"
+        subtitle="Liste des ententes territoriales affiliees aux ligues"
       />
 
       <div className="flex-1 p-6">
@@ -126,7 +100,8 @@ export default function EntentesPage() {
           data={ententes}
           columns={columns}
           filters={filtersComputed}
-          searchPlaceholder="Rechercher une entente..."
+          tableClassName="table-fixed"
+          searchPlaceholder="Rechercher par nom, pseudo ou email..."
           idKey="__key"
         />
       </div>

@@ -28,11 +28,14 @@ export async function GET() {
 
     const scope = scopeFromSession(user)
     const rows = await readSheetRows("medecins")
+    const rowsWithId = rows.filter(
+      (row) => pickFirst(row, ["id_medecin", "id", "code_medecin", "code"]) !== ""
+    )
 
     const filteredRows =
       scope.role === "federal"
-        ? rows
-        : rows.filter((row) => {
+        ? rowsWithId
+        : rowsWithId.filter((row) => {
             if (scope.role === "ligue") {
               const ligueId = pickFirst(row, ["id_ligue", "ligue_id", "idligue"])
               return String(ligueId ?? "") === scope.ligueId
@@ -43,6 +46,10 @@ export async function GET() {
 
     const medecins = filteredRows.map((row, index) => {
       const id = pickFirst(row, ["id_medecin", "id", "code_medecin", "code"])
+      const idNational = pickFirst(row, ["id_national"])
+      const idFiba = pickFirst(row, ["id_fiba"])
+      const clubId = pickFirst(row, ["id_club", "club_id", "idclub"])
+      const equipeId = pickFirst(row, ["id_equipe", "equipe_id", "idequipe", "code_equipe"])
       const nomComplet = pickFirst(row, ["nom_complet", "nom", "nom_prenom", "designation"])
       const { prenom, nom } = splitNomComplet(nomComplet)
 
@@ -67,12 +74,15 @@ export async function GET() {
       const avatarDriveId = pickFirst(row, ["avatar_drive_id", "drive_id", "avatar_id"])
       const resolvedAvatarUrl = avatarDriveId ? buildDrivePublicUrl(avatarDriveId) : avatarUrl || ""
 
-      const fallbackId = `row_${index + 2}`
-      const __key = `${id || fallbackId}__${index + 2}`
+      const __key = `${id}__${index}`
 
       return {
         __key,
-        id: id || fallbackId,
+        id,
+        idNational,
+        idFiba,
+        clubId: clubId || "",
+        equipeId: equipeId || "",
         nom: nom || "",
         prenom: prenom || "-",
         sexe: String(sexe ?? "-") || "-",

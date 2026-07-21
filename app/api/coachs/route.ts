@@ -18,71 +18,59 @@ function splitNomComplet(nomCompletRaw: string) {
 
 export async function GET() {
   try {
-    const rows = await readSheetRows("coachs")
+    const rows = await readSheetRows({ block: "acteurs", sheet: "coachs", range: "A:ZZ" })
 
-    const coachs = rows.map((row, index) => {
-      const id = pickFirst(row, ["id_coach", "id", "code_coach", "code"])
-      const nomComplet = pickFirst(row, [
-        "nom_complet",
-        "nom complet",
-        "nom",
-        "coach",
-        "entraineur",
-        "entraîneur",
-      ])
+    const validRows = rows.filter((row) => {
+      const idCoach = pickFirst(row, ["id_coach"])
+      const nomComplet = pickFirst(row, ["nom_complet"])
+      return idCoach !== "" && nomComplet.length > 0
+    })
 
+    const coachs = validRows.map((row, index) => {
+      const id = pickFirst(row, ["id_coach"])
+      const idNational = pickFirst(row, ["id_national"])
+      const idFiba = pickFirst(row, ["id_fiba"])
+      const nomComplet = pickFirst(row, ["nom_complet"])
       const { prenom, nom } = splitNomComplet(String(nomComplet ?? ""))
 
-      const sexe = pickFirst(row, ["sexe", "genre", "sex"]) || "-"
-      const dateNaissance = pickFirst(row, ["date_de_naissance", "date_naissance", "naissance"]) || "-"
-      const nationalite = pickFirst(row, ["nationalite", "nationalité", "pays"]) || "-"
-
-      const niveau = pickFirst(row, ["niveau", "level"]) || "-"
-      const specialite = pickFirst(row, ["specialite", "spécialité", "speciality"]) || "-"
-
-      const province = pickFirst(row, ["nom_province", "province", "province_nom"]) || "-"
-      const ligue = pickFirst(row, ["nom_ligue", "ligue", "ligue_nom"]) || "-"
-      const entente = pickFirst(row, ["nom_entente", "entente", "entente_nom"]) || "-"
-      const club = pickFirst(row, ["nom_club", "club", "club_nom"]) || "-"
-      const equipe = pickFirst(row, ["nom_equipe", "equipe", "équipe", "equipe_nom"]) || "-"
-
-      const telephone = pickFirst(row, ["telephone", "téléphone", "tel", "phone"]) || "-"
-      const email = pickFirst(row, ["email", "mail"]) || "-"
-
-      const statut = pickFirst(row, ["statut", "status", "etat"]) || "-"
-
-      const avatarDriveId = pickFirst(row, ["avatar_drive_id", "drive_id", "avatar_id"])
-      const avatarDriveUrl = pickFirst(row, ["avatar_drive_url", "avatar_url", "photo_url", "avatar"])
+      const avatarDriveId = pickFirst(row, ["avatar_drive_id"])
+      const avatarDriveUrl = pickFirst(row, ["avatar_drive_url"])
       const avatarUrl = avatarDriveId
         ? buildDrivePublicUrl(avatarDriveId)
         : avatarDriveUrl
           ? String(avatarDriveUrl)
           : ""
 
-      const fallbackId = `row_${index + 2}`
-      const __key = `${id || fallbackId}__${index + 2}`
+      const __key = `${id}__${index}`
 
       return {
         __key,
-        id: id || fallbackId,
+        id: id || "",
+        idNational: idNational || "",
+        idFiba: idFiba || "",
+        clubId: "",
+        equipeId: "",
         nom,
         prenom,
+        nomComplet: nomComplet || `${prenom} ${nom}`.trim(),
         avatar_drive_id: avatarDriveId ? String(avatarDriveId) : "",
         avatar_drive_url: avatarDriveUrl ? String(avatarDriveUrl) : "",
         avatarUrl,
-        sexe,
-        dateNaissance,
-        nationalite,
-        niveau,
-        specialite,
-        province,
-        ligue,
-        entente,
-        club,
-        equipe,
-        telephone,
-        email,
-        statut,
+        sexe: pickFirst(row, ["sexe"]) || "-",
+        dateNaissance: pickFirst(row, ["date_de_naissance"]) || "-",
+        lieuNaissance: pickFirst(row, ["lieu_de_naissance"]) || "-",
+        nationalite: pickFirst(row, ["nationalite"]) || "-",
+        telephone: pickFirst(row, ["telephone"]) || "-",
+        email: pickFirst(row, ["email"]) || "-",
+        adresse: pickFirst(row, ["adresse"]) || "-",
+        niveau: pickFirst(row, ["niveau"]) || "-",
+        specialite: "-",
+        province: "-",
+        ligue: "-",
+        entente: "-",
+        club: "-",
+        equipe: "-",
+        statut: pickFirst(row, ["statut"]) || "-",
       }
     })
 

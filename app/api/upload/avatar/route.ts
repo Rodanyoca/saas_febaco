@@ -130,7 +130,7 @@ export async function POST(req: Request) {
 
       return {
         sheetName: "coachs",
-        entityIdHeaderCandidates: ["id_coach", "id", "code_coach", "code"],
+        entityIdHeaderCandidates: ["id_athlete", "id_coach", "id", "code_coach", "code"],
       }
     })()
 

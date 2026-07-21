@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     const scope = scopeFromSession(user)
-    const rows = await readSheetRows("ententes")
+    const rows = await readSheetRows({ block: "structure", sheet: "ententes", range: "A:ZZ" })
 
     const filteredRows =
       scope.role === "federal"
@@ -28,13 +28,12 @@ export async function GET() {
           })
 
     const ententes = filteredRows.map((row, index) => {
-      const id = pickFirst(row, ["id_entente", "id", "code_entente", "code"])
-      const nom = pickFirst(row, ["nom_entente", "nom", "entente", "designation"])
-      const pseudo = pickFirst(row, ["pseudo_entente", "pseudo", "sigle", "abreviation", "abbreviation"])
-      const ligueId = pickFirst(row, ["id_ligue", "ligue_id", "idligue"])
-      const ligue = pickFirst(row, ["pseudo_ligue", "nom_ligue", "ligue", "ligue_nom"])
-      const province = pickFirst(row, ["nom_province", "province", "province_nom"])
-      const statut = pickFirst(row, ["statut", "status", "etat"])
+      const id = pickFirst(row, ["id_entente"])
+      const nom = pickFirst(row, ["nom_entente"])
+      const pseudo = pickFirst(row, ["pseudo_entente"])
+      const ligue = pickFirst(row, ["pseudo_ligue", "nom_ligue"])
+      const email = pickFirst(row, ["email_entente"])
+      const statut = pickFirst(row, ["statut"])
 
       const fallbackId = `row_${index + 2}`
       const __key = `${id || fallbackId}__${index + 2}`
@@ -44,9 +43,8 @@ export async function GET() {
         id: id || fallbackId,
         nom: nom || "-",
         pseudo: pseudo || "-",
-        ligueId: ligueId || "-",
         ligue: ligue || "-",
-        province: province || "-",
+        email: email || "-",
         statut: statut || "-",
       }
     })

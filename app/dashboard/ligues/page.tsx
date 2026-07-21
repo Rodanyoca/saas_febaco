@@ -26,6 +26,11 @@ const columns: Column<Ligue>[] = [
   { key: "pseudo", header: "Pseudo", className: "text-muted-foreground" },
   { key: "province", header: "Province" },
   {
+    key: "email",
+    header: "Email",
+    render: (item) => item.email || "-",
+  },
+  {
     key: "statut",
     header: "Statut",
     render: (item) => <StatusBadge status={item.statut} />,
@@ -69,6 +74,11 @@ export default function LiguesPage() {
   const filtersComputed: Filter[] = useMemo(() => {
     return [
       {
+        key: "province",
+        label: "Province",
+        options: getFilterOptions(ligues, "province"),
+      },
+      {
         key: "statut",
         label: "Statut",
         options: getFilterOptions(ligues, "statut"),
@@ -90,6 +100,7 @@ export default function LiguesPage() {
           filters={filtersComputed}
           searchPlaceholder="Rechercher une ligue..."
           idKey="__key"
+          detailHref={(ligue) => `/dashboard/ligues/${encodeURIComponent(ligue.id)}`}
         />
       </div>
     </div>

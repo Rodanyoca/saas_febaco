@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
 import { scopeFromSession } from "@/lib/auth-scope"
-import { buildDrivePublicUrl } from "@/lib/google-drive-url"
 
 export const dynamic = "force-dynamic"
 
@@ -10,46 +9,36 @@ export async function GET() {
   try {
     const user = await getSessionUser()
     if (!user) {
-      return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
+      return NextResponse.json({ error: "Non authentifie." }, { status: 401 })
     }
 
     const scope = scopeFromSession(user)
-    const rows = await readSheetRows("clubs")
+    const rows = await readSheetRows({ block: "structure", sheet: "clubs", range: "A:ZZ" })
 
     const filteredRows =
       scope.role === "federal"
         ? rows
         : rows.filter((row) => {
             if (scope.role === "ligue") {
-              const ligueId = pickFirst(row, ["id_ligue", "ligue_id", "idligue"])
+              const ligueId = pickFirst(row, ["id_ligue"])
               return String(ligueId ?? "") === scope.ligueId
             }
-            const ententeId = pickFirst(row, ["id_entente", "entente_id", "identente"])
+            const ententeId = pickFirst(row, ["id_entente"])
             return String(ententeId ?? "") === scope.ententeId
           })
 
     const clubs = filteredRows.map((row, index) => {
-      const id = pickFirst(row, ["id_club", "id", "code_club", "code"])
-      const nom = pickFirst(row, ["nom_club", "nom", "club", "designation"])
-      const categorie = pickFirst(row, ["categorie", "category"])
-      const entente = pickFirst(row, ["nom_entente", "entente", "entente_nom"])
-      const ligue = pickFirst(row, ["nom_ligue", "ligue", "ligue_nom"])
-      const province = pickFirst(row, ["nom_province", "province", "province_nom"])
-      const avatarUrl = pickFirst(row, [
-        "avatar_drive_url",
-        "avatar_url",
-        "photo_url",
-        "avatar",
-      ])
-      const avatarDriveId = pickFirst(row, ["avatar_drive_id", "drive_id", "avatar_id"])
-      const resolvedAvatarUrl = avatarDriveId ? buildDrivePublicUrl(avatarDriveId) : avatarUrl || ""
-      const dateAffiliation = pickFirst(row, [
-        "date_affiliation",
-        "date_d_affiliation",
-        "date_aff",
-        "affiliation",
-      ])
-      const statut = pickFirst(row, ["statut", "status", "etat"])
+      const id = pickFirst(row, ["id_club"])
+      const nom = pickFirst(row, ["nom_club"])
+      const categorie = pickFirst(row, ["categorie"])
+      const version = pickFirst(row, ["version"])
+      const dateAffiliation = pickFirst(row, ["date_affiliation_club"])
+      const ententeId = pickFirst(row, ["id_entente"])
+      const entente = pickFirst(row, ["pseudo_entente", "nom_entente"])
+      const ligueId = pickFirst(row, ["id_ligue"])
+      const ligue = pickFirst(row, ["pseudo_ligue", "nom_ligue"])
+      const statut = pickFirst(row, ["statut"])
+      const observation = pickFirst(row, ["observations"])
 
       const fallbackId = `row_${index + 2}`
       const __key = `${id || fallbackId}__${index + 2}`
@@ -57,15 +46,17 @@ export async function GET() {
       return {
         __key,
         id: id || fallbackId,
+        ligueId: ligueId || "",
+        ententeId: ententeId || "",
+        ligueKey: ligueId || ligue || "",
+        ententeKey: ententeId || entente || "",
         nom: nom || "-",
         categorie: categorie || "-",
-        avatar_drive_id: avatarDriveId ? String(avatarDriveId) : "",
-        avatar_drive_url: avatarUrl ? String(avatarUrl) : "",
-        avatarUrl: resolvedAvatarUrl,
+        version: version || "-",
+        dateAffiliation: dateAffiliation || "-",
         entente: entente || "-",
         ligue: ligue || "-",
-        province: province || "-",
-        dateAffiliation: dateAffiliation || "-",
+        observation: observation || "",
         statut: statut || "-",
         nombreEquipes: 0,
         nombreAthletes: 0,

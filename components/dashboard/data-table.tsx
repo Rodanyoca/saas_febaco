@@ -47,12 +47,18 @@ interface DataTableProps<T> {
   searchPlaceholder?: string
   detailHref?: (item: T) => string
   onExportPDF?: () => void
-  idKey?: keyof T
+  idKey?: keyof T | string
+  tableClassName?: string
+  actionsClassName?: string
   filterValues?: Record<string, string>
   onFilterValuesChange?: (next: Record<string, string>) => void
 }
 
-export function DataTable<T extends Record<string, unknown>>({
+function getValue<T extends object>(item: T, key: keyof T | string): unknown {
+  return item[String(key) as keyof T]
+}
+
+export function DataTable<T extends object>({
   data,
   columns,
   filters = [],
@@ -60,6 +66,8 @@ export function DataTable<T extends Record<string, unknown>>({
   detailHref,
   onExportPDF,
   idKey = "id" as keyof T,
+  tableClassName,
+  actionsClassName,
   filterValues: controlledFilterValues,
   onFilterValuesChange,
 }: DataTableProps<T>) {
@@ -83,7 +91,7 @@ export function DataTable<T extends Record<string, unknown>>({
   // Filter and search data
   const filteredData = data.filter((item) => {
     // Search filter
-    const searchMatch = Object.values(item).some((value) =>
+    const searchMatch = Object.values(item as Record<string, unknown>).some((value) =>
       String(value).toLowerCase().includes(search.toLowerCase())
     )
     if (!searchMatch) return false
@@ -91,7 +99,7 @@ export function DataTable<T extends Record<string, unknown>>({
     // Apply filters
     for (const [key, filterValue] of Object.entries(filterValues)) {
       if (filterValue && filterValue !== "all") {
-        if (String(item[key as keyof T]) !== filterValue) {
+        if (String(getValue(item, key)) !== filterValue) {
           return false
         }
       }
@@ -150,7 +158,7 @@ export function DataTable<T extends Record<string, unknown>>({
 
       {/* Table */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
-        <Table>
+        <Table className={tableClassName}>
           <TableHeader>
             <TableRow className="bg-muted/50">
               {columns.map((column) => (
@@ -162,7 +170,7 @@ export function DataTable<T extends Record<string, unknown>>({
                 </TableHead>
               ))}
               {detailHref && (
-                <TableHead className="w-[100px] text-center">Actions</TableHead>
+                <TableHead className={cn("w-[100px] text-center", actionsClassName)}>Actions</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -178,7 +186,7 @@ export function DataTable<T extends Record<string, unknown>>({
               </TableRow>
             ) : (
               paginatedData.map((item, index) => (
-                <TableRow key={String(item[idKey]) || index} className="hover:bg-muted/30">
+                <TableRow key={String(getValue(item, idKey)) || index} className="hover:bg-muted/30">
                   {columns.map((column) => (
                     <TableCell
                       key={String(column.key)}
@@ -186,11 +194,11 @@ export function DataTable<T extends Record<string, unknown>>({
                     >
                       {column.render
                         ? column.render(item)
-                        : String(item[column.key as keyof T] ?? "-")}
+                        : String(getValue(item, column.key) ?? "-")}
                     </TableCell>
                   ))}
                   {detailHref && (
-                    <TableCell className="text-center">
+                    <TableCell className={cn("text-center", actionsClassName)}>
                       <Link href={detailHref(item)}>
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
