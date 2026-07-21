@@ -1,32 +1,17 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
-import { fallbackId, pick, readCompetitionRows, rowKey } from "../competitions/_helpers"
+import { getEquipeNationaleById, getEquipesNationales } from "@/lib/equipe-nationale-data"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const user = await getSessionUser()
-    if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
-
-    const rows = await readCompetitionRows("equipe_nationale")
-    const equipesNationales = rows.map((row, index) => {
-      const id = pick(row, ["id_equipe_nationale", "id", "code_equipe_nationale", "code"])
-      return {
-        __key: rowKey(id, index),
-        id: id === "-" ? fallbackId(index) : id,
-        nom: pick(row, ["nom_equipe_nationale", "equipe_nationale", "nom", "designation"]),
-        categorie: pick(row, ["categorie", "catégorie", "category"]),
-        genre: pick(row, ["genre", "sexe", "version"]),
-        saison: pick(row, ["saison", "season", "annee_sportive"]),
-        statut: pick(row, ["statut", "statut_equipe_nationale", "status", "etat"]),
-        observation: pick(row, ["observation", "observations", "note", "commentaire"]),
-      }
-    })
-
-    return NextResponse.json({ equipesNationales })
+    if (!(await getSessionUser())) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
+    const id = new URL(request.url).searchParams.get("id")?.trim()
+    if (id) return NextResponse.json({ equipeNationale: await getEquipeNationaleById(id) ?? null })
+    return NextResponse.json({ equipesNationales: await getEquipesNationales() })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error"
-    return NextResponse.json({ equipesNationales: [], error: message }, { status: 500 })
+    console.error("[api/equipe-nationale] Lecture impossible", error)
+    return NextResponse.json({ equipesNationales: [], error: "Lecture impossible." }, { status: 500 })
   }
 }

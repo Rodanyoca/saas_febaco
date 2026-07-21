@@ -43,7 +43,10 @@ export default function LoginClient() {
       }
 
       const next = searchParams.get("next")
-      router.push(next && next.startsWith("/") ? next : "/dashboard")
+      const safeNext = next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\")
+        ? next
+        : "/dashboard"
+      router.push(safeNext)
     } catch {
       setError("Connexion impossible.")
       setIsLoading(false)

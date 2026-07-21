@@ -43,18 +43,28 @@ async function hmacSha256Base64Url(secret: string, data: string): Promise<string
 }
 
 async function verifySessionCookieValueEdge(value: string): Promise<boolean> {
-  const [data, sig] = value.split(".")
+  if (value.length > 4096) return false
+  const parts = value.split(".")
+  if (parts.length !== 2) return false
+  const [data, sig] = parts
   if (!data || !sig) return false
 
   const expected = await hmacSha256Base64Url(requiredEnv("AUTH_SESSION_SECRET"), data)
-  if (expected !== sig) return false
+  const expectedBytes = new TextEncoder().encode(expected)
+  const actualBytes = new TextEncoder().encode(sig)
+  if (expectedBytes.length !== actualBytes.length) return false
+  let difference = 0
+  for (let index = 0; index < expectedBytes.length; index++) difference |= expectedBytes[index] ^ actualBytes[index]
+  if (difference !== 0) return false
 
   try {
     const payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(data))) as {
       v?: number
       exp?: number
+      role?: string
+      email?: string
     }
-    if (payload?.v !== 1) return false
+    if (payload?.v !== 1 || !payload.email || !["federal", "ligue", "entente"].includes(payload.role ?? "")) return false
     const nowSeconds = Math.floor(Date.now() / 1000)
     if (!payload?.exp || payload.exp <= nowSeconds) return false
     return true

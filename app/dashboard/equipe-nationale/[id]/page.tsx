@@ -1,281 +1,56 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, CalendarDays, Medal, Trophy, UserCheck, Users } from "lucide-react"
-import { DataTable, type Column } from "@/components/dashboard/data-table"
+import { useParams } from "next/navigation"
+import { CalendarDays, Medal, Trophy, Users } from "lucide-react"
+import { DataTable, type Column, type Filter } from "@/components/dashboard/data-table"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { Header } from "@/components/dashboard/header"
-import { PersonCell } from "@/components/dashboard/person-cell"
 import { StatusBadge } from "@/components/dashboard/status-badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  displaySync,
-  nationalScoreLabel,
-  nationalScoreTotal,
-  resolveResultatCompetition,
-  resolveSelectionParticipant,
-} from "@/lib/equipe-nationale-utils"
-import type {
-  EquipeNationale,
-  EquipeNationaleCompetition,
-  EquipeNationaleParticipant,
-  EquipeNationaleResultat,
-  EquipeNationaleSelection,
-} from "@/lib/models"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { matchOutcome, nationalScoreLabel } from "@/lib/equipe-nationale-utils"
+import { getFilterOptions, type CompetitionEquipeNationale, type EquipeNationale, type ResultatEquipeNationale, type SelectionEquipeNationale } from "@/lib/models"
 
-async function loadList<T>(url: string, key: string): Promise<T[]> {
-  try {
-    const res = await fetch(url, { cache: "no-store" })
-    const json = await res.json()
-    return Array.isArray(json?.[key]) ? json[key] : []
-  } catch {
-    return []
-  }
-}
-
-const selectionColumns: Column<EquipeNationaleSelection>[] = [
-  { key: "athleteNom", header: "Athlète", render: (item) => <PersonCell name={displaySync(item.athleteNom)} avatarUrl={item.avatarUrl} subtitle={item.athleteId} /> },
-  { key: "equipeNom", header: "Équipe" },
-  { key: "clubNom", header: "Club" },
-  { key: "categorie", header: "Catégorie" },
-  { key: "genre", header: "Genre" },
-  { key: "saison", header: "Saison" },
-  { key: "dateDebutSelection", header: "Début" },
-  { key: "dateFinSelection", header: "Fin" },
+async function getJson(url: string) { const response = await fetch(url, { cache: "no-store" }); const json = await response.json(); if (!response.ok) throw new Error(json?.error || "Lecture impossible"); return json }
+const selectionColumns: Column<SelectionEquipeNationale>[] = [
+  { key: "id", header: "ID sélection", className: "font-mono text-sm" }, { key: "athleteNom", header: "Athlète", className: "font-medium" },
+  { key: "sexe", header: "Sexe" }, { key: "posteNom", header: "Poste" }, { key: "equipeNom", header: "Équipe" }, { key: "clubNom", header: "Club" },
   { key: "statutSelection", header: "Statut", render: (item) => <StatusBadge status={item.statutSelection} /> },
 ]
-
-const competitionColumns: Column<EquipeNationaleCompetition>[] = [
-  { key: "id", header: "ID participation", className: "font-mono text-sm" },
-  { key: "competitionNom", header: "Compétition", className: "font-medium", render: (item) => displaySync(item.competitionNom) },
-  { key: "niveauCompetition", header: "Niveau" },
-  { key: "dateDebut", header: "Début" },
-  { key: "dateFin", header: "Fin" },
-  { key: "lieu", header: "Lieu" },
+const competitionColumns: Column<CompetitionEquipeNationale>[] = [
+  { key: "competitionNom", header: "Compétition", className: "font-medium" }, { key: "typeCompetition", header: "Type" }, { key: "discipline", header: "Discipline" },
+  { key: "saison", header: "Saison" }, { key: "dateDebut", header: "Début" }, { key: "dateFin", header: "Fin" },
   { key: "statutParticipation", header: "Statut", render: (item) => <StatusBadge status={item.statutParticipation} /> },
 ]
-
-const participantColumns: Column<EquipeNationaleParticipant>[] = [
-  { key: "athleteNom", header: "Athlète", render: (item) => <PersonCell name={displaySync(item.athleteNom)} avatarUrl={item.avatarUrl} subtitle={item.athleteId} /> },
-  { key: "competitionNom", header: "ID participation", render: (item) => item.participationId },
-  { key: "equipeNom", header: "Équipe" },
-  { key: "clubNom", header: "Club" },
-  { key: "poste", header: "Poste" },
-  { key: "statutParticipant", header: "Statut", render: (item) => <StatusBadge status={item.statutParticipant} /> },
-]
-
-const resultatColumns: Column<EquipeNationaleResultat>[] = [
-  { key: "dateMatch", header: "Date" },
-  { key: "competitionNom", header: "Compétition", render: (item) => displaySync(item.competitionNom) },
-  { key: "phase", header: "Phase" },
-  { key: "adversaire", header: "Adversaire", className: "font-medium" },
-  { key: "scoreTotalRdc", header: "Score", render: (item) => <span className="font-semibold">{nationalScoreLabel(item)}</span> },
-  { key: "resultatMatch", header: "Résultat" },
+const resultColumns: Column<ResultatEquipeNationale>[] = [
+  { key: "dateMatch", header: "Date" }, { key: "competitionNom", header: "Compétition" }, { key: "phase", header: "Phase" },
+  { key: "nomAdversaire", header: "Adversaire", className: "font-medium" }, { key: "paysAdversaire", header: "Pays" },
+  { key: "scoreTotalA", header: "Score", render: nationalScoreLabel }, { key: "uniteVainqueurNom", header: "Vainqueur" },
   { key: "statutMatch", header: "Statut", render: (item) => <StatusBadge status={item.statutMatch} /> },
 ]
 
-function isWin(resultat: EquipeNationaleResultat): boolean {
-  const label = String(resultat.resultatMatch ?? "").toLowerCase()
-  if (label.includes("victoire") || label === "v" || label === "win") return true
-  return nationalScoreTotal(resultat, "rdc") > nationalScoreTotal(resultat, "adversaire")
-}
-
-function isLoss(resultat: EquipeNationaleResultat): boolean {
-  const label = String(resultat.resultatMatch ?? "").toLowerCase()
-  if (label.includes("défaite") || label.includes("defaite") || label === "d" || label === "loss") return true
-  return nationalScoreTotal(resultat, "rdc") < nationalScoreTotal(resultat, "adversaire")
-}
-
 export default function EquipeNationaleDetailPage() {
-  const router = useRouter()
-  const params = useParams()
-  const idParam = useMemo(() => {
-    const raw = (params as { id?: string | string[] })?.id
-    return Array.isArray(raw) ? raw[0] : raw
-  }, [params])
-
-  const [equipesNationales, setEquipesNationales] = useState<EquipeNationale[]>([])
-  const [selections, setSelections] = useState<EquipeNationaleSelection[]>([])
-  const [competitions, setCompetitions] = useState<EquipeNationaleCompetition[]>([])
-  const [participants, setParticipants] = useState<EquipeNationaleParticipant[]>([])
-  const [resultats, setResultats] = useState<EquipeNationaleResultat[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let canceled = false
-    ;(async () => {
-      const [equipesData, selectionsData, competitionsData, participantsData, resultatsData] =
-        await Promise.all([
-          loadList<EquipeNationale>("/api/equipe-nationale", "equipesNationales"),
-          loadList<EquipeNationaleSelection>("/api/equipe-nationale-selections", "selections"),
-          loadList<EquipeNationaleCompetition>("/api/equipe-nationale-competitions", "competitions"),
-          loadList<EquipeNationaleParticipant>("/api/equipe-nationale-participants", "participants"),
-          loadList<EquipeNationaleResultat>("/api/equipe-nationale-resultats", "resultats"),
-        ])
-      if (!canceled) {
-        setEquipesNationales(equipesData)
-        setSelections(selectionsData)
-        setCompetitions(competitionsData)
-        setParticipants(participantsData)
-        setResultats(resultatsData)
-        setLoading(false)
-      }
-    })()
-    return () => { canceled = true }
-  }, [])
-
-  const equipeNationale = useMemo(
-    () => equipesNationales.find((item) => item.id === idParam),
-    [equipesNationales, idParam]
-  )
-
-  const relatedSelections = useMemo(
-    () => selections.filter((item) => item.equipeNationaleId === idParam),
-    [selections, idParam]
-  )
-
-  const relatedCompetitions = useMemo(
-    () => competitions.filter((item) => item.equipeNationaleId === idParam),
-    [competitions, idParam]
-  )
-
-  const participationIds = useMemo(
-    () => new Set(relatedCompetitions.map((item) => item.id).filter(Boolean)),
-    [relatedCompetitions]
-  )
-
-  const relatedParticipants = useMemo(
-    () => participants
-      .filter((item) => item.equipeNationaleId === idParam || participationIds.has(item.participationId))
-      .map((item) => resolveSelectionParticipant(item, relatedSelections)),
-    [participants, idParam, participationIds, relatedSelections]
-  )
-
-  const relatedResultats = useMemo(
-    () => resultats
-      .map((item) => resolveResultatCompetition(item, competitions))
-      .filter((item) => item.equipeNationaleId === idParam || participationIds.has(item.participationId)),
-    [resultats, competitions, idParam, participationIds]
-  )
-
-  const dernierResultat = useMemo(() => {
-    const dated = [...relatedResultats].filter((item) => item.dateMatch && item.dateMatch !== "-")
-    dated.sort((a, b) => String(b.dateMatch).localeCompare(String(a.dateMatch)))
-    const last = dated[0] ?? relatedResultats[relatedResultats.length - 1]
-    return last ? `${last.adversaire || "Adversaire"} · ${nationalScoreLabel(last)}` : "-"
-  }, [relatedResultats])
-
-  if (loading) {
-    return (
-      <div className="flex flex-col">
-        <Header title="Chargement..." />
-        <div className="flex-1 p-6 text-muted-foreground">Chargement de l'équipe nationale...</div>
-      </div>
-    )
-  }
-
-  if (!equipeNationale) {
-    return (
-      <div className="flex flex-col">
-        <Header title="Équipe nationale non trouvée" />
-        <div className="flex-1 p-6">
-          <p className="text-muted-foreground">L'équipe nationale demandée n'existe pas.</p>
-          <Button onClick={() => router.back()} className="mt-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-col">
-      <Header title={`Équipe nationale: ${equipeNationale.nom}`} subtitle={equipeNationale.saison} />
-      <div className="flex-1 space-y-6 p-6">
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
-        </Button>
-
-        <DetailCard
-          title="Informations générales"
-          icon={Trophy}
-          fields={[
-            { label: "ID", value: equipeNationale.id },
-            { label: "Nom", value: equipeNationale.nom },
-            { label: "Catégorie", value: equipeNationale.categorie },
-            { label: "Genre", value: equipeNationale.genre },
-            { label: "Saison", value: equipeNationale.saison },
-            { label: "Statut", value: equipeNationale.statut },
-            { label: "Observation", value: equipeNationale.observation },
-          ]}
-        />
-
-        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-          <StatCard title="Sélectionnés" value={relatedSelections.length} icon={Users} />
-          <StatCard title="Compétitions" value={relatedCompetitions.length} icon={Trophy} />
-          <StatCard title="Participants" value={relatedParticipants.length} icon={UserCheck} />
-          <StatCard title="Matchs" value={relatedResultats.length} icon={CalendarDays} />
-          <StatCard title="Victoires" value={relatedResultats.filter(isWin).length} icon={Medal} />
-          <StatCard title="Défaites" value={relatedResultats.filter(isLoss).length} icon={Medal} />
-        </div>
-
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-sm text-muted-foreground">Dernier résultat enregistré</p>
-            <p className="mt-1 text-lg font-semibold">{dernierResultat}</p>
-          </CardContent>
-        </Card>
-
-        <Section title="Athlètes sélectionnés">
-          <DataTable data={relatedSelections} columns={selectionColumns} searchPlaceholder="Rechercher un athlète..." idKey="__key" />
-        </Section>
-        <Section title="Compétitions suivies">
-          <DataTable data={relatedCompetitions} columns={competitionColumns} searchPlaceholder="Rechercher une compétition..." idKey="__key" />
-        </Section>
-        <Section title="Participants par compétition">
-          <DataTable data={relatedParticipants} columns={participantColumns} searchPlaceholder="Rechercher un participant..." idKey="__key" />
-        </Section>
-        <Section title="Résultats">
-          <DataTable data={relatedResultats} columns={resultatColumns} searchPlaceholder="Rechercher un match..." idKey="__key" />
-        </Section>
-      </div>
-    </div>
-  )
+  const raw = useParams<{ id: string }>().id; const id = decodeURIComponent(Array.isArray(raw) ? raw[0] : raw)
+  const [equipe, setEquipe] = useState<EquipeNationale | null>(null); const [selections, setSelections] = useState<SelectionEquipeNationale[]>([])
+  const [competitions, setCompetitions] = useState<CompetitionEquipeNationale[]>([]); const [resultats, setResultats] = useState<ResultatEquipeNationale[]>([])
+  const [loading, setLoading] = useState(true); const [error, setError] = useState("")
+  useEffect(() => { let active = true; (async () => { try { const encoded = encodeURIComponent(id); const [a,b,c,d] = await Promise.all([
+    getJson(`/api/equipe-nationale?id=${encoded}`), getJson(`/api/equipe-nationale-selections?equipeId=${encoded}`),
+    getJson(`/api/equipe-nationale-competitions?equipeId=${encoded}`), getJson(`/api/equipe-nationale-resultats?equipeId=${encoded}`)])
+    if (active) { setEquipe(a.equipeNationale); setSelections(b.selections || []); setCompetitions(c.competitions || []); setResultats(d.resultats || []) }
+  } catch(e) { if(active) setError(e instanceof Error ? e.message : "Lecture impossible") } finally { if(active) setLoading(false) } })(); return () => { active = false } }, [id])
+  const stats = useMemo(() => ({ wins: resultats.filter((r) => matchOutcome(r) === "Victoire").length, losses: resultats.filter((r) => matchOutcome(r) === "Défaite").length }), [resultats])
+  const selectionFilters: Filter[] = useMemo(() => ["posteNom", "sexe", "statutSelection"].map((key) => ({ key, label: ({posteNom:"Poste",sexe:"Sexe",statutSelection:"Statut"} as Record<string,string>)[key], options: getFilterOptions(selections, key as keyof SelectionEquipeNationale) })), [selections])
+  if (loading) return <><Header title="Équipe nationale" /><div className="p-6 text-muted-foreground">Chargement...</div></>
+  if (error || !equipe) return <><Header title="Équipe nationale" /><div className="p-6 text-destructive">{error || "Équipe introuvable."}</div></>
+  return <div className="flex flex-col"><Header title={equipe.nom} subtitle={`${equipe.discipline} · ${equipe.categorie} · ${equipe.sexe} · ${equipe.saison}`} />
+    <div className="flex-1 space-y-6 p-6"><Tabs defaultValue="apercu"><TabsList className="grid h-auto w-full grid-cols-4"><TabsTrigger value="apercu">Aperçu</TabsTrigger><TabsTrigger value="selection">Sélection</TabsTrigger><TabsTrigger value="competitions">Compétitions</TabsTrigger><TabsTrigger value="resultats">Résultats</TabsTrigger></TabsList>
+      <TabsContent value="apercu" className="space-y-6"><DetailCard title="Informations générales" icon={Trophy} fields={[{label:"ID",value:equipe.id},{label:"Nom",value:equipe.nom},{label:"Discipline",value:equipe.discipline},{label:"Catégorie",value:equipe.categorie},{label:"Sexe",value:equipe.sexe},{label:"Saison",value:equipe.saison},{label:"Statut",value:equipe.statut}]} />
+        <div className="grid gap-4 md:grid-cols-5"><Stat label="Athlètes" value={selections.length} icon={Users}/><Stat label="Compétitions" value={competitions.length} icon={Trophy}/><Stat label="Matchs" value={resultats.length} icon={CalendarDays}/><Stat label="Victoires" value={stats.wins} icon={Medal}/><Stat label="Défaites" value={stats.losses} icon={Medal}/></div></TabsContent>
+      <TabsContent value="selection"><DataTable data={selections} columns={selectionColumns} filters={selectionFilters} searchPlaceholder="Athlète, ID, équipe ou club..." detailHref={(item) => `/dashboard/athletes/${encodeURIComponent(item.athleteId)}`} idKey="__key" /></TabsContent>
+      <TabsContent value="competitions"><DataTable data={competitions} columns={competitionColumns} searchPlaceholder="Rechercher une compétition..." detailHref={(item) => `/dashboard/equipe-nationale/competitions/${encodeURIComponent(item.id)}`} idKey="__key" /></TabsContent>
+      <TabsContent value="resultats"><DataTable data={resultats} columns={resultColumns} searchPlaceholder="Rechercher un résultat..." detailHref={(item) => `/dashboard/equipe-nationale/resultats/${encodeURIComponent(item.id)}`} idKey="__key" /></TabsContent>
+    </Tabs></div></div>
 }
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  )
-}
-
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-}: {
-  title: string
-  value: number
-  icon: React.ComponentType<{ className?: string }>
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-center justify-between p-5">
-        <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-        <Icon className="h-6 w-6 text-primary" />
-      </CardContent>
-    </Card>
-  )
-}
+function Stat({label,value,icon:Icon}:{label:string;value:number;icon:React.ComponentType<{className?:string}>}) { return <Card><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">{label}</p><p className="text-2xl font-bold">{value}</p></div><Icon className="h-6 w-6 text-primary"/></CardContent></Card> }

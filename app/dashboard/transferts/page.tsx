@@ -13,7 +13,7 @@ const columns: Column<Transfert>[] = [
   { key: "equipeOrigine", header: "Équipe origine" },
   { key: "clubOrigine", header: "Club origine" },
   { key: "equipeBeneficiaire", header: "Équipe bénéficiaire" },
-  { key: "clubDestination", header: "Club bénéficiaire" },
+  { key: "clubBeneficiaire", header: "Club bénéficiaire" },
   { key: "saison", header: "Saison" },
   { key: "dateDebut", header: "Date début" },
   { key: "dateFin", header: "Date fin" },
@@ -54,9 +54,9 @@ export default function TransfertsPage() {
         options: getFilterOptions(transferts, "clubOrigine"),
       },
       {
-        key: "clubDestination",
+        key: "clubBeneficiaire",
         label: "Bénéficiaire",
-        options: getFilterOptions(transferts, "clubDestination"),
+        options: getFilterOptions(transferts, "clubBeneficiaire"),
       },
       {
         key: "saison",

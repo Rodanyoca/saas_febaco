@@ -81,7 +81,10 @@ export function createSessionCookieValue(user: SessionUser, now = Date.now()): s
 }
 
 export function verifySessionCookieValue(value: string, now = Date.now()): SessionUser | null {
-  const [data, sig] = value.split(".")
+  if (value.length > 4096) return null
+  const parts = value.split(".")
+  if (parts.length !== 2) return null
+  const [data, sig] = parts
   if (!data || !sig) return null
 
   const expected = sign(data)
@@ -95,7 +98,10 @@ export function verifySessionCookieValue(value: string, now = Date.now()): Sessi
   }
 
   if (!payload || payload.v !== 1) return null
-  if (!payload.email || !payload.role || !payload.exp) return null
+  if (!payload.email || payload.email.length > 254 || !payload.role || !payload.exp) return null
+  if (!(["federal", "ligue", "entente"] as const).includes(payload.role)) return null
+  if (payload.role === "ligue" && !payload.ligueId) return null
+  if (payload.role === "entente" && !payload.ententeId) return null
 
   const nowSeconds = Math.floor(now / 1000)
   if (payload.exp <= nowSeconds) return null

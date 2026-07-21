@@ -17,7 +17,6 @@ import {
   Stethoscope,
   ArrowRightLeft,
   Trophy,
-  UserCheck,
   ClipboardList,
   ChevronLeft,
   ChevronRight,
@@ -52,10 +51,8 @@ const navigationCompetition: NavItem[] = [
 
 const navigationEquipeNationale: NavItem[] = [
   { name: "Équipes nationales", href: "/dashboard/equipe-nationale", icon: Flag },
-  { name: "Sélections", href: "/dashboard/equipe-nationale-selections", icon: UserCheck },
-  { name: "Compétitions EN", href: "/dashboard/equipe-nationale-competitions", icon: Trophy },
-  { name: "Participants EN", href: "/dashboard/equipe-nationale-participants", icon: Users },
-  { name: "Résultats EN", href: "/dashboard/equipe-nationale-resultats", icon: ClipboardList },
+  { name: "Compétitions", href: "/dashboard/equipe-nationale/competitions", icon: Trophy },
+  { name: "Résultats", href: "/dashboard/equipe-nationale/resultats", icon: ClipboardList },
 ]
 
 function NavLink({ item, collapsed, pathname }: { item: NavItem; collapsed: boolean; pathname: string }) {

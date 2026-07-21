@@ -81,27 +81,6 @@ export async function uploadAvatarToDrive({
     throw new Error("Upload Drive échoué: fileId manquant")
   }
 
-  try {
-    await drive.permissions.create({
-      fileId,
-      requestBody: {
-        role: "reader",
-        type: "anyone",
-      },
-    })
-  } catch (error) {
-    const err = error as {
-      message?: string
-      code?: number
-      response?: { status?: number; data?: unknown }
-    }
-    const status = err?.response?.status ?? err?.code
-    const data = err?.response?.data
-    const baseMessage = err?.message ? String(err.message) : "Erreur permission Google Drive"
-    const details = data ? ` | details=${JSON.stringify(data)}` : ""
-    throw new Error(`${baseMessage}${status ? ` (status ${status})` : ""}${details}`)
-  }
-
   const name = res.data.name || fileName
 
   const publicUrl = buildDrivePublicUrl(fileId)
@@ -141,7 +120,7 @@ export function buildAvatarFileName({
   extension: string
 }): string {
   const normalizedType = String(entityType ?? "").trim().toUpperCase()
-  const id = String(entityId ?? "").trim()
+  const id = String(entityId ?? "").trim().replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 120)
   const ext = String(extension ?? "").trim().replace(/^\./, "").toLowerCase()
 
   return `AVATAR_${normalizedType}_${id}.${ext}`

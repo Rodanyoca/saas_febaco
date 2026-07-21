@@ -1,4 +1,5 @@
 import { google } from "googleapis"
+import { getSessionUser } from "@/lib/auth-session"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -30,10 +31,13 @@ function getDriveAuth() {
 
 export async function GET(req: Request) {
   try {
+    if (!(await getSessionUser())) {
+      return new Response("Non authentifié.", { status: 401 })
+    }
     const { searchParams } = new URL(req.url)
     const fileId = String(searchParams.get("id") ?? "").trim()
-    if (!fileId) {
-      return new Response("Missing id", { status: 400 })
+    if (!/^[A-Za-z0-9_-]{10,200}$/.test(fileId)) {
+      return new Response("Identifiant invalide.", { status: 400 })
     }
 
     const auth = getDriveAuth()
@@ -64,11 +68,13 @@ export async function GET(req: Request) {
       status: 200,
       headers: {
         "Content-Type": mimeType,
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": "inline",
       },
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error"
-    return new Response(message, { status: 500 })
+    console.error("[api/media/drive] Lecture impossible", error)
+    return new Response("Lecture du média impossible.", { status: 500 })
   }
 }

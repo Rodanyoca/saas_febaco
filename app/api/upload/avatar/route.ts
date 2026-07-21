@@ -9,6 +9,12 @@ export const runtime = "nodejs"
 const MAX_BYTES = 5 * 1024 * 1024
 const ALLOWED_MIME = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"])
 
+function hasValidImageSignature(buffer: Buffer, mimeType: string): boolean {
+  if (mimeType === "image/png") return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+  if (mimeType === "image/webp") return buffer.length >= 12 && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP"
+  return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+}
+
 function badRequest(message: string, details?: unknown) {
   return NextResponse.json({ error: message, details }, { status: 400 })
 }
@@ -18,6 +24,9 @@ export async function POST(req: Request) {
     const user = await getSessionUser()
     if (!user) {
       return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
+    }
+    if (user.role !== "federal") {
+      return NextResponse.json({ error: "Action réservée au rôle fédéral." }, { status: 403 })
     }
 
     const form = await req.formData()
@@ -41,7 +50,7 @@ export async function POST(req: Request) {
       return badRequest("Format de fichier non autorisé")
     }
 
-    if (file.size > MAX_BYTES) {
+    if (file.size === 0 || file.size > MAX_BYTES) {
       return badRequest("Fichier trop grand (max 5MB)")
     }
 
@@ -84,6 +93,9 @@ export async function POST(req: Request) {
     })
 
     const buffer = Buffer.from(await file.arrayBuffer())
+    if (!hasValidImageSignature(buffer, file.type)) {
+      return badRequest("Le contenu du fichier ne correspond pas au format annoncé")
+    }
 
     const uploaded = await uploadAvatarToDrive({
       folderId,
@@ -150,7 +162,7 @@ export async function POST(req: Request) {
       avatar_drive_url: uploaded.publicUrl,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error"
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    console.error("[api/upload/avatar] Échec de l'upload", error)
+    return NextResponse.json({ ok: false, error: "Téléversement impossible." }, { status: 500 })
   }
 }

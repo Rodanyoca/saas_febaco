@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
+import { getSessionUser } from "@/lib/auth-session"
 
 export const dynamic = "force-dynamic"
 
@@ -9,6 +10,9 @@ function normalize(value: unknown): string {
 
 export async function GET(req: Request) {
   try {
+    if (!(await getSessionUser())) {
+      return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
+    }
     const { searchParams } = new URL(req.url)
     const filterLigueId = normalize(searchParams.get("ligueId"))
     const filterLigueName = normalize(searchParams.get("ligue"))
@@ -78,7 +82,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ equipes })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error"
-    return NextResponse.json({ equipes: [], error: message }, { status: 500 })
+    console.error("[api/equipes] Lecture impossible", error)
+    return NextResponse.json({ equipes: [], error: "Lecture impossible." }, { status: 500 })
   }
 }

@@ -20,9 +20,6 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url)
     const filterAthleteId = normalizeId(searchParams.get("athleteId"))
-    if (!filterAthleteId) {
-      return NextResponse.json({ transferts: [], error: "id_athlete requis." }, { status: 400 })
-    }
 
     const rows = await readSheetRows({
       block: "affiliations",
@@ -31,6 +28,7 @@ export async function GET(req: Request) {
     })
 
     const filteredRows = rows.filter((row) => {
+      if (!filterAthleteId) return true
       const athleteId = normalizeId(pickFirst(row, ["id_athlete"]))
       return athleteId === filterAthleteId
     })
@@ -47,12 +45,8 @@ export async function GET(req: Request) {
       const equipeOrigine = pickFirst(row, ["nom_equipe_origine"])
       const clubOrigineId = pickFirst(row, ["id_club_origine"])
       const clubOrigine = pickFirst(row, ["nom_club_origine"])
-      const equipeBeneficiaireId = pickFirst(row, ["id_equipe_beneficiare", "id_equipe_beneficiaire"])
-      const equipeBeneficiaire = pickFirst(row, [
-        "nom_equipe_beneficiaire",
-        "nom_equipe_beneficiare",
-        "nom_equipe_origine_2",
-      ])
+      const equipeBeneficiaireId = pickFirst(row, ["id_equipe_beneficiaire"])
+      const equipeBeneficiaire = pickFirst(row, ["nom_equipe_beneficiaire"])
       const clubBeneficiaireId = pickFirst(row, ["id_club_beneficiaire"])
       const clubBeneficiaire = pickFirst(row, ["nom_club_beneficiaire"])
       const saison = pickFirst(row, ["saison"])
@@ -72,8 +66,8 @@ export async function GET(req: Request) {
         clubOrigine: clubOrigine || "-",
         equipeBeneficiaireId: equipeBeneficiaireId || "",
         equipeBeneficiaire: equipeBeneficiaire || "-",
-        clubDestinationId: clubBeneficiaireId || "",
-        clubDestination: clubBeneficiaire || "-",
+        clubBeneficiaireId: clubBeneficiaireId || "",
+        clubBeneficiaire: clubBeneficiaire || "-",
         typeTransfert: "Affiliation",
         saison: saison || "-",
         dateDebut: dateDebut || "-",

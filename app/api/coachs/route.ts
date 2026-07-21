@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { buildDrivePublicUrl } from "@/lib/google-drive-url"
+import { getSessionUser } from "@/lib/auth-session"
 
 export const dynamic = "force-dynamic"
 
@@ -18,6 +19,9 @@ function splitNomComplet(nomCompletRaw: string) {
 
 export async function GET() {
   try {
+    if (!(await getSessionUser())) {
+      return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
+    }
     const rows = await readSheetRows({ block: "acteurs", sheet: "coachs", range: "A:ZZ" })
 
     const validRows = rows.filter((row) => {
@@ -76,7 +80,7 @@ export async function GET() {
 
     return NextResponse.json({ coachs })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error"
-    return NextResponse.json({ coachs: [], error: message }, { status: 500 })
+    console.error("[api/coachs] Lecture impossible", error)
+    return NextResponse.json({ coachs: [], error: "Lecture impossible." }, { status: 500 })
   }
 }

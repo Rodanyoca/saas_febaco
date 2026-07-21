@@ -347,7 +347,7 @@ export default function AthleteDetailPage() {
                             <TableCell>{display(transfert.saison)}</TableCell>
                             <TableCell>{display(transfert.clubOrigine)}</TableCell>
                             <TableCell>{display(transfert.equipeBeneficiaire)}</TableCell>
-                            <TableCell className="font-medium">{display(transfert.clubDestination)}</TableCell>
+                            <TableCell className="font-medium">{display(transfert.clubBeneficiaire)}</TableCell>
                             <TableCell>{displaySync(transfert.dateDebut)}</TableCell>
                             <TableCell>{displaySync(transfert.dateFin)}</TableCell>
                             <TableCell><StatusBadge status={transfert.statut} /></TableCell>
