@@ -6,13 +6,13 @@ import { Header } from "@/components/dashboard/header"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { type Competition, getFilterOptions } from "@/lib/models"
 
+function competitionRouteId(id: string): string {
+  return encodeURIComponent(id).replace(/%/g, "~")
+}
+
 const columns: Column<Competition>[] = [
-  { key: "id", header: "ID", className: "font-mono text-sm" },
-  { key: "nom", header: "Compétition", className: "font-medium" },
   { key: "saison", header: "Saison" },
-  { key: "categorie", header: "Catégorie" },
-  { key: "genre", header: "Genre" },
-  { key: "niveau", header: "Niveau" },
+  { key: "nom", header: "Nom de la compétition", className: "font-medium" },
   { key: "dateDebut", header: "Début" },
   { key: "dateFin", header: "Fin" },
   { key: "lieu", header: "Lieu" },
@@ -40,9 +40,7 @@ export default function CompetitionsPage() {
 
   const filters: Filter[] = useMemo(() => [
     { key: "saison", label: "Saison", options: getFilterOptions(competitions, "saison") },
-    { key: "categorie", label: "Catégorie", options: getFilterOptions(competitions, "categorie") },
-    { key: "genre", label: "Genre", options: getFilterOptions(competitions, "genre") },
-    { key: "niveau", label: "Niveau", options: getFilterOptions(competitions, "niveau") },
+    { key: "lieu", label: "Lieu", options: getFilterOptions(competitions, "lieu") },
     { key: "statut", label: "Statut", options: getFilterOptions(competitions, "statut") },
   ], [competitions])
 
@@ -55,11 +53,10 @@ export default function CompetitionsPage() {
           columns={columns}
           filters={filters}
           searchPlaceholder="Rechercher une compétition..."
-          detailHref={(item) => `/dashboard/competitions/${encodeURIComponent(item.id)}`}
+          detailHref={(item) => `/dashboard/competitions/${competitionRouteId(item.id)}`}
           idKey="__key"
         />
       </div>
     </div>
   )
 }
-

@@ -2,15 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, CalendarDays, ListOrdered, MapPin, Trophy, Users } from "lucide-react"
+import { ArrowLeft, MapPin, Trophy } from "lucide-react"
+
 import { DataTable, type Column } from "@/components/dashboard/data-table"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { Header } from "@/components/dashboard/header"
-import { PersonCell } from "@/components/dashboard/person-cell"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { classementDifference, resolveUniteName, scoreLabel } from "@/lib/competition-utils"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { scoreLabel } from "@/lib/competition-utils"
+import { classementDifference } from "@/lib/competition-utils"
 import type {
   Competition,
   CompetitionClassement,
@@ -19,60 +21,175 @@ import type {
   CompetitionUnite,
 } from "@/lib/models"
 
-async function loadList<T>(url: string, key: string): Promise<T[]> {
+function normalizeId(value: unknown): string {
+  return String(value ?? "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .trim()
+    .toLowerCase()
+}
+
+function decodeCompetitionRouteId(value: string): string {
   try {
-    const res = await fetch(url, { cache: "no-store" })
+    return decodeURIComponent(value.replace(/~/g, "%"))
+  } catch {
+    return value
+  }
+}
+
+async function loadCompetition(id: string): Promise<Competition | undefined> {
+  try {
+    const query = new URLSearchParams({ competitionId: id })
+    const res = await fetch(`/api/competitions?${query.toString()}`, { cache: "no-store" })
     const json = await res.json()
-    return Array.isArray(json?.[key]) ? json[key] : []
+    const filtered = Array.isArray(json?.competitions) ? json.competitions : []
+    if (filtered.length > 0) return filtered[0]
+
+    const fallbackRes = await fetch("/api/competitions", { cache: "no-store" })
+    const fallbackJson = await fallbackRes.json()
+    const all = Array.isArray(fallbackJson?.competitions) ? fallbackJson.competitions : []
+    return all.find((item: Competition) => normalizeId(item.id) === normalizeId(id))
+  } catch {
+    return undefined
+  }
+}
+
+async function loadParticipants(competitionId: string): Promise<CompetitionParticipant[]> {
+  try {
+    const query = new URLSearchParams({ competitionId })
+    const res = await fetch(`/api/competitions-participants?${query.toString()}`, { cache: "no-store" })
+    const json = await res.json()
+    const filtered = Array.isArray(json?.participants) ? json.participants : []
+    if (filtered.length > 0) return filtered
+
+    const fallbackRes = await fetch("/api/competitions-participants", { cache: "no-store" })
+    const fallbackJson = await fallbackRes.json()
+    const all = Array.isArray(fallbackJson?.participants) ? fallbackJson.participants : []
+    return all.filter(
+      (item: CompetitionParticipant) => normalizeId(item.competitionId) === normalizeId(competitionId)
+    )
+  } catch {
+    return []
+  }
+}
+
+async function loadUnites(competitionId: string): Promise<CompetitionUnite[]> {
+  try {
+    const query = new URLSearchParams({ competitionId })
+    const res = await fetch(`/api/competitions-unites?${query.toString()}`, { cache: "no-store" })
+    const json = await res.json()
+    const filtered = Array.isArray(json?.unites) ? json.unites : []
+    if (filtered.length > 0) return filtered
+
+    const fallbackRes = await fetch("/api/competitions-unites", { cache: "no-store" })
+    const fallbackJson = await fallbackRes.json()
+    const all = Array.isArray(fallbackJson?.unites) ? fallbackJson.unites : []
+    return all.filter(
+      (item: CompetitionUnite) => normalizeId(item.competitionId) === normalizeId(competitionId)
+    )
+  } catch {
+    return []
+  }
+}
+
+async function loadResultats(competitionId: string): Promise<CompetitionResultat[]> {
+  try {
+    const query = new URLSearchParams({ competitionId })
+    const res = await fetch(`/api/competitions-resultats?${query.toString()}`, { cache: "no-store" })
+    const json = await res.json()
+    const filtered = Array.isArray(json?.resultats) ? json.resultats : []
+    if (filtered.length > 0) return filtered
+
+    const fallbackRes = await fetch("/api/competitions-resultats", { cache: "no-store" })
+    const fallbackJson = await fallbackRes.json()
+    const all = Array.isArray(fallbackJson?.resultats) ? fallbackJson.resultats : []
+    return all.filter(
+      (item: CompetitionResultat) => normalizeId(item.competitionId) === normalizeId(competitionId)
+    )
+  } catch {
+    return []
+  }
+}
+
+async function loadClassements(competitionId: string): Promise<CompetitionClassement[]> {
+  try {
+    const query = new URLSearchParams({ competitionId })
+    const res = await fetch(`/api/competitions-classement?${query.toString()}`, { cache: "no-store" })
+    const json = await res.json()
+    const filtered = Array.isArray(json?.classements) ? json.classements : []
+    if (filtered.length > 0) return filtered
+
+    const fallbackRes = await fetch("/api/competitions-classement", { cache: "no-store" })
+    const fallbackJson = await fallbackRes.json()
+    const all = Array.isArray(fallbackJson?.classements) ? fallbackJson.classements : []
+    return all.filter(
+      (item: CompetitionClassement) => normalizeId(item.competitionId) === normalizeId(competitionId)
+    )
   } catch {
     return []
   }
 }
 
 const participantColumns: Column<CompetitionParticipant>[] = [
-  { key: "athleteNom", header: "Athlète", render: (item) => <PersonCell name={item.athleteNom} avatarUrl={item.avatarUrl} subtitle={item.athleteId} /> },
+  { key: "athleteNom", header: "Nom de l’athlète", className: "font-medium" },
+  { key: "sexe", header: "Sexe" },
+  { key: "posteNom", header: "Poste" },
   { key: "equipeNom", header: "Équipe" },
   { key: "clubNom", header: "Club" },
-  { key: "categorie", header: "Catégorie" },
-  { key: "genre", header: "Genre" },
-  { key: "statut", header: "Statut", render: (item) => <StatusBadge status={item.statut} /> },
+  {
+    key: "statut",
+    header: "Statut de participation",
+    render: (item) => <StatusBadge status={item.statut} />,
+  },
 ]
 
 const uniteColumns: Column<CompetitionUnite>[] = [
-  { key: "id", header: "ID unité", className: "font-mono text-sm" },
-  { key: "equipeNom", header: "Équipe", className: "font-medium" },
-  { key: "clubNom", header: "Club" },
-  { key: "categorie", header: "Catégorie" },
-  { key: "genre", header: "Genre" },
+  { key: "clubNom", header: "Nom", className: "font-medium" },
   { key: "poule", header: "Poule" },
-  { key: "statut", header: "Statut", render: (item) => <StatusBadge status={item.statut} /> },
+  {
+    key: "statut",
+    header: "Statut",
+    render: (item) => <StatusBadge status={item.statut} />,
+  },
 ]
 
-function resultColumns(unites: CompetitionUnite[]): Column<CompetitionResultat>[] {
-  return [
-    { key: "dateMatch", header: "Date" },
-    { key: "phase", header: "Phase" },
-    { key: "poule", header: "Poule" },
-    { key: "uniteANom", header: "Unité A", render: (item) => resolveUniteName(item.uniteAId, item.uniteANom, unites) },
-    { key: "scoreTotalA", header: "Score", render: (item) => <span className="font-semibold">{scoreLabel(item)}</span> },
-    { key: "uniteBNom", header: "Unité B", render: (item) => resolveUniteName(item.uniteBId, item.uniteBNom, unites) },
-    { key: "vainqueur", header: "Vainqueur" },
-    { key: "statut", header: "Statut", render: (item) => <StatusBadge status={item.statut} /> },
-  ]
-}
+const resultatColumns: Column<CompetitionResultat>[] = [
+  { key: "dateMatch", header: "Date du match" },
+  { key: "heureMatch", header: "Heure" },
+  {
+    key: "uniteANom",
+    header: "Rencontre",
+    className: "font-medium",
+    render: (item) => `${item.uniteANom} vs ${item.uniteBNom}`,
+  },
+  {
+    key: "scoreTotalA",
+    header: "Score",
+    className: "font-semibold",
+    render: (item) => scoreLabel(item),
+  },
+  { key: "phase", header: "Phase" },
+]
 
-function classementColumns(unites: CompetitionUnite[]): Column<CompetitionClassement>[] {
-  return [
-    { key: "rang", header: "Rang", className: "font-mono text-sm" },
-    { key: "uniteNom", header: "Unité", render: (item) => resolveUniteName(item.uniteId, item.uniteNom, unites) },
-    { key: "phase", header: "Phase" },
-    { key: "poule", header: "Poule" },
-    { key: "matchJoue", header: "MJ" },
-    { key: "victoire", header: "V" },
-    { key: "defaite", header: "D" },
-    { key: "points", header: "Pts", className: "font-semibold" },
-    { key: "difference", header: "Diff.", render: (item) => classementDifference(item) },
-  ]
+const classementColumns: Column<CompetitionClassement>[] = [
+  { key: "rang", header: "Rang", className: "font-semibold" },
+  { key: "uniteNom", header: "Équipe", className: "font-medium" },
+  { key: "matchJoue", header: "MJ" },
+  { key: "victoire", header: "MG" },
+  { key: "defaite", header: "MP" },
+  { key: "points", header: "Pts", className: "font-semibold" },
+  { key: "scorePour", header: "Pour" },
+  { key: "scoreContre", header: "Contre" },
+  { key: "difference", header: "Diff.", render: (item) => classementDifference(item) },
+]
+
+function ComingSoon({ label }: { label: string }) {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center text-sm text-muted-foreground">
+        L’onglet {label} sera bientôt disponible.
+      </CardContent>
+    </Card>
+  )
 }
 
 export default function CompetitionDetailPage() {
@@ -80,10 +197,11 @@ export default function CompetitionDetailPage() {
   const params = useParams()
   const idParam = useMemo(() => {
     const raw = (params as { id?: string | string[] })?.id
-    return Array.isArray(raw) ? raw[0] : raw
+    const value = Array.isArray(raw) ? raw[0] : raw
+    return value ? decodeCompetitionRouteId(value) : undefined
   }, [params])
 
-  const [competitions, setCompetitions] = useState<Competition[]>([])
+  const [competition, setCompetition] = useState<Competition>()
   const [participants, setParticipants] = useState<CompetitionParticipant[]>([])
   const [unites, setUnites] = useState<CompetitionUnite[]>([])
   const [resultats, setResultats] = useState<CompetitionResultat[]>([])
@@ -93,35 +211,42 @@ export default function CompetitionDetailPage() {
   useEffect(() => {
     let canceled = false
     ;(async () => {
-      const [competitionsData, participantsData, unitesData, resultatsData, classementsData] =
-        await Promise.all([
-          loadList<Competition>("/api/competitions", "competitions"),
-          loadList<CompetitionParticipant>("/api/competitions-participants", "participants"),
-          loadList<CompetitionUnite>("/api/competitions-unites", "unites"),
-          loadList<CompetitionResultat>("/api/competitions-resultats", "resultats"),
-          loadList<CompetitionClassement>("/api/competitions-classement", "classements"),
-        ])
+      if (!idParam) {
+        if (!canceled) setLoading(false)
+        return
+      }
+
+      const [data, participantData, uniteData, resultatData, classementData] = await Promise.all([
+        loadCompetition(idParam),
+        loadParticipants(idParam),
+        loadUnites(idParam),
+        loadResultats(idParam),
+        loadClassements(idParam),
+      ])
       if (!canceled) {
-        setCompetitions(competitionsData)
-        setParticipants(participantsData)
-        setUnites(unitesData)
-        setResultats(resultatsData)
-        setClassements(classementsData)
+        setCompetition(data)
+        setParticipants(participantData)
+        setUnites(uniteData)
+        setResultats(resultatData)
+        const sortedClassements = [...classementData]
+          .sort((a, b) => {
+            const points = Number(b.points || 0) - Number(a.points || 0)
+            if (points !== 0) return points
+            const differenceA = Number(classementDifference(a) || 0)
+            const differenceB = Number(classementDifference(b) || 0)
+            if (differenceB !== differenceA) return differenceB - differenceA
+            return Number(b.scorePour || 0) - Number(a.scorePour || 0)
+          })
+          .map((item, index) => ({ ...item, rang: String(index + 1) }))
+        setClassements(sortedClassements)
         setLoading(false)
       }
     })()
-    return () => { canceled = true }
-  }, [])
 
-  const competition = useMemo(() => competitions.find((item) => item.id === idParam), [competitions, idParam])
-  const relatedParticipants = useMemo(() => participants.filter((item) => item.competitionId === idParam), [participants, idParam])
-  const relatedUnites = useMemo(() => unites.filter((item) => item.competitionId === idParam), [unites, idParam])
-  const relatedResultats = useMemo(() => resultats.filter((item) => item.competitionId === idParam), [resultats, idParam])
-  const relatedClassements = useMemo(() => {
-    return classements
-      .filter((item) => item.competitionId === idParam)
-      .sort((a, b) => Number(a.rang || 9999) - Number(b.rang || 9999))
-  }, [classements, idParam])
+    return () => {
+      canceled = true
+    }
+  }, [idParam])
 
   if (loading) {
     return (
@@ -137,7 +262,7 @@ export default function CompetitionDetailPage() {
       <div className="flex flex-col">
         <Header title="Compétition non trouvée" />
         <div className="flex-1 p-6">
-          <p className="text-muted-foreground">La compétition demandée n'existe pas.</p>
+          <p className="text-muted-foreground">La compétition demandée n’existe pas.</p>
           <Button onClick={() => router.back()} className="mt-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
@@ -149,91 +274,104 @@ export default function CompetitionDetailPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title={`Compétition: ${competition.nom}`} subtitle={competition.saison} />
+      <Header title={`Compétition : ${competition.nom}`} subtitle={competition.saison} />
+
       <div className="flex-1 space-y-6 p-6">
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <DetailCard
-            title="Informations générales"
-            icon={Trophy}
-            fields={[
-              { label: "ID", value: competition.id },
-              { label: "Nom", value: competition.nom },
-              { label: "Saison", value: competition.saison },
-              { label: "Catégorie", value: competition.categorie },
-              { label: "Genre", value: competition.genre },
-              { label: "Niveau", value: competition.niveau },
-              { label: "Statut", value: competition.statut },
-            ]}
-          />
-          <DetailCard
-            title="Calendrier / lieu"
-            icon={MapPin}
-            fields={[
-              { label: "Date début", value: competition.dateDebut },
-              { label: "Date fin", value: competition.dateFin },
-              { label: "Lieu", value: competition.lieu },
-            ]}
-          />
-        </div>
+        <Tabs defaultValue="general" className="gap-4">
+          <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-5">
+            <TabsTrigger value="general">Général</TabsTrigger>
+            <TabsTrigger value="participants">Participants</TabsTrigger>
+            <TabsTrigger value="equipes">Équipes</TabsTrigger>
+            <TabsTrigger value="resultats">Résultats</TabsTrigger>
+            <TabsTrigger value="classement">Classement</TabsTrigger>
+          </TabsList>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <StatCard title="Équipes" value={relatedUnites.length} icon={Users} />
-          <StatCard title="Participants" value={relatedParticipants.length} icon={Users} />
-          <StatCard title="Résultats" value={relatedResultats.length} icon={CalendarDays} />
-          <StatCard title="Classement" value={relatedClassements.length} icon={ListOrdered} />
-        </div>
+          <TabsContent value="general">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <DetailCard
+                title="Informations générales"
+                icon={Trophy}
+                fields={[
+                  { label: "ID", value: competition.id },
+                  { label: "Nom", value: competition.nom },
+                  { label: "Type", value: competition.typeCompetition },
+                  { label: "ID discipline", value: competition.disciplineId },
+                  { label: "Discipline", value: competition.discipline },
+                  { label: "Saison", value: competition.saison },
+                  { label: "Niveau", value: competition.niveau },
+                  { label: "Statut", value: competition.statut },
+                ]}
+              />
+              <DetailCard
+                title="Calendrier / lieu"
+                icon={MapPin}
+                fields={[
+                  { label: "Date de début", value: competition.dateDebut },
+                  { label: "Date de fin", value: competition.dateFin },
+                  { label: "Lieu", value: competition.lieu },
+                  { label: "ID structure organisatrice", value: competition.structureOrganisatriceId },
+                  { label: "Structure organisatrice", value: competition.structureOrganisatriceNom },
+                  { label: "Observation", value: competition.observation },
+                ]}
+              />
+            </div>
+          </TabsContent>
 
-        <Section title="Équipes engagées">
-          <DataTable data={relatedUnites} columns={uniteColumns} searchPlaceholder="Rechercher une équipe..." idKey="__key" />
-        </Section>
-        <Section title="Participants">
-          <DataTable data={relatedParticipants} columns={participantColumns} searchPlaceholder="Rechercher un athlète..." idKey="__key" />
-        </Section>
-        <Section title="Résultats">
-          <DataTable data={relatedResultats} columns={resultColumns(relatedUnites)} searchPlaceholder="Rechercher un match..." idKey="__key" />
-        </Section>
-        <Section title="Classement">
-          <DataTable data={relatedClassements} columns={classementColumns(relatedUnites)} searchPlaceholder="Rechercher une équipe..." idKey="__key" />
-        </Section>
+          <TabsContent value="participants">
+            <Card>
+              <CardContent className="p-6">
+                <DataTable
+                  data={participants}
+                  columns={participantColumns}
+                  searchPlaceholder="Rechercher un participant..."
+                  idKey="__key"
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="equipes">
+            <Card>
+              <CardContent className="p-6">
+                <DataTable
+                  data={unites}
+                  columns={uniteColumns}
+                  searchPlaceholder="Rechercher une équipe..."
+                  idKey="__key"
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="resultats">
+            <Card>
+              <CardContent className="p-6">
+                <DataTable
+                  data={resultats}
+                  columns={resultatColumns}
+                  searchPlaceholder="Rechercher un match..."
+                  idKey="__key"
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="classement">
+            <Card>
+              <CardContent className="p-6">
+                <DataTable
+                  data={classements}
+                  columns={classementColumns}
+                  searchPlaceholder="Rechercher une équipe..."
+                  idKey="__key"
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  )
-}
-
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-}: {
-  title: string
-  value: number
-  icon: React.ComponentType<{ className?: string }>
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-center justify-between p-5">
-        <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-        <Icon className="h-6 w-6 text-primary" />
-      </CardContent>
-    </Card>
   )
 }

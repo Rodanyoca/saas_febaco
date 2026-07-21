@@ -6,11 +6,19 @@ import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Officiel } from "@/lib/models"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { Officiel, OfficielMandat } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { ArrowLeft, Camera, Contact, Fingerprint, Flag } from "lucide-react"
 
 function initials(prenom?: string, nom?: string): string {
@@ -22,6 +30,11 @@ function initials(prenom?: string, nom?: string): string {
   return v || "OF"
 }
 
+function display(value: unknown): string {
+  const raw = String(value ?? "").trim()
+  return raw && raw !== "-" ? raw : "-"
+}
+
 export default function OfficielDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -31,6 +44,8 @@ export default function OfficielDetailPage() {
   }, [params])
 
   const [officiels, setOfficiels] = useState<Officiel[]>([])
+  const [mandats, setMandats] = useState<OfficielMandat[]>([])
+  const [mandatsLoading, setMandatsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
@@ -70,6 +85,34 @@ export default function OfficielDetailPage() {
   }, [officiels, idParam])
 
   const avatarSrc = localAvatarUrl || officiel?.avatarUrl || null
+
+  useEffect(() => {
+    if (!officiel) {
+      setMandats([])
+      return
+    }
+
+    let canceled = false
+    ;(async () => {
+      setMandatsLoading(true)
+      try {
+        const query = new URLSearchParams({ acteurId: officiel.id })
+        const res = await fetch(`/api/officiel-mandats?${query.toString()}`, { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setMandats(Array.isArray(json?.mandats) ? json.mandats : [])
+        }
+      } catch {
+        if (!canceled) setMandats([])
+      } finally {
+        if (!canceled) setMandatsLoading(false)
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [officiel])
 
   if (loading) {
     return (
@@ -226,7 +269,49 @@ export default function OfficielDetailPage() {
 
           <TabsContent value="affiliation">
             <Card>
-              <CardContent className="p-6 text-sm text-muted-foreground">Coming soon</CardContent>
+              <CardHeader>
+                <CardTitle>Historique des mandats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Fonction</TableHead>
+                        <TableHead>Structure</TableHead>
+                        <TableHead>Date de début</TableHead>
+                        <TableHead>Date de fin</TableHead>
+                        <TableHead>Statut</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {mandatsLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                            Chargement des mandats...
+                          </TableCell>
+                        </TableRow>
+                      ) : mandats.length > 0 ? (
+                        mandats.map((mandat) => (
+                          <TableRow key={mandat.__key ?? mandat.id}>
+                            <TableCell className="font-medium">{display(mandat.fonction)}</TableCell>
+                            <TableCell>{display(mandat.structureNom)}</TableCell>
+                            <TableCell>{display(mandat.dateDebut)}</TableCell>
+                            <TableCell>{display(mandat.dateFin)}</TableCell>
+                            <TableCell><StatusBadge status={mandat.statut} /></TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                            Aucun mandat enregistré.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

@@ -6,10 +6,19 @@ import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
-import { Medecin } from "@/lib/models"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { Medecin, MedecinAffiliation } from "@/lib/models"
 import { ArrowLeft, Camera, Stethoscope, MapPin, Activity } from "lucide-react"
 
 function formatCode(value: unknown): string {
@@ -28,6 +37,11 @@ function initials(prenom?: string, nom?: string): string {
   return v || "MD"
 }
 
+function display(value: unknown): string {
+  const raw = String(value ?? "").trim()
+  return raw && raw !== "-" ? raw : "-"
+}
+
 export default function MedecinDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -37,6 +51,8 @@ export default function MedecinDetailPage() {
   }, [params])
 
   const [medecins, setMedecins] = useState<Medecin[]>([])
+  const [affiliations, setAffiliations] = useState<MedecinAffiliation[]>([])
+  const [affiliationsLoading, setAffiliationsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
@@ -77,6 +93,34 @@ export default function MedecinDetailPage() {
 
   const avatarSrc = localAvatarUrl || medecin?.avatarUrl || null
   const code = useMemo(() => formatCode(medecin?.id), [medecin?.id])
+
+  useEffect(() => {
+    if (!medecin) {
+      setAffiliations([])
+      return
+    }
+
+    let canceled = false
+    ;(async () => {
+      setAffiliationsLoading(true)
+      try {
+        const query = new URLSearchParams({ medecinId: medecin.id })
+        const res = await fetch(`/api/medecin-affiliations?${query.toString()}`, { cache: "no-store" })
+        const json = await res.json()
+        if (!canceled) {
+          setAffiliations(Array.isArray(json?.affiliations) ? json.affiliations : [])
+        }
+      } catch {
+        if (!canceled) setAffiliations([])
+      } finally {
+        if (!canceled) setAffiliationsLoading(false)
+      }
+    })()
+
+    return () => {
+      canceled = true
+    }
+  }, [medecin])
 
   if (loading) {
     return (
@@ -189,7 +233,18 @@ export default function MedecinDetailPage() {
           }}
         />
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Tabs defaultValue="general" className="gap-4">
+          <TabsList className="grid h-auto w-full grid-cols-2">
+            <TabsTrigger value="general" className="w-full">
+              Général
+            </TabsTrigger>
+            <TabsTrigger value="affiliation" className="w-full">
+              Affiliation
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="general">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <DetailCard
             title="Identité"
             icon={Stethoscope}
@@ -224,7 +279,61 @@ export default function MedecinDetailPage() {
               { label: "Club", value: medecin.club },
             ]}
           />
-        </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="affiliation">
+            <Card>
+              <CardHeader>
+                <CardTitle>Historique des affiliations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Saison</TableHead>
+                        <TableHead>Équipe</TableHead>
+                        <TableHead>Club</TableHead>
+                        <TableHead>Fonction</TableHead>
+                        <TableHead>Date de début</TableHead>
+                        <TableHead>Date de fin</TableHead>
+                        <TableHead>Statut</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {affiliationsLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                            Chargement des affiliations...
+                          </TableCell>
+                        </TableRow>
+                      ) : affiliations.length > 0 ? (
+                        affiliations.map((affiliation) => (
+                          <TableRow key={affiliation.__key ?? affiliation.id}>
+                            <TableCell>{display(affiliation.saison)}</TableCell>
+                            <TableCell>{display(affiliation.equipeNom)}</TableCell>
+                            <TableCell>{display(affiliation.clubNom)}</TableCell>
+                            <TableCell>{display(affiliation.fonction)}</TableCell>
+                            <TableCell>{display(affiliation.dateDebut)}</TableCell>
+                            <TableCell>{display(affiliation.dateFin)}</TableCell>
+                            <TableCell><StatusBadge status={affiliation.statut} /></TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                            Aucune affiliation enregistrée.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

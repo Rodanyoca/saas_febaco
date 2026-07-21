@@ -1,24 +1,32 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
-import { fallbackId, pick, readCompetitionRows, rowKey } from "../competitions/_helpers"
+import { matchesId, pick, rawPick, readCompetitionRows, rowKey } from "../competitions/_helpers"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await getSessionUser()
     if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
 
+    const filterCompetitionId = new URL(req.url).searchParams.get("competitionId")?.trim() ?? ""
     const rows = await readCompetitionRows("competitions_resultats")
-    const resultats = rows.map((row, index) => {
-      const id = pick(row, ["id_resultat", "id", "code_resultat", "code_match"])
+    const validRows = rows.filter((row) => {
+      const id = rawPick(row, ["id_resultat", "id", "code_resultat", "code_match"])
+      const competitionId = rawPick(row, ["id_competition", "competition_id"])
+      return Boolean(id) && matchesId(competitionId, filterCompetitionId)
+    })
+    const resultats = validRows.map((row, index) => {
+      const id = rawPick(row, ["id_resultat", "id", "code_resultat", "code_match"])
       return {
         __key: rowKey(id, index),
-        id: id === "-" ? fallbackId(index) : id,
+        id,
         competitionId: pick(row, ["id_competition", "competition_id"]),
         competitionNom: pick(row, ["nom_competition", "competition"]),
         dateMatch: pick(row, ["date_match", "date"]),
+        heureMatch: pick(row, ["heure_match", "heure"]),
         phase: pick(row, ["phase", "tour"]),
+        classementPoule: pick(row, ["classement_poule"]),
         poule: pick(row, ["poule", "groupe"]),
         uniteAId: pick(row, ["id_unite_a", "unite_a_id"]),
         uniteANom: pick(row, ["nom_unite_a", "unite_a", "equipe_a"]),
@@ -36,7 +44,8 @@ export async function GET() {
         prolongationB: pick(row, ["prolongation_b", "ot_b"]),
         scoreTotalA: pick(row, ["score_total_a", "score_a", "total_a"]),
         scoreTotalB: pick(row, ["score_total_b", "score_b", "total_b"]),
-        vainqueur: pick(row, ["vainqueur", "winner"]),
+        vainqueurId: pick(row, ["id_unite_vainqueur"]),
+        vainqueur: pick(row, ["nom_unite_vainqueur", "vainqueur", "winner"]),
         statut: pick(row, ["statut_match", "statut", "status", "etat"]),
       }
     })
@@ -47,4 +56,3 @@ export async function GET() {
     return NextResponse.json({ resultats: [], error: message }, { status: 500 })
   }
 }
-

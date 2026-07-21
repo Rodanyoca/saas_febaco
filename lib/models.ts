@@ -149,6 +149,9 @@ export interface Competition {
   __key?: string
   id: string
   nom: string
+  typeCompetition: string
+  disciplineId: string
+  discipline: string
   saison: string
   categorie: string
   genre: string
@@ -156,7 +159,10 @@ export interface Competition {
   dateDebut: string
   dateFin: string
   lieu: string
+  structureOrganisatriceId: string
+  structureOrganisatriceNom: string
   statut: string
+  observation: string
 }
 
 export interface CompetitionParticipant {
@@ -167,6 +173,10 @@ export interface CompetitionParticipant {
   athleteId: string
   athleteNom: string
   avatarUrl?: string
+  saison: string
+  sexe: string
+  posteId: string
+  posteNom: string
   equipeId: string
   equipeNom: string
   clubId: string
@@ -174,6 +184,7 @@ export interface CompetitionParticipant {
   categorie: string
   genre: string
   statut: string
+  observation: string
 }
 
 export interface CompetitionUnite {
@@ -181,6 +192,7 @@ export interface CompetitionUnite {
   id: string
   competitionId: string
   competitionNom: string
+  saison: string
   equipeId: string
   equipeNom: string
   clubId: string
@@ -197,7 +209,9 @@ export interface CompetitionResultat {
   competitionId: string
   competitionNom: string
   dateMatch: string
+  heureMatch: string
   phase: string
+  classementPoule: string
   poule: string
   uniteAId: string
   uniteANom: string
@@ -215,6 +229,7 @@ export interface CompetitionResultat {
   prolongationB: string
   scoreTotalA: string
   scoreTotalB: string
+  vainqueurId: string
   vainqueur: string
   statut: string
 }
@@ -222,12 +237,17 @@ export interface CompetitionResultat {
 export interface CompetitionClassement {
   __key?: string
   id: string
+  coteUnite: string
+  resultatId: string
   competitionId: string
   competitionNom: string
   phase: string
   poule: string
   uniteId: string
   uniteNom: string
+  adversaireId: string
+  adversaireNom: string
+  resultatMatch: string
   matchJoue: string
   victoire: string
   defaite: string
@@ -433,6 +453,20 @@ export interface Officiel {
   observation?: string
 }
 
+export interface OfficielMandat {
+  __key?: string
+  id: string
+  acteurId?: string
+  acteurNom: string
+  fonction: string
+  structureId?: string
+  structureNom: string
+  dateDebut: string
+  dateFin: string
+  statut: string
+  observation: string
+}
+
 export interface Medecin {
   __key?: string
   id: string
@@ -455,6 +489,26 @@ export interface Medecin {
   entente: string
   club: string
   statut: string
+}
+
+export interface MedecinAffiliation {
+  __key?: string
+  id: string
+  medecinId?: string
+  medecinNom: string
+  typeAffiliation: string
+  saison: string
+  equipeId?: string
+  equipeNom: string
+  clubId?: string
+  clubNom: string
+  equipeNationaleId?: string
+  equipeNationaleNom: string
+  fonction: string
+  dateDebut: string
+  dateFin: string
+  statut: string
+  observation: string
 }
 
 export function getFilterOptions<T extends object>(

@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Arbitre } from "@/lib/models"
 
 function initials(prenom?: string, nom?: string): string {
@@ -179,18 +178,7 @@ export default function ArbitreDetailPage() {
           }}
         />
 
-        <Tabs defaultValue="general" className="gap-4">
-          <TabsList className="grid h-auto w-full grid-cols-2">
-            <TabsTrigger value="general" className="w-full">
-              General
-            </TabsTrigger>
-            <TabsTrigger value="affiliation" className="w-full">
-              Affiliation
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="general">
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               <DetailCard
                 title="Identite"
                 icon={Flag}
@@ -222,15 +210,7 @@ export default function ArbitreDetailPage() {
                   { label: "Email", value: arbitre.email },
                 ]}
               />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="affiliation">
-            <Card>
-              <CardContent className="p-6 text-sm text-muted-foreground">Coming soon</CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        </div>
       </div>
     </div>
   )

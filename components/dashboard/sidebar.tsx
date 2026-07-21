@@ -18,9 +18,7 @@ import {
   ArrowRightLeft,
   Trophy,
   UserCheck,
-  ListChecks,
   ClipboardList,
-  ListOrdered,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -48,11 +46,8 @@ const navigationActeurs: NavItem[] = [
 ]
 
 const navigationCompetition: NavItem[] = [
-  { name: "Toutes les compétitions", href: "/dashboard/competitions", icon: Trophy },
-  { name: "Participants", href: "/dashboard/competitions-participants", icon: UserCheck },
-  { name: "Équipes engagées", href: "/dashboard/competitions-unites", icon: ListChecks },
-  { name: "Résultats", href: "/dashboard/competitions-resultats", icon: ClipboardList },
-  { name: "Classements", href: "/dashboard/competitions-classement", icon: ListOrdered },
+  { name: "Compétitions", href: "/dashboard/competitions", icon: Trophy },
+  { name: "Transferts", href: "/dashboard/transferts", icon: ArrowRightLeft },
 ]
 
 const navigationEquipeNationale: NavItem[] = [
@@ -221,12 +216,6 @@ export function Sidebar() {
             items={navigationCompetition}
             open={openCompetition}
             setOpen={setOpenCompetition}
-            collapsed={collapsed}
-            pathname={pathname}
-          />
-
-          <NavLink
-            item={{ name: "Transferts", href: "/dashboard/transferts", icon: ArrowRightLeft }}
             collapsed={collapsed}
             pathname={pathname}
           />
