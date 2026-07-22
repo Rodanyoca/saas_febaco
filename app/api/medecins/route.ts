@@ -19,7 +19,7 @@ function splitNomComplet(nomComplet: unknown): { prenom: string; nom: string } {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await getSessionUser()
     if (!user) {
@@ -28,8 +28,12 @@ export async function GET() {
 
     const scope = scopeFromSession(user)
     const rows = await readSheetRows("medecins")
+    const idFilter = new URL(req.url).searchParams.get("id")?.trim().toLowerCase()
     const rowsWithId = rows.filter(
-      (row) => pickFirst(row, ["id_medecin", "id", "code_medecin", "code"]) !== ""
+      (row) => {
+        const id = pickFirst(row, ["id_medecin", "id", "code_medecin", "code"])
+        return id !== "" && (!idFilter || id.toLowerCase() === idFilter)
+      }
     )
 
     const filteredRows =

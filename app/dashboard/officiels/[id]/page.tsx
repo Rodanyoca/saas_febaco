@@ -54,7 +54,8 @@ export default function OfficielDetailPage() {
     let canceled = false
     ;(async () => {
       try {
-        const res = await fetch("/api/officiels", { cache: "no-store" })
+        if (!idParam) return
+        const res = await fetch(`/api/officiels?id=${encodeURIComponent(idParam)}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setOfficiels(Array.isArray(json?.officiels) ? json.officiels : [])
@@ -69,10 +70,10 @@ export default function OfficielDetailPage() {
     return () => {
       canceled = true
     }
-  }, [])
+  }, [idParam])
 
   async function reloadOfficiels() {
-    const res = await fetch("/api/officiels", { cache: "no-store" })
+    const res = await fetch(`/api/officiels?id=${encodeURIComponent(idParam ?? "")}`, { cache: "no-store" })
     const json = await res.json()
     setOfficiels(Array.isArray(json?.officiels) ? json.officiels : [])
   }

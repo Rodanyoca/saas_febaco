@@ -54,7 +54,7 @@ export default function CoachDetailPage() {
 
   const reloadCoachs = async () => {
     try {
-      const res = await fetch("/api/coachs", { cache: "no-store" })
+      const res = await fetch(`/api/coachs?id=${encodeURIComponent(coachId ?? "")}`, { cache: "no-store" })
       const json = await res.json()
       setCoachs(Array.isArray(json?.coachs) ? json.coachs : [])
     } catch {
@@ -66,7 +66,8 @@ export default function CoachDetailPage() {
     let canceled = false
     ;(async () => {
       try {
-        const res = await fetch("/api/coachs", { cache: "no-store" })
+        if (!coachId) return
+        const res = await fetch(`/api/coachs?id=${encodeURIComponent(coachId)}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setCoachs(Array.isArray(json?.coachs) ? json.coachs : [])
@@ -81,7 +82,7 @@ export default function CoachDetailPage() {
     return () => {
       canceled = true
     }
-  }, [])
+  }, [coachId])
 
   const coach = useMemo(() => {
     if (!coachId) return undefined

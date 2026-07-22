@@ -42,12 +42,7 @@ async function loadCompetition(id: string): Promise<Competition | undefined> {
     const res = await fetch(`/api/competitions?${query.toString()}`, { cache: "no-store" })
     const json = await res.json()
     const filtered = Array.isArray(json?.competitions) ? json.competitions : []
-    if (filtered.length > 0) return filtered[0]
-
-    const fallbackRes = await fetch("/api/competitions", { cache: "no-store" })
-    const fallbackJson = await fallbackRes.json()
-    const all = Array.isArray(fallbackJson?.competitions) ? fallbackJson.competitions : []
-    return all.find((item: Competition) => normalizeId(item.id) === normalizeId(id))
+    return filtered.find((item: Competition) => normalizeId(item.id) === normalizeId(id))
   } catch {
     return undefined
   }
@@ -59,12 +54,7 @@ async function loadParticipants(competitionId: string): Promise<CompetitionParti
     const res = await fetch(`/api/competitions-participants?${query.toString()}`, { cache: "no-store" })
     const json = await res.json()
     const filtered = Array.isArray(json?.participants) ? json.participants : []
-    if (filtered.length > 0) return filtered
-
-    const fallbackRes = await fetch("/api/competitions-participants", { cache: "no-store" })
-    const fallbackJson = await fallbackRes.json()
-    const all = Array.isArray(fallbackJson?.participants) ? fallbackJson.participants : []
-    return all.filter(
+    return filtered.filter(
       (item: CompetitionParticipant) => normalizeId(item.competitionId) === normalizeId(competitionId)
     )
   } catch {
@@ -78,12 +68,7 @@ async function loadUnites(competitionId: string): Promise<CompetitionUnite[]> {
     const res = await fetch(`/api/competitions-unites?${query.toString()}`, { cache: "no-store" })
     const json = await res.json()
     const filtered = Array.isArray(json?.unites) ? json.unites : []
-    if (filtered.length > 0) return filtered
-
-    const fallbackRes = await fetch("/api/competitions-unites", { cache: "no-store" })
-    const fallbackJson = await fallbackRes.json()
-    const all = Array.isArray(fallbackJson?.unites) ? fallbackJson.unites : []
-    return all.filter(
+    return filtered.filter(
       (item: CompetitionUnite) => normalizeId(item.competitionId) === normalizeId(competitionId)
     )
   } catch {
@@ -97,12 +82,7 @@ async function loadResultats(competitionId: string): Promise<CompetitionResultat
     const res = await fetch(`/api/competitions-resultats?${query.toString()}`, { cache: "no-store" })
     const json = await res.json()
     const filtered = Array.isArray(json?.resultats) ? json.resultats : []
-    if (filtered.length > 0) return filtered
-
-    const fallbackRes = await fetch("/api/competitions-resultats", { cache: "no-store" })
-    const fallbackJson = await fallbackRes.json()
-    const all = Array.isArray(fallbackJson?.resultats) ? fallbackJson.resultats : []
-    return all.filter(
+    return filtered.filter(
       (item: CompetitionResultat) => normalizeId(item.competitionId) === normalizeId(competitionId)
     )
   } catch {
@@ -116,12 +96,7 @@ async function loadClassements(competitionId: string): Promise<CompetitionClasse
     const res = await fetch(`/api/competitions-classement?${query.toString()}`, { cache: "no-store" })
     const json = await res.json()
     const filtered = Array.isArray(json?.classements) ? json.classements : []
-    if (filtered.length > 0) return filtered
-
-    const fallbackRes = await fetch("/api/competitions-classement", { cache: "no-store" })
-    const fallbackJson = await fallbackRes.json()
-    const all = Array.isArray(fallbackJson?.classements) ? fallbackJson.classements : []
-    return all.filter(
+    return filtered.filter(
       (item: CompetitionClassement) => normalizeId(item.competitionId) === normalizeId(competitionId)
     )
   } catch {

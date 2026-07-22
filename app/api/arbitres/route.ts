@@ -18,7 +18,7 @@ function splitNomComplet(nomComplet: unknown): { prenom: string; nom: string } {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await getSessionUser()
     if (!user) {
@@ -26,8 +26,12 @@ export async function GET() {
     }
 
     const rows = await readSheetRows({ block: "acteurs", sheet: "arbitres", range: "A:ZZ" })
+    const idFilter = new URL(req.url).searchParams.get("id")?.trim().toLowerCase()
 
-    const rowsWithId = rows.filter((row) => pickFirst(row, ["id_arbitre"]) !== "")
+    const rowsWithId = rows.filter((row) => {
+      const id = pickFirst(row, ["id_arbitre"])
+      return id !== "" && (!idFilter || id.toLowerCase() === idFilter)
+    })
 
     const arbitres = rowsWithId.map((row, index) => {
       const id = pickFirst(row, ["id_arbitre"])

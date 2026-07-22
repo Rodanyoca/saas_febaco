@@ -61,7 +61,8 @@ export default function MedecinDetailPage() {
     let canceled = false
     ;(async () => {
       try {
-        const res = await fetch("/api/medecins", { cache: "no-store" })
+        if (!idParam) return
+        const res = await fetch(`/api/medecins?id=${encodeURIComponent(idParam)}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setMedecins(Array.isArray(json?.medecins) ? json.medecins : [])
@@ -76,10 +77,10 @@ export default function MedecinDetailPage() {
     return () => {
       canceled = true
     }
-  }, [])
+  }, [idParam])
 
   async function reloadMedecins() {
-    const res = await fetch("/api/medecins", { cache: "no-store" })
+    const res = await fetch(`/api/medecins?id=${encodeURIComponent(idParam ?? "")}`, { cache: "no-store" })
     const json = await res.json()
     setMedecins(Array.isArray(json?.medecins) ? json.medecins : [])
   }

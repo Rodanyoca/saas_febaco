@@ -58,7 +58,7 @@ export default function AthleteDetailPage() {
 
   const reloadAthletes = async () => {
     try {
-      const res = await fetch("/api/athletes", { cache: "no-store" })
+      const res = await fetch(`/api/athletes?id=${encodeURIComponent(athleteId)}`, { cache: "no-store" })
       const json = await res.json()
       setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
     } catch {
@@ -70,7 +70,8 @@ export default function AthleteDetailPage() {
     let canceled = false
     ;(async () => {
       try {
-        const res = await fetch("/api/athletes", { cache: "no-store" })
+        if (!athleteId) return
+        const res = await fetch(`/api/athletes?id=${encodeURIComponent(athleteId)}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
@@ -85,7 +86,7 @@ export default function AthleteDetailPage() {
     return () => {
       canceled = true
     }
-  }, [])
+  }, [athleteId])
 
   const athlete = useMemo(() => {
     if (!athleteId) return undefined

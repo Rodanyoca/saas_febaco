@@ -3,6 +3,7 @@ import { google } from "googleapis"
 const SHEETS_REQUEST_TIMEOUT_MS = 10000
 const SHEETS_CACHE_TTL_MS = 30_000
 const readCache = new Map<string, { expiresAt: number; value: unknown[][] }>()
+const pendingReads = new Map<string, Promise<unknown[][]>>()
 
 export type SheetBlock =
   | "structure"
@@ -139,19 +140,23 @@ type ReadSheetRowsOptions = {
 export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
   const block = params.block ?? inferBlockFromSheetName(params.sheet)
   const spreadsheetId = getSpreadsheetId(block)
-  const sheets = createSheetsClient()
   const range = params.range ?? "A:ZZ"
   const cacheKey = `${spreadsheetId}:${params.sheet.toLowerCase()}:${range}`
   const cached = readCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) return cached.value
   if (cached) readCache.delete(cacheKey)
 
-  const sheetNameVariants = Array.from(new Set([params.sheet, params.sheet.toUpperCase(), params.sheet.toLowerCase()]))
-  let lastError: unknown
+  const pending = pendingReads.get(cacheKey)
+  if (pending) return pending
 
-  for (const candidate of sheetNameVariants) {
-    try {
-      const res = await sheets.spreadsheets.values.get(
+  const request = (async () => {
+    const sheets = createSheetsClient()
+    const sheetNameVariants = Array.from(new Set([params.sheet, params.sheet.toUpperCase(), params.sheet.toLowerCase()]))
+    let lastError: unknown
+
+    for (const candidate of sheetNameVariants) {
+      try {
+        const res = await sheets.spreadsheets.values.get(
         {
           spreadsheetId,
           range: `${quoteSheetName(candidate)}!${range}`,
@@ -161,20 +166,28 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
         }
       )
 
-      const values = res.data.values ?? []
-      if (readCache.size >= 100) {
-        const now = Date.now()
-        for (const [key, entry] of readCache) if (entry.expiresAt <= now) readCache.delete(key)
-        if (readCache.size >= 100) readCache.clear()
+        const values = res.data.values ?? []
+        if (readCache.size >= 100) {
+          const now = Date.now()
+          for (const [key, entry] of readCache) if (entry.expiresAt <= now) readCache.delete(key)
+          if (readCache.size >= 100) readCache.clear()
+        }
+        readCache.set(cacheKey, { expiresAt: Date.now() + SHEETS_CACHE_TTL_MS, value: values })
+        return values
+      } catch (error) {
+        lastError = error
       }
-      readCache.set(cacheKey, { expiresAt: Date.now() + SHEETS_CACHE_TTL_MS, value: values })
-      return values
-    } catch (error) {
-      lastError = error
     }
-  }
 
-  throw withGoogleSheetsErrorContext(lastError, block, params.sheet)
+    throw withGoogleSheetsErrorContext(lastError, block, params.sheet)
+  })()
+
+  pendingReads.set(cacheKey, request)
+  try {
+    return await request
+  } finally {
+    pendingReads.delete(cacheKey)
+  }
 }
 
 export async function readSheetRows(params: string | ReadSheetParams, options: ReadSheetRowsOptions = {}): Promise<SheetRow[]> {

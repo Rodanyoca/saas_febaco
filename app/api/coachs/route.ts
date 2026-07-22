@@ -17,17 +17,18 @@ function splitNomComplet(nomCompletRaw: string) {
   return { prenom: parts[0], nom: parts.slice(1).join(" ") }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     if (!(await getSessionUser())) {
       return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
     }
     const rows = await readSheetRows({ block: "acteurs", sheet: "coachs", range: "A:ZZ" })
+    const idFilter = new URL(req.url).searchParams.get("id")?.trim().toLowerCase()
 
     const validRows = rows.filter((row) => {
       const idCoach = pickFirst(row, ["id_coach"])
       const nomComplet = pickFirst(row, ["nom_complet"])
-      return idCoach !== "" && nomComplet.length > 0
+      return idCoach !== "" && nomComplet.length > 0 && (!idFilter || idCoach.toLowerCase() === idFilter)
     })
 
     const coachs = validRows.map((row, index) => {

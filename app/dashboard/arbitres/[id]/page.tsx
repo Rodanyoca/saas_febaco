@@ -38,7 +38,8 @@ export default function ArbitreDetailPage() {
     let canceled = false
     ;(async () => {
       try {
-        const res = await fetch("/api/arbitres", { cache: "no-store" })
+        if (!idParam) return
+        const res = await fetch(`/api/arbitres?id=${encodeURIComponent(idParam)}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setArbitres(Array.isArray(json?.arbitres) ? json.arbitres : [])
@@ -53,10 +54,10 @@ export default function ArbitreDetailPage() {
     return () => {
       canceled = true
     }
-  }, [])
+  }, [idParam])
 
   async function reloadArbitres() {
-    const res = await fetch("/api/arbitres", { cache: "no-store" })
+    const res = await fetch(`/api/arbitres?id=${encodeURIComponent(idParam ?? "")}`, { cache: "no-store" })
     const json = await res.json()
     setArbitres(Array.isArray(json?.arbitres) ? json.arbitres : [])
   }

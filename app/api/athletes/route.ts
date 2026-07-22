@@ -31,6 +31,7 @@ export async function GET(req: Request) {
       searchParams.get("equipeIds"),
     ].some((value) => String(value ?? "").trim() !== "")
     const search = normalize(searchParams.get("search"))
+    const idFilter = normalize(searchParams.get("id"))
     const statutFilter = normalize(searchParams.get("statut"))
     const sexeFilter = normalize(searchParams.get("sexe"))
     const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1)
@@ -50,6 +51,7 @@ export async function GET(req: Request) {
       const rowSexe = normalize(pickFirst(row, ["sexe"]))
 
       if (!id) return false
+      if (idFilter && normalize(id) !== idFilter) return false
       if (hasAffiliationFilter) return false
       if (statutFilter && rowStatut !== statutFilter) return false
       if (sexeFilter && rowSexe !== sexeFilter) return false
