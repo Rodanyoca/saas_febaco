@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
 import { buildAvatarFileName, getAvatarFolderId, uploadAvatarToDrive } from "@/lib/google-drive"
-import { updateAvatarFieldsByEntityId } from "@/lib/google-sheets"
+import { getAvatarTargetByEntityId, updateAvatarFieldsByEntityId } from "@/lib/google-sheets"
+import { buildAvatarId, getActorAvatarConfig } from "@/lib/avatar-config"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -54,28 +55,8 @@ export async function POST(req: Request) {
       return badRequest("Fichier trop grand (max 5MB)")
     }
 
-    const entityType = entityTypeRaw.toLowerCase()
-
-    const normalizedEntityType = (() => {
-      if (entityType === "club" || entityType === "clubs") return "club"
-      if (entityType === "athlete" || entityType === "athletes") return "athlete"
-      if (entityType === "officiel" || entityType === "officiels") return "officiel"
-      if (entityType === "arbitre" || entityType === "arbitres") return "arbitre"
-      if (entityType === "medecin" || entityType === "medecins" || entityType === "médecin" || entityType === "médecins") {
-        return "medecin"
-      }
-      if (
-        entityType === "entraineur" ||
-        entityType === "entraineurs" ||
-        entityType === "coach" ||
-        entityType === "coachs"
-      ) {
-        return "entraineur"
-      }
-      return ""
-    })()
-
-    if (!normalizedEntityType) {
+    const actorConfig = getActorAvatarConfig(entityTypeRaw)
+    if (!actorConfig) {
       return badRequest("Type invalide")
     }
 
@@ -85,9 +66,16 @@ export async function POST(req: Request) {
       return "jpg"
     })()
 
-    const folderId = getAvatarFolderId(normalizedEntityType)
+    const folderId = getAvatarFolderId(actorConfig)
+    const avatarBusinessId = buildAvatarId(actorConfig, entityIdRaw)
+    const currentAvatar = await getAvatarTargetByEntityId({
+      block: "acteurs",
+      sheetName: actorConfig.sheetName,
+      entityId: entityIdRaw,
+      entityIdHeaderCandidates: actorConfig.entityIdHeaderCandidates,
+    })
     const fileName = buildAvatarFileName({
-      entityType: normalizedEntityType,
+      config: actorConfig,
       entityId: entityIdRaw,
       extension,
     })
@@ -102,67 +90,32 @@ export async function POST(req: Request) {
       fileName,
       mimeType: file.type,
       buffer,
+      existingFileId: currentAvatar.avatarDriveId || undefined,
     })
 
-    const sheetConfig = (() => {
-      if (normalizedEntityType === "club") {
-        return {
-          sheetName: "clubs",
-          entityIdHeaderCandidates: ["id_club", "id", "code_club", "code"],
-        }
-      }
-
-      if (normalizedEntityType === "athlete") {
-        return {
-          sheetName: "athletes",
-          entityIdHeaderCandidates: ["id_athlete", "id", "code_athlete", "code"],
-        }
-      }
-
-      if (normalizedEntityType === "officiel") {
-        return {
-          sheetName: "officiels",
-          entityIdHeaderCandidates: ["id_officiel", "id", "code_officiel", "code"],
-        }
-      }
-
-      if (normalizedEntityType === "arbitre") {
-        return {
-          sheetName: "arbitres",
-          entityIdHeaderCandidates: ["id_arbitre", "id", "code_arbitre", "code"],
-        }
-      }
-
-      if (normalizedEntityType === "medecin") {
-        return {
-          sheetName: "medecins",
-          entityIdHeaderCandidates: ["id_medecin", "id", "code_medecin", "code"],
-        }
-      }
-
-      return {
-        sheetName: "coachs",
-        entityIdHeaderCandidates: ["id_athlete", "id_coach", "id", "code_coach", "code"],
-      }
-    })()
-
     await updateAvatarFieldsByEntityId({
-      sheetName: sheetConfig.sheetName,
+      block: "acteurs",
+      sheetName: actorConfig.sheetName,
       entityId: entityIdRaw,
-      entityIdHeaderCandidates: sheetConfig.entityIdHeaderCandidates,
+      entityIdHeaderCandidates: actorConfig.entityIdHeaderCandidates,
       avatarDriveId: uploaded.fileId,
       avatarDriveUrl: uploaded.publicUrl,
     })
 
     return NextResponse.json({
       ok: true,
-      entityType: normalizedEntityType,
+      entityType: actorConfig.family,
       entityId: entityIdRaw,
+      avatarId: avatarBusinessId,
       avatar_drive_id: uploaded.fileId,
       avatar_drive_url: uploaded.publicUrl,
+      avatarUrl: uploaded.publicUrl,
     })
   } catch (error) {
     console.error("[api/upload/avatar] Échec de l'upload", error)
-    return NextResponse.json({ ok: false, error: "Téléversement impossible." }, { status: 500 })
+    const message = error instanceof Error && error.message.includes("GOOGLE_DRIVE_REFRESH_TOKEN")
+      ? "Connexion Google Drive expirée. Renouvelez l’autorisation Drive."
+      : "Téléversement impossible."
+    return NextResponse.json({ ok: false, error: message }, { status: 503 })
   }
 }

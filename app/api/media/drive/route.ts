@@ -1,33 +1,8 @@
-import { google } from "googleapis"
 import { getSessionUser } from "@/lib/auth-session"
+import { createDriveClient } from "@/lib/google-drive"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
-
-function requiredEnv(name: string): string {
-  const value = process.env[name]
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`)
-  }
-  return value
-}
-
-function getDriveAuth() {
-  const clientId = requiredEnv("GOOGLE_OAUTH_CLIENT_ID")
-  const clientSecret = requiredEnv("GOOGLE_OAUTH_CLIENT_SECRET")
-  const refreshToken = requiredEnv("GOOGLE_DRIVE_REFRESH_TOKEN")
-
-  const auth = new google.auth.OAuth2({
-    clientId,
-    clientSecret,
-  })
-
-  auth.setCredentials({
-    refresh_token: refreshToken,
-  })
-
-  return auth
-}
 
 export async function GET(req: Request) {
   try {
@@ -40,8 +15,7 @@ export async function GET(req: Request) {
       return new Response("Identifiant invalide.", { status: 400 })
     }
 
-    const auth = getDriveAuth()
-    const drive = google.drive({ version: "v3", auth })
+    const drive = createDriveClient()
 
     const meta = await drive.files.get({
       fileId,

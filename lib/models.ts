@@ -92,6 +92,8 @@ export interface Athlete {
   email?: string
   adresse?: string
   avatarUrl?: string
+  avatar_drive_id?: string
+  avatar_drive_url?: string
   province: string
   ligue: string
   entente: string
@@ -373,6 +375,8 @@ export interface Coach {
   prenom: string
   nomComplet?: string
   avatarUrl?: string
+  avatar_drive_id?: string
+  avatar_drive_url?: string
   sexe: string
   dateNaissance: string
   lieuNaissance?: string
@@ -424,6 +428,8 @@ export interface Arbitre {
   dateNaissance: string
   nationalite: string
   avatarUrl?: string
+  avatar_drive_id?: string
+  avatar_drive_url?: string
   telephone?: string
   email?: string
   tailleCm?: number
@@ -449,6 +455,8 @@ export interface Officiel {
   dateNaissance: string
   nationalite: string
   avatarUrl?: string
+  avatar_drive_id?: string
+  avatar_drive_url?: string
   telephone?: string
   email?: string
   fonction: string
@@ -488,6 +496,8 @@ export interface Medecin {
   dateNaissance: string
   nationalite: string
   avatarUrl?: string
+  avatar_drive_id?: string
+  avatar_drive_url?: string
   telephone?: string
   email?: string
   specialite: string

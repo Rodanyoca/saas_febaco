@@ -6,15 +6,21 @@ export type ActorAvatarInfo = {
   displayName: string
 }
 
+export function resolveAvatarIdentifiers(row: SheetRow): { avatarDriveId: string; avatarDriveUrl: string } {
+  return {
+    avatarDriveId: clean(pickFirst(row, ["avatar_drive_id"])),
+    avatarDriveUrl: clean(pickFirst(row, ["avatar_drive_url"])),
+  }
+}
+
 function clean(value: unknown): string {
   const next = String(value ?? "").trim()
   return next === "-" ? "" : next
 }
 
 export function resolveAvatarUrl(row: SheetRow): string {
-  const avatarDriveId = pickFirst(row, ["avatar_drive_id", "drive_id", "avatar_id"])
-  const avatarUrl = pickFirst(row, ["avatar_drive_url", "avatar_url", "photo_url", "photo", "avatar"])
-  return avatarDriveId ? buildDrivePublicUrl(String(avatarDriveId)) : clean(avatarUrl)
+  const { avatarDriveId, avatarDriveUrl } = resolveAvatarIdentifiers(row)
+  return avatarDriveId ? buildDrivePublicUrl(avatarDriveId) : avatarDriveUrl
 }
 
 export function buildAthleteAvatarMap(rows: SheetRow[]): Map<string, ActorAvatarInfo> {

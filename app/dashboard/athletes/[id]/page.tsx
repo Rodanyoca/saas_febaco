@@ -247,7 +247,7 @@ export default function AthleteDetailPage() {
             const json = await res.json()
             if (!res.ok) throw new Error(String(json?.error ?? "Upload avatar échoué"))
 
-            const url = String(json?.avatar_drive_url ?? "")
+            const url = String(json?.avatarUrl ?? "")
             if (!url) throw new Error("Upload avatar échoué")
 
             setLocalAvatarUrl(url)

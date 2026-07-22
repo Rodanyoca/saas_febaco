@@ -1,6 +1,7 @@
 import { google } from "googleapis"
 import { Readable } from "node:stream"
 import { buildDrivePublicUrl } from "@/lib/google-drive-url"
+import { buildAvatarId, type ActorAvatarConfig } from "@/lib/avatar-config"
 
 function requiredEnv(name: string): string {
   const value = process.env[name]
@@ -10,21 +11,22 @@ function requiredEnv(name: string): string {
   return value
 }
 
-function getDriveAuth() {
-  const clientId = requiredEnv("GOOGLE_OAUTH_CLIENT_ID")
-  const clientSecret = requiredEnv("GOOGLE_OAUTH_CLIENT_SECRET")
-  const refreshToken = requiredEnv("GOOGLE_DRIVE_REFRESH_TOKEN")
+export function createDriveClient() {
+  const auth = new google.auth.JWT({
+    email: requiredEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL"),
+    key: requiredEnv("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n"),
+    scopes: ["https://www.googleapis.com/auth/drive"],
+  })
+  return google.drive({ version: "v3", auth })
+}
 
+function createDriveUploadClient() {
   const auth = new google.auth.OAuth2({
-    clientId,
-    clientSecret,
+    clientId: requiredEnv("GOOGLE_OAUTH_CLIENT_ID"),
+    clientSecret: requiredEnv("GOOGLE_OAUTH_CLIENT_SECRET"),
   })
-
-  auth.setCredentials({
-    refresh_token: refreshToken,
-  })
-
-  return auth
+  auth.setCredentials({ refresh_token: requiredEnv("GOOGLE_DRIVE_REFRESH_TOKEN") })
+  return google.drive({ version: "v3", auth })
 }
 
 export type DriveUploadResult = {
@@ -40,28 +42,24 @@ export async function uploadAvatarToDrive({
   fileName,
   mimeType,
   buffer,
+  existingFileId,
 }: {
   folderId: string
   fileName: string
   mimeType: string
   buffer: Buffer
+  existingFileId?: string
 }): Promise<DriveUploadResult> {
-  const auth = getDriveAuth()
-  const drive = google.drive({ version: "v3", auth })
+  // Ces dossiers appartiennent à un Drive personnel. Le Service Account peut
+  // les lire, mais Google ne lui accorde aucun quota pour créer des fichiers.
+  const drive = createDriveUploadClient()
 
   let res: any
   try {
-    res = await drive.files.create({
-      requestBody: {
-        name: fileName,
-        parents: [folderId],
-      },
-      media: {
-        mimeType,
-        body: Readable.from(buffer),
-      },
-      fields: "id,name,webViewLink,webContentLink",
-    })
+    const media = { mimeType, body: Readable.from(buffer) }
+    res = existingFileId
+      ? await drive.files.update({ fileId: existingFileId, requestBody: { name: fileName }, media, fields: "id,name,webViewLink,webContentLink" })
+      : await drive.files.create({ requestBody: { name: fileName, parents: [folderId] }, media, fields: "id,name,webViewLink,webContentLink" })
   } catch (error) {
     const err = error as {
       message?: string
@@ -71,7 +69,10 @@ export async function uploadAvatarToDrive({
     }
     const status = err?.response?.status ?? err?.code
     const data = err?.response?.data
-    const baseMessage = err?.message ? String(err.message) : "Erreur Google Drive"
+    const isExpiredGrant = err?.message?.includes("invalid_grant") || JSON.stringify(data).includes("invalid_grant")
+    const baseMessage = isExpiredGrant
+      ? "Autorisation Google Drive expirée: GOOGLE_DRIVE_REFRESH_TOKEN doit être renouvelé"
+      : err?.message ? String(err.message) : "Erreur Google Drive"
     const details = data ? ` | details=${JSON.stringify(data)}` : ""
     throw new Error(`${baseMessage}${status ? ` (status ${status})` : ""}${details}`)
   }
@@ -94,34 +95,23 @@ export async function uploadAvatarToDrive({
   }
 }
 
-export function getAvatarFolderId(entityType: string): string {
-  requiredEnv("GOOGLE_DRIVE_ROOT_FOLDER_ID")
-  const key = String(entityType ?? "").trim().toLowerCase()
-
-  if (key === "club") return requiredEnv("GOOGLE_DRIVE_CLUB_FOLDER_ID")
-  if (key === "athlete" || key === "athletes") return requiredEnv("GOOGLE_DRIVE_ATHLETE_FOLDER_ID")
-  if (key === "entraineur" || key === "entraineurs" || key === "coach" || key === "coachs") {
-    return requiredEnv("GOOGLE_DRIVE_ENTRAINEUR_FOLDER_ID")
-  }
-  if (key === "medecin" || key === "medecins") return requiredEnv("GOOGLE_DRIVE_MEDECIN_FOLDER_ID")
-  if (key === "arbitre" || key === "arbitres") return requiredEnv("GOOGLE_DRIVE_ARBITRE_FOLDER_ID")
-  if (key === "officiel" || key === "officiels") return requiredEnv("GOOGLE_DRIVE_OFFICIEL_FOLDER_ID")
-
-  throw new Error("Type d'entité invalide")
+export function getAvatarFolderId(config: ActorAvatarConfig): string {
+  const configured = requiredEnv(config.folderEnvName).trim()
+  const fromUrl = configured.match(/\/folders\/([A-Za-z0-9_-]+)/)?.[1]
+  const folderId = fromUrl || configured
+  if (!/^[A-Za-z0-9_-]{10,200}$/.test(folderId)) throw new Error(`Dossier Drive invalide pour ${config.label}`)
+  return folderId
 }
 
 export function buildAvatarFileName({
-  entityType,
+  config,
   entityId,
   extension,
 }: {
-  entityType: string
+  config: ActorAvatarConfig
   entityId: string
   extension: string
 }): string {
-  const normalizedType = String(entityType ?? "").trim().toUpperCase()
-  const id = String(entityId ?? "").trim().replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 120)
   const ext = String(extension ?? "").trim().replace(/^\./, "").toLowerCase()
-
-  return `AVATAR_${normalizedType}_${id}.${ext}`
+  return `${buildAvatarId(config, entityId)}.${ext}`
 }

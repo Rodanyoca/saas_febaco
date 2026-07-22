@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
 import { scopeFromSession } from "@/lib/auth-scope"
-import { buildDrivePublicUrl } from "@/lib/google-drive-url"
+import { resolveAvatarIdentifiers, resolveAvatarUrl } from "@/lib/avatar-resolver"
 
 export const dynamic = "force-dynamic"
 
@@ -71,9 +71,8 @@ export async function GET() {
       const statut = pickFirst(row, ["statut"])
       const observation = pickFirst(row, ["observation", "observations", "remarque", "remarques"])
 
-      const avatarUrl = pickFirst(row, ["avatar_drive_url"])
-      const avatarDriveId = pickFirst(row, ["avatar_drive_id"])
-      const resolvedAvatarUrl = avatarDriveId ? buildDrivePublicUrl(avatarDriveId) : avatarUrl || ""
+      const { avatarDriveId, avatarDriveUrl } = resolveAvatarIdentifiers(row)
+      const avatarUrl = resolveAvatarUrl(row)
 
       const __key = `${id}__${index}`
 
@@ -90,9 +89,9 @@ export async function GET() {
         sexe: String(sexe ?? "-") || "-",
         dateNaissance: String(dateNaissance ?? "-") || "-",
         nationalite: String(nationalite ?? "-") || "-",
-        avatar_drive_id: avatarDriveId ? String(avatarDriveId) : "",
-        avatar_drive_url: avatarUrl ? String(avatarUrl) : "",
-        avatarUrl: resolvedAvatarUrl,
+        avatar_drive_id: avatarDriveId,
+        avatar_drive_url: avatarDriveUrl,
+        avatarUrl,
         telephone: String(telephone || "") || "",
         email: String(email || "") || "",
         fonction: String(fonction ?? "-") || "-",

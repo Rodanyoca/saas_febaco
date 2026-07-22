@@ -167,7 +167,7 @@ export default function ArbitreDetailPage() {
               throw new Error(String(json?.error ?? "Upload avatar echoue"))
             }
 
-            const url = String(json?.avatar_drive_url ?? "")
+            const url = String(json?.avatarUrl ?? "")
             if (!url) {
               throw new Error("Upload avatar echoue")
             }

@@ -1,6 +1,8 @@
 import { google } from "googleapis"
 
 const SHEETS_REQUEST_TIMEOUT_MS = 10000
+const SHEETS_CACHE_TTL_MS = 30_000
+const readCache = new Map<string, { expiresAt: number; value: unknown[][] }>()
 
 export type SheetBlock =
   | "structure"
@@ -139,6 +141,10 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
   const spreadsheetId = getSpreadsheetId(block)
   const sheets = createSheetsClient()
   const range = params.range ?? "A:ZZ"
+  const cacheKey = `${spreadsheetId}:${params.sheet.toLowerCase()}:${range}`
+  const cached = readCache.get(cacheKey)
+  if (cached && cached.expiresAt > Date.now()) return cached.value
+  if (cached) readCache.delete(cacheKey)
 
   const sheetNameVariants = Array.from(new Set([params.sheet, params.sheet.toUpperCase(), params.sheet.toLowerCase()]))
   let lastError: unknown
@@ -155,7 +161,14 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
         }
       )
 
-      return res.data.values ?? []
+      const values = res.data.values ?? []
+      if (readCache.size >= 100) {
+        const now = Date.now()
+        for (const [key, entry] of readCache) if (entry.expiresAt <= now) readCache.delete(key)
+        if (readCache.size >= 100) readCache.clear()
+      }
+      readCache.set(cacheKey, { expiresAt: Date.now() + SHEETS_CACHE_TTL_MS, value: values })
+      return values
     } catch (error) {
       lastError = error
     }
@@ -214,6 +227,43 @@ function columnIndexToA1(colIndexZeroBased: number): string {
     n = Math.floor((n - 1) / 26)
   }
   return s
+}
+
+export async function getAvatarTargetByEntityId({
+  sheetName,
+  entityId,
+  entityIdHeaderCandidates,
+  block = "acteurs",
+}: {
+  sheetName: string
+  entityId: string
+  entityIdHeaderCandidates: string[]
+  block?: SheetBlock
+}): Promise<{ avatarDriveId: string; avatarDriveUrl: string }> {
+  const spreadsheetId = getSpreadsheetId(block)
+  const sheets = createSheetsClientReadWrite()
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${quoteSheetName(sheetName)}!A:ZZ`,
+  }, { timeout: SHEETS_REQUEST_TIMEOUT_MS })
+  const values = response.data.values ?? []
+  if (values.length === 0) throw new Error(`Feuille '${sheetName}' vide ou introuvable`)
+
+  const [headerRow, ...dataRows] = values
+  const headers = (headerRow ?? []).map((header) => normalizeHeader(String(header ?? "")))
+  const candidates = entityIdHeaderCandidates.map(normalizeHeader)
+  const entityIdColumn = headers.findIndex((header) => candidates.includes(header))
+  const avatarIdColumn = headers.findIndex((header) => header === "avatar_drive_id")
+  const avatarUrlColumn = headers.findIndex((header) => header === "avatar_drive_url")
+  if (entityIdColumn < 0) throw new Error(`Colonne ID introuvable dans '${sheetName}'`)
+  if (avatarIdColumn < 0 || avatarUrlColumn < 0) throw new Error(`Colonnes avatar_drive_id / avatar_drive_url introuvables dans '${sheetName}'`)
+
+  const row = dataRows.find((candidate) => String(candidate?.[entityIdColumn] ?? "").trim() === entityId.trim())
+  if (!row) throw new Error("Ligne Google Sheets introuvable")
+  return {
+    avatarDriveId: String(row[avatarIdColumn] ?? "").trim(),
+    avatarDriveUrl: String(row[avatarUrlColumn] ?? "").trim(),
+  }
 }
 
 export async function updateAvatarFieldsByEntityId({
@@ -292,6 +342,11 @@ export async function updateAvatarFieldsByEntityId({
       ],
     },
   })
+
+  const sheetCachePrefix = `${spreadsheetId}:${sheetName.toLowerCase()}:`
+  for (const key of readCache.keys()) {
+    if (key.startsWith(sheetCachePrefix)) readCache.delete(key)
+  }
 
   return { rowNumber }
 }

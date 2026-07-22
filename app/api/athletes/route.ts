@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
-import { buildDrivePublicUrl } from "@/lib/google-drive-url"
+import { resolveAvatarIdentifiers, resolveAvatarUrl } from "@/lib/avatar-resolver"
 
 export const dynamic = "force-dynamic"
 
@@ -73,13 +73,8 @@ export async function GET(req: Request) {
       const nomComplet = pickFirst(row, ["nom_complet"])
       const { prenom, nom } = splitNomComplet(String(nomComplet ?? ""))
 
-      const avatarDriveId = pickFirst(row, ["avatar_drive_id"])
-      const avatarDriveUrl = pickFirst(row, ["avatar_drive_url"])
-      const avatarUrl = avatarDriveId
-        ? buildDrivePublicUrl(avatarDriveId)
-        : avatarDriveUrl
-          ? String(avatarDriveUrl)
-          : ""
+      const { avatarDriveId, avatarDriveUrl } = resolveAvatarIdentifiers(row)
+      const avatarUrl = resolveAvatarUrl(row)
 
       const __key = `${id}__${index}`
 
@@ -100,8 +95,8 @@ export async function GET(req: Request) {
         telephone: pickFirst(row, ["telephone"]) || "-",
         email: pickFirst(row, ["email"]) || "-",
         adresse: pickFirst(row, ["adresse"]) || "-",
-        avatar_drive_id: avatarDriveId ? String(avatarDriveId) : "",
-        avatar_drive_url: avatarDriveUrl ? String(avatarDriveUrl) : "",
+        avatar_drive_id: avatarDriveId,
+        avatar_drive_url: avatarDriveUrl,
         avatarUrl,
         province: "-",
         ligue: "-",

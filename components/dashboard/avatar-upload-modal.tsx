@@ -78,12 +78,14 @@ export function AvatarUploadModal({
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState("")
 
   useEffect(() => {
     if (!open) {
       setSelectedUrl(null)
       setSelectedFile(null)
       setSubmitting(false)
+      setSubmitError("")
       if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }, [open])
@@ -148,6 +150,7 @@ export function AvatarUploadModal({
           </div>
         </div>
 
+        {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
@@ -162,9 +165,12 @@ export function AvatarUploadModal({
                 if (!selectedFile) return
                 try {
                   setSubmitting(true)
+                  setSubmitError("")
                   const url = await onConfirmFile(selectedFile)
                   onConfirm?.(url)
                   onOpenChange(false)
+                } catch (error) {
+                  setSubmitError(error instanceof Error ? error.message : "Téléversement impossible.")
                 } finally {
                   setSubmitting(false)
                 }
