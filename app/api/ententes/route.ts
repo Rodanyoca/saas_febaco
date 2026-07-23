@@ -30,6 +30,7 @@ export async function GET() {
     const ententes = filteredRows.map((row, index) => {
       const id = pickFirst(row, ["id_entente"])
       const nom = pickFirst(row, ["nom_entente"])
+      const ligueId = pickFirst(row, ["id_ligue", "ligue_id", "idligue"])
       const pseudo = pickFirst(row, ["pseudo_entente"])
       const ligue = pickFirst(row, ["pseudo_ligue", "nom_ligue"])
       const email = pickFirst(row, ["email_entente"])
@@ -42,6 +43,7 @@ export async function GET() {
         __key,
         id: id || fallbackId,
         nom: nom || "-",
+        ligueId: ligueId || "",
         pseudo: pseudo || "-",
         ligue: ligue || "-",
         email: email || "-",
