@@ -4,77 +4,46 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* FEBADCO - Couleurs du Congo (Vert/Jaune/Rouge) */
-  --background: oklch(0.98 0.005 90);
-  --foreground: oklch(0.15 0.01 145);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 145);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 145);
-  --primary: oklch(0.72 0.17 55);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.96 0.01 90);
-  --secondary-foreground: oklch(0.25 0.01 145);
-  --muted: oklch(0.95 0.005 90);
-  --muted-foreground: oklch(0.45 0.01 145);
-  --accent: oklch(0.8 0.18 95);
-  --accent-foreground: oklch(0.15 0.01 145);
-  --destructive: oklch(0.55 0.22 27);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.9 0.01 90);
-  --input: oklch(0.92 0.005 90);
-  --ring: oklch(0.72 0.17 55);
-  --chart-1: oklch(0.72 0.17 55);
-  --chart-2: oklch(0.8 0.18 95);
-  --chart-3: oklch(0.55 0.2 27);
-  --chart-4: oklch(0.6 0.15 200);
-  --chart-5: oklch(0.5 0.15 280);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.18 0.03 55);
-  --sidebar-foreground: oklch(0.95 0.01 90);
-  --sidebar-primary: oklch(0.72 0.17 55);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.25 0.03 55);
-  --sidebar-accent-foreground: oklch(0.95 0.01 90);
-  --sidebar-border: oklch(0.3 0.03 55);
-  --sidebar-ring: oklch(0.8 0.18 95);
-  --sidebar-muted: oklch(0.62 0.03 55);
+  /* FEBACO — bleu nuit institutionnel, ciel du drapeau et or sportif. */
+  color-scheme: dark;
+  --background: #071c32;
+  --foreground: #f7fafc;
+  --card: #0c2742;
+  --card-foreground: #f7fafc;
+  --popover: #102d49;
+  --popover-foreground: #f7fafc;
+  --primary: #f6c515;
+  --primary-foreground: #071827;
+  --secondary: #123653;
+  --secondary-foreground: #eaf4fc;
+  --muted: #102d49;
+  --muted-foreground: #9db2c6;
+  --accent: #1188c7;
+  --accent-foreground: #ffffff;
+  --destructive: #e7495f;
+  --destructive-foreground: #ffffff;
+  --border: #28445e;
+  --input: #31516d;
+  --ring: #58c5ff;
+  --chart-1: #f6c515;
+  --chart-2: #21a8e5;
+  --chart-3: #e23b52;
+  --chart-4: #55c997;
+  --chart-5: #9b8afb;
+  --radius: 0.625rem;
+  --sidebar: #041526;
+  --sidebar-foreground: #f7fafc;
+  --sidebar-primary: #f6c515;
+  --sidebar-primary-foreground: #071827;
+  --sidebar-accent: #0d2d49;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1b3953;
+  --sidebar-ring: #58c5ff;
+  --sidebar-muted: #9db2c6;
 }
 
 .dark {
-  --background: oklch(0.12 0.02 145);
-  --foreground: oklch(0.95 0.01 90);
-  --card: oklch(0.16 0.02 145);
-  --card-foreground: oklch(0.95 0.01 90);
-  --popover: oklch(0.16 0.02 145);
-  --popover-foreground: oklch(0.95 0.01 90);
-  --primary: oklch(0.72 0.17 55);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.22 0.02 145);
-  --secondary-foreground: oklch(0.95 0.01 90);
-  --muted: oklch(0.22 0.02 145);
-  --muted-foreground: oklch(0.6 0.01 90);
-  --accent: oklch(0.8 0.18 95);
-  --accent-foreground: oklch(0.15 0.01 145);
-  --destructive: oklch(0.55 0.22 27);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.28 0.02 145);
-  --input: oklch(0.22 0.02 145);
-  --ring: oklch(0.72 0.17 55);
-  --chart-1: oklch(0.72 0.17 55);
-  --chart-2: oklch(0.8 0.18 95);
-  --chart-3: oklch(0.55 0.2 27);
-  --chart-4: oklch(0.6 0.15 200);
-  --chart-5: oklch(0.55 0.15 280);
-  --sidebar: oklch(0.12 0.03 55);
-  --sidebar-foreground: oklch(0.95 0.01 90);
-  --sidebar-primary: oklch(0.72 0.17 55);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.2 0.03 55);
-  --sidebar-accent-foreground: oklch(0.95 0.01 90);
-  --sidebar-border: oklch(0.25 0.03 55);
-  --sidebar-ring: oklch(0.8 0.18 95);
-  --sidebar-muted: oklch(0.55 0.03 55);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -125,5 +94,26 @@
   }
   body {
     @apply bg-background text-foreground;
+    min-width: 320px;
+    background-image:
+      radial-gradient(circle at 78% -10%, rgb(17 136 199 / 0.10), transparent 32rem),
+      linear-gradient(180deg, #071c32 0%, #06192c 100%);
+    background-attachment: fixed;
+    font-feature-settings: "kern" 1, "liga" 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgb(246 197 21 / 0.9);
+    color: #071827;
+  }
+
+  :focus-visible {
+    scroll-margin: 6rem;
+  }
+
+  * {
+    scrollbar-color: #31516d #071c32;
+    scrollbar-width: thin;
   }
 }

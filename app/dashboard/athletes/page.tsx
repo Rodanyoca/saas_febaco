@@ -6,6 +6,7 @@ import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { Athlete, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StatusBadge } from "@/components/dashboard/status-badge"
+import { ActorEditor } from "@/components/dashboard/actor-editor"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
@@ -154,6 +155,7 @@ export default function AthletesPage() {
       <Header title="Athletes" subtitle="Liste des athletes affilies a la FEBACO" />
 
       <div className="flex-1 p-6">
+        <div className="mb-4 flex justify-end"><ActorEditor kind="athletes" onSaved={(actor) => setAthletes(current => [actor as unknown as Athlete, ...current].sort((a,b)=>String(a.nomComplet??"").localeCompare(String(b.nomComplet??""),"fr",{sensitivity:"base"})))} /></div>
         <DataTable
           data={athletes}
           columns={columns}

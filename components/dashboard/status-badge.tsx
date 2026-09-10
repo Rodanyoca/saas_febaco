@@ -6,19 +6,19 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<string, string> = {
-  actif: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  active: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  inactif: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  inactive: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  suspendu: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  suspended: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  en_attente: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  pending: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  actif: "border border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
+  active: "border border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
+  inactif: "border border-red-400/25 bg-red-400/10 text-red-300",
+  inactive: "border border-red-400/25 bg-red-400/10 text-red-300",
+  suspendu: "border border-yellow-300/25 bg-yellow-300/10 text-yellow-200",
+  suspended: "border border-yellow-300/25 bg-yellow-300/10 text-yellow-200",
+  en_attente: "border border-sky-400/25 bg-sky-400/10 text-sky-300",
+  pending: "border border-sky-400/25 bg-sky-400/10 text-sky-300",
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const normalizedStatus = status?.toLowerCase().replace(/\s+/g, "_") || ""
-  const style = statusStyles[normalizedStatus] || "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+  const style = statusStyles[normalizedStatus] || "border border-white/15 bg-white/[0.06] text-slate-300"
 
   return (
     <span

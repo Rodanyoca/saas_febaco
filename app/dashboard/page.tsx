@@ -14,7 +14,7 @@ const sources: { key: DatasetKey; url: string; responseKey: string }[] = [
   { key: "clubs", url: "/api/clubs", responseKey: "clubs" }, { key: "equipes", url: "/api/equipes", responseKey: "equipes" },
   { key: "athletes", url: "/api/athletes", responseKey: "athletes" }, { key: "coachs", url: "/api/coachs", responseKey: "coachs" },
   { key: "arbitres", url: "/api/arbitres", responseKey: "arbitres" }, { key: "officiels", url: "/api/officiels", responseKey: "officiels" },
-  { key: "medecins", url: "/api/medecins", responseKey: "medecins" }, { key: "affiliations", url: "/api/transferts", responseKey: "transferts" },
+  { key: "medecins", url: "/api/medecins", responseKey: "medecins" }, { key: "affiliations", url: "/api/athlete-affiliations?pageSize=100", responseKey: "affiliations" },
   { key: "competitions", url: "/api/competitions", responseKey: "competitions" }, { key: "participants", url: "/api/competitions-participants", responseKey: "participants" },
   { key: "competitionResults", url: "/api/competitions-resultats", responseKey: "resultats" }, { key: "nationalTeams", url: "/api/equipe-nationale", responseKey: "equipesNationales" },
   { key: "selections", url: "/api/equipe-nationale-selections", responseKey: "selections" }, { key: "nationalCompetitions", url: "/api/equipe-nationale-competitions", responseKey: "competitions" },

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
+import { ActorEditor } from "@/components/dashboard/actor-editor"
 import { Officiel, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
@@ -149,6 +150,7 @@ export default function OfficielsPage() {
       />
 
       <div className="flex-1 p-6">
+        <div className="mb-4 flex justify-end"><ActorEditor kind="officiels" onSaved={(actor) => setOfficiels(current => [actor as unknown as Officiel, ...current].sort((a,b)=>String(a.nomComplet??"").localeCompare(String(b.nomComplet??""),"fr",{sensitivity:"base"})))} /></div>
         <DataTable
           data={officiels}
           columns={columns}

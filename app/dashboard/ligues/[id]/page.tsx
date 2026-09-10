@@ -7,6 +7,7 @@ import { ArrowLeft, Building2, Layers, MapPin, Shield, Users } from "lucide-reac
 import { DataTable, type Column } from "@/components/dashboard/data-table"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { Header } from "@/components/dashboard/header"
+import { FederalEditLink } from "@/components/dashboard/federal-edit-link"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
@@ -276,10 +277,9 @@ export default function LigueDetailPage() {
       <Header title={`Fiche Ligue: ${ligue.nom}`} subtitle={ligue.province || "FEBACO"} />
 
       <div className="flex-1 space-y-6 p-6">
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour à la liste
-        </Button>
+        <div className="flex items-center justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
+          <ArrowLeft className="mr-2 h-4 w-4" />Retour à la liste
+        </Button><FederalEditLink href={`/dashboard/ligues?edit=${encodeURIComponent(ligue.id)}`} /></div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <DetailCard

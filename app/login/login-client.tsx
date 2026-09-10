@@ -5,8 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, LockKeyhole } from "lucide-react"
 
 export default function LoginClient() {
   const router = useRouter()
@@ -14,10 +13,7 @@ export default function LoginClient() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
+  const [formData, setFormData] = useState({ email: "", password: "" })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,12 +24,8 @@ export default function LoginClient() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
+        body: JSON.stringify(formData),
       })
-
       const json = await res.json().catch(() => ({}))
 
       if (!res.ok) {
@@ -54,108 +46,102 @@ export default function LoginClient() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-sidebar p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-lg overflow-hidden">
-            <Image
-              src="/images/logo-febaco.png"
-              alt="Logo FEBACO"
-              width={96}
-              height={96}
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-              priority
-            />
-          </div>
-          <h1 className="mt-4 text-3xl font-bold text-sidebar-foreground">FEBACO</h1>
-          <p className="mt-2 text-sidebar-muted text-sm">
-            Systeme de Gestion de la Federation de Basketball du Congo
-          </p>
-        </div>
+    <main className="min-h-screen overflow-x-hidden bg-[#071c32] text-white lg:h-screen lg:min-h-[720px]">
+      <div className="mx-auto grid min-h-screen max-w-[1920px] lg:h-full lg:grid-cols-[minmax(0,1.22fr)_minmax(430px,0.78fr)]">
+        <section className="relative min-h-[430px] overflow-hidden sm:min-h-[520px] lg:min-h-0" aria-labelledby="hero-title">
+          <Image
+            src="/images/equipe-nationale-rdc.jpg"
+            alt="Joueurs de l’équipe nationale de basketball de la RDC réunis derrière le drapeau congolais"
+            fill
+            priority
+            sizes="(max-width: 1023px) 100vw, 62vw"
+            className="object-cover object-[52%_42%] sm:object-[50%_40%] lg:object-center"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,16,31,.08)_12%,rgba(3,16,31,.28)_52%,rgba(3,16,31,.96)_100%)] lg:bg-[linear-gradient(90deg,rgba(3,16,31,.14)_0%,rgba(3,16,31,.04)_54%,rgba(7,28,50,.96)_100%)]" />
+          <div className="absolute left-0 top-0 h-1.5 w-full bg-[linear-gradient(90deg,#0b8fda_0_46%,#f7ce20_46%_53%,#cf1736_53%_100%)]" />
 
-        <Card className="border-sidebar-border bg-sidebar-accent">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center text-sidebar-foreground">
-              Connexion
-            </CardTitle>
-            <CardDescription className="text-center text-sidebar-muted">
-              Accedez a la plateforme de gestion federale
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative flex h-full min-h-[430px] flex-col justify-between p-6 sm:min-h-[520px] sm:p-10 lg:min-h-0 lg:p-12 xl:p-16">
+            <div className="flex items-center gap-3">
+              <div className="relative size-14 overflow-hidden rounded-full bg-white p-1 shadow-xl ring-1 ring-white/40 sm:size-16">
+                <Image src="/images/logo-febaco.png" alt="Logo FEBACO" fill sizes="64px" className="object-contain" />
+              </div>
+              <div>
+                <p className="text-xl font-black tracking-[0.12em]">FEBACO</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/75 sm:text-xs">République démocratique du Congo</p>
+              </div>
+            </div>
+
+            <div className="max-w-2xl pb-1 lg:pb-0">
+              <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-[#f7ce20] sm:text-sm">
+                <span className="h-px w-8 bg-[#f7ce20]" aria-hidden="true" />
+                Institution sportive nationale
+              </p>
+              <h1 id="hero-title" className="max-w-xl text-3xl font-black leading-[1.02] tracking-[-0.04em] text-balance min-[420px]:text-4xl sm:text-5xl sm:leading-[0.98] xl:text-6xl">
+                Le basketball congolais, uni et ambitieux.
+              </h1>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-white/82 sm:text-base sm:leading-7">
+                Une plateforme nationale dédiée à la structuration, à l’identification et au développement du basketball congolais.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="relative flex items-center bg-[#071c32] px-6 py-10 sm:px-10 lg:px-12 lg:py-8 xl:px-16" aria-labelledby="login-title">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+            <div className="absolute -right-24 top-16 size-64 rounded-full bg-[#0b8fda]/10 blur-3xl" />
+            <div className="absolute bottom-0 left-0 h-1 w-full bg-[linear-gradient(90deg,#0b8fda_0_52%,#f7ce20_52%_60%,#cf1736_60%_100%)] opacity-80" />
+          </div>
+
+          <div className="relative mx-auto w-full max-w-[460px]">
+            <div className="mb-7">
+              <p className="text-sm font-semibold text-[#62c8ff]">Fédération de Basketball du Congo</p>
+              <h2 id="login-title" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Espace fédéral</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">Connectez-vous pour accéder à la plateforme de gestion fédérale.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
-                <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                  {error}
-                </div>
+                <div role="alert" aria-live="polite" className="rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</div>
               )}
 
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-sidebar-foreground">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Entrez votre email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="bg-sidebar border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-muted"
-                  required
-                />
+                <label htmlFor="email" className="text-sm font-semibold text-slate-100">Adresse e-mail</label>
+                <Input id="email" name="email" type="email" autoComplete="email" placeholder="nom@febaco.cd" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="h-12 border-white/15 bg-white/[0.06] px-4 text-white placeholder:text-slate-500 focus-visible:border-[#62c8ff] focus-visible:ring-[#62c8ff]/30" required />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-sidebar-foreground">
-                  Mot de passe
-                </label>
+                <label htmlFor="password" className="text-sm font-semibold text-slate-100">Mot de passe</label>
                 <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Entrez votre mot de passe"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="bg-sidebar border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-muted pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-sidebar-muted hover:text-sidebar-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <Input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Saisissez votre mot de passe" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="h-12 border-white/15 bg-white/[0.06] px-4 pr-12 text-white placeholder:text-slate-500 focus-visible:border-[#62c8ff] focus-visible:ring-[#62c8ff]/30" required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"} aria-pressed={showPassword} className="absolute right-1 top-1 flex size-10 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#62c8ff]">
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connexion en cours...
-                  </>
-                ) : (
-                  "Se connecter"
-                )}
+              <Button type="submit" size="lg" className="h-12 w-full bg-[#f0bd16] font-bold text-[#071c32] shadow-lg shadow-black/20 hover:bg-[#ffd43b] focus-visible:ring-[#f7ce20]/60" disabled={isLoading}>
+                {isLoading ? <><Loader2 className="size-4 animate-spin motion-reduce:animate-none" />Connexion en cours…</> : <><LockKeyhole className="size-4" />Se connecter</>}
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-sidebar-muted">
-              <p>Version 1.0 - Consultation uniquement</p>
+            <div className="mt-7 flex items-center justify-between gap-4 border-t border-white/10 pt-5 text-xs text-slate-400">
+              <span>Version 1.0 · Consultation uniquement</span>
+              <span className="shrink-0 rounded-full border border-white/10 px-2.5 py-1">Accès sécurisé</span>
             </div>
-          </CardContent>
-        </Card>
 
-        <div className="text-center space-y-2">
-          <p className="text-xs text-sidebar-muted">
-            Plateforme de gestion du referentiel sportif de la FEBACO
-          </p>
-          <p className="text-xs text-sidebar-muted/70">
-            Powered by <span className="font-semibold text-accent">DS Concept</span>
-          </p>
-        </div>
+            <footer className="mt-8 text-center lg:mt-10">
+              <p className="text-[11px] uppercase tracking-[0.13em] text-slate-500">Plateforme du référentiel sportif national</p>
+              <p className="ds-signature mt-2 inline-block text-xs font-medium tracking-wide text-slate-400">Design by <span className="text-slate-200">DS Concept</span></p>
+            </footer>
+          </div>
+        </section>
       </div>
-    </div>
+
+      <style jsx>{`
+        .ds-signature { background: linear-gradient(100deg, #94a3b8 20%, #ffffff 48%, #94a3b8 76%); background-size: 220% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: signature-shine 8s ease-in-out infinite; }
+        @keyframes signature-shine { 0%, 72%, 100% { background-position: 100% center; } 84% { background-position: 0% center; } }
+        @media (prefers-reduced-motion: reduce) { .ds-signature { animation: none; background-position: center; } }
+      `}</style>
+    </main>
   )
 }

@@ -6,6 +6,7 @@ import { ArrowLeft, Camera, Contact, Fingerprint, Flag } from "lucide-react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
+import { ActorEditor } from "@/components/dashboard/actor-editor"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -104,10 +105,10 @@ export default function ArbitreDetailPage() {
       <Header title={`Fiche Arbitre: ${nomComplet}`} />
 
       <div className="flex-1 space-y-6 p-6">
-        <Button variant="outline" onClick={() => router.back()}>
+        <div className="flex flex-wrap justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour a la liste
-        </Button>
+        </Button><ActorEditor kind="arbitres" actor={arbitre as unknown as Record<string,string>} onSaved={(saved)=>setArbitres([saved as unknown as Arbitre])}/></div>
 
         <Card>
           <CardContent className="p-6">

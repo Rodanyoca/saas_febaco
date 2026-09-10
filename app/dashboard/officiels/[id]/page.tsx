@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
+import { ActorEditor } from "@/components/dashboard/actor-editor"
+import { AffiliationsPanel } from "@/components/dashboard/affiliations-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Officiel, OfficielMandat } from "@/lib/models"
@@ -97,8 +99,8 @@ export default function OfficielDetailPage() {
     ;(async () => {
       setMandatsLoading(true)
       try {
-        const query = new URLSearchParams({ acteurId: officiel.id })
-        const res = await fetch(`/api/officiel-mandats?${query.toString()}`, { cache: "no-store" })
+        const query = new URLSearchParams({ actorId: officiel.id })
+        const res = await fetch(`/api/affiliations/officiel?${query.toString()}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setMandats(Array.isArray(json?.mandats) ? json.mandats : [])
@@ -149,10 +151,10 @@ export default function OfficielDetailPage() {
 
       <div className="flex-1 p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={() => router.back()}>
+        <div className="flex flex-wrap justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour à la liste
-          </Button>
+        </Button><ActorEditor kind="officiels" actor={officiel as unknown as Record<string,string>} onSaved={(saved)=>setOfficiels([saved as unknown as Officiel])}/></div>
         </div>
 
         <Card>
@@ -230,7 +232,7 @@ export default function OfficielDetailPage() {
         <Tabs defaultValue="general" className="gap-4">
           <TabsList className="grid h-auto w-full grid-cols-2">
             <TabsTrigger value="general" className="w-full">Général</TabsTrigger>
-            <TabsTrigger value="affiliation" className="w-full">Affiliation</TabsTrigger>
+            <TabsTrigger value="affiliation" className="w-full">Affiliations</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -269,7 +271,8 @@ export default function OfficielDetailPage() {
           </TabsContent>
 
           <TabsContent value="affiliation">
-            <Card>
+            <AffiliationsPanel kind="officiel" actorId={officiel.id} />
+            {false && <Card>
               <CardHeader>
                 <CardTitle>Historique des mandats</CardTitle>
               </CardHeader>
@@ -313,7 +316,7 @@ export default function OfficielDetailPage() {
                   </Table>
                 </div>
               </CardContent>
-            </Card>
+            </Card>}
           </TabsContent>
         </Tabs>
       </div>

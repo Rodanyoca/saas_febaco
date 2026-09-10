@@ -52,10 +52,17 @@ interface DataTableProps<T> {
   actionsClassName?: string
   filterValues?: Record<string, string>
   onFilterValuesChange?: (next: Record<string, string>) => void
+  renderActions?: (item: T) => React.ReactNode
+  renderMobileCard?: (item: T) => React.ReactNode
 }
 
 function getValue<T extends object>(item: T, key: keyof T | string): unknown {
   return item[String(key) as keyof T]
+}
+
+export function getDataTableRowKey<T extends object>(item: T, idKey: keyof T | string, index: number): string | number {
+  const value = getValue(item, idKey)
+  return value === undefined || value === null || String(value).trim() === "" ? index : String(value)
 }
 
 export function DataTable<T extends object>({
@@ -70,6 +77,8 @@ export function DataTable<T extends object>({
   actionsClassName,
   filterValues: controlledFilterValues,
   onFilterValuesChange,
+  renderActions,
+  renderMobileCard,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("")
   const [uncontrolledFilterValues, setUncontrolledFilterValues] = useState<Record<string, string>>({})
@@ -157,10 +166,11 @@ export function DataTable<T extends object>({
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {renderMobileCard ? <div className="grid gap-3 md:hidden">{paginatedData.map((item, index) => <div key={getDataTableRowKey(item, idKey, index)}>{renderMobileCard(item)}</div>)}</div> : null}
+      <div className={cn("overflow-hidden rounded-xl border border-border/80 bg-card/90 shadow-[0_12px_30px_rgba(1,10,20,0.12)]", renderMobileCard && "hidden md:block")}>
         <Table className={tableClassName}>
           <TableHeader>
-            <TableRow className="bg-muted/50">
+            <TableRow className="bg-muted/70 hover:bg-muted/70">
               {columns.map((column) => (
                 <TableHead
                   key={String(column.key)}
@@ -169,7 +179,7 @@ export function DataTable<T extends object>({
                   {column.header}
                 </TableHead>
               ))}
-              {detailHref && (
+              {(detailHref || renderActions) && (
                 <TableHead className={cn("w-[100px] text-center", actionsClassName)}>Actions</TableHead>
               )}
             </TableRow>
@@ -178,7 +188,7 @@ export function DataTable<T extends object>({
             {paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length + (detailHref ? 1 : 0)}
+                  colSpan={columns.length + (detailHref || renderActions ? 1 : 0)}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Aucune donnée trouvée
@@ -186,7 +196,7 @@ export function DataTable<T extends object>({
               </TableRow>
             ) : (
               paginatedData.map((item, index) => (
-                <TableRow key={String(getValue(item, idKey)) || index} className="hover:bg-muted/30">
+                <TableRow key={getDataTableRowKey(item, idKey, index)} className="hover:bg-muted/30">
                   {columns.map((column) => (
                     <TableCell
                       key={String(column.key)}
@@ -197,13 +207,13 @@ export function DataTable<T extends object>({
                         : String(getValue(item, column.key) ?? "-")}
                     </TableCell>
                   ))}
-                  {detailHref && (
+                  {(detailHref || renderActions) && (
                     <TableCell className={cn("text-center", actionsClassName)}>
-                      <Link href={detailHref(item)}>
-                        <Button variant="ghost" size="sm">
+                      <div className="flex items-center justify-center gap-1">{detailHref ? <Button asChild variant="ghost" size="icon-sm">
+                        <Link href={detailHref(item)} aria-label="Voir le détail" title="Voir le détail">
                           <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button> : null}{renderActions?.(item)}</div>
                     </TableCell>
                   )}
                 </TableRow>

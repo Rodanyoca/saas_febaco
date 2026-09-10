@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
 import { StatusBadge } from "@/components/dashboard/status-badge"
+import { ActorEditor } from "@/components/dashboard/actor-editor"
 import { Arbitre, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
@@ -148,6 +149,7 @@ export default function ArbitresPage() {
       <Header title="Arbitres" subtitle="Liste des arbitres affilies a la FEBACO" />
 
       <div className="flex-1 p-6">
+        <div className="mb-4 flex justify-end"><ActorEditor kind="arbitres" onSaved={(actor) => setArbitres(current => [actor as unknown as Arbitre, ...current].sort((a,b)=>String(a.nomComplet??"").localeCompare(String(b.nomComplet??""),"fr",{sensitivity:"base"})))} /></div>
         <DataTable
           data={arbitres}
           columns={columns}

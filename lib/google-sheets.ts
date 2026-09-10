@@ -7,6 +7,7 @@ const pendingReads = new Map<string, Promise<unknown[][]>>()
 
 export type SheetBlock =
   | "structure"
+  | "referentiel"
   | "users"
   | "acteurs"
   | "affiliations"
@@ -16,6 +17,7 @@ export type SheetBlock =
 
 const spreadsheetEnvByBlock: Record<SheetBlock, string> = {
   structure: "GOOGLE_SHEETS_STRUCTURE_ID",
+  referentiel: "GOOGLE_SHEETS_REFERENTIEL_ID",
   users: "GOOGLE_SHEETS_USERS_ID",
   acteurs: "GOOGLE_SHEETS_ACTEURS_ID",
   affiliations: "GOOGLE_SHEETS_AFFILIATIONS_ID",
@@ -36,9 +38,6 @@ const sheetBlockByName: Record<string, SheetBlock> = {
   arbitres: "acteurs",
   officiels: "acteurs",
   affiliations: "affiliations",
-  affectations: "affiliations",
-  mandats: "affiliations",
-  transferts: "affiliations",
   competitions: "competitions",
   competitions_participants: "competitions",
   competitions_unites: "competitions",
@@ -64,7 +63,7 @@ function requiredEnv(name: string): string {
 
 function getSpreadsheetId(block: SheetBlock): string {
   const envName = spreadsheetEnvByBlock[block]
-  const value = process.env[envName]
+  const value = process.env[envName] ?? (block === "referentiel" ? "1hoW2S9NRzhhtBuXtkLnMqOSdhYyjKtDEVPHQr7pVQRg" : undefined)
   if (!value) {
     throw new Error(`Spreadsheet ID absent pour le bloc '${block}' (${envName}).`)
   }
@@ -130,6 +129,7 @@ type ReadSheetParams = {
   block?: SheetBlock
   sheet: string
   range?: string
+  fresh?: boolean
 }
 
 type ReadSheetRowsOptions = {
@@ -142,11 +142,11 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
   const spreadsheetId = getSpreadsheetId(block)
   const range = params.range ?? "A:ZZ"
   const cacheKey = `${spreadsheetId}:${params.sheet.toLowerCase()}:${range}`
-  const cached = readCache.get(cacheKey)
+  const cached = params.fresh ? undefined : readCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) return cached.value
   if (cached) readCache.delete(cacheKey)
 
-  const pending = pendingReads.get(cacheKey)
+  const pending = params.fresh ? undefined : pendingReads.get(cacheKey)
   if (pending) return pending
 
   const request = (async () => {
@@ -172,7 +172,7 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
           for (const [key, entry] of readCache) if (entry.expiresAt <= now) readCache.delete(key)
           if (readCache.size >= 100) readCache.clear()
         }
-        readCache.set(cacheKey, { expiresAt: Date.now() + SHEETS_CACHE_TTL_MS, value: values })
+        if (!params.fresh) readCache.set(cacheKey, { expiresAt: Date.now() + SHEETS_CACHE_TTL_MS, value: values })
         return values
       } catch (error) {
         lastError = error
@@ -182,7 +182,7 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
     throw withGoogleSheetsErrorContext(lastError, block, params.sheet)
   })()
 
-  pendingReads.set(cacheKey, request)
+  if (!params.fresh) pendingReads.set(cacheKey, request)
   try {
     return await request
   } finally {
@@ -240,6 +240,62 @@ function columnIndexToA1(colIndexZeroBased: number): string {
     n = Math.floor((n - 1) / 26)
   }
   return s
+}
+
+function clearSheetCache(spreadsheetId: string, sheetName: string) {
+  const prefix = `${spreadsheetId}:${sheetName.toLowerCase()}:`
+  for (const key of readCache.keys()) if (key.startsWith(prefix)) readCache.delete(key)
+}
+
+export async function writeSheetRowByHeaders({
+  block,
+  sheet,
+  idHeader,
+  id,
+  values,
+  mode,
+}: {
+  block: SheetBlock
+  sheet: string
+  idHeader: string
+  id: string
+  values: Record<string, string>
+  mode: "create" | "update"
+}): Promise<SheetRow> {
+  const spreadsheetId = getSpreadsheetId(block)
+  const client = createSheetsClientReadWrite()
+  const response = await client.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${quoteSheetName(sheet)}!A:ZZ`,
+  }, { timeout: SHEETS_REQUEST_TIMEOUT_MS })
+  const rows = response.data.values ?? []
+  if (!rows.length) throw new Error("SCHEMA_INDISPONIBLE")
+
+  const headers = (rows[0] ?? []).map((value) => normalizeHeader(String(value ?? "")))
+  const idColumn = headers.indexOf(normalizeHeader(idHeader))
+  if (idColumn < 0) throw new Error("SCHEMA_INDISPONIBLE")
+  for (const key of Object.keys(values)) if (!headers.includes(normalizeHeader(key))) throw new Error("SCHEMA_INDISPONIBLE")
+
+  const existingIndex = rows.slice(1).findIndex((row) => String(row?.[idColumn] ?? "").trim() === id)
+  if (mode === "create" && existingIndex >= 0) throw new Error("IDENTIFIANT_DUPLIQUE")
+  if (mode === "update" && existingIndex < 0) throw new Error("INTROUVABLE")
+
+  const rowNumber = mode === "create" ? rows.length + 1 : existingIndex + 2
+  const previous = mode === "create" ? [] : rows[rowNumber - 1] ?? []
+  const next = headers.map((header, index) => {
+    if (header === normalizeHeader(idHeader)) return id
+    return Object.prototype.hasOwnProperty.call(values, header) ? values[header] : String(previous[index] ?? "")
+  })
+
+  await client.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${quoteSheetName(sheet)}!A${rowNumber}:${columnIndexToA1(headers.length - 1)}${rowNumber}`,
+    valueInputOption: "RAW",
+    requestBody: { values: [next] },
+  }, { timeout: SHEETS_REQUEST_TIMEOUT_MS })
+  clearSheetCache(spreadsheetId, sheet)
+
+  return Object.fromEntries(headers.map((header, index) => [header, String(next[index] ?? "").trim()]))
 }
 
 export async function getAvatarTargetByEntityId({

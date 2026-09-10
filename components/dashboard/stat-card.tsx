@@ -28,8 +28,8 @@ export function StatCard({
   const content = (
     <Card
       className={cn(
-        "group transition-all hover:shadow-md",
-        href && "cursor-pointer hover:border-primary/50",
+        "group overflow-hidden border-border/80 bg-card/90 shadow-[0_12px_30px_rgba(1,10,20,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:border-ring/35 hover:shadow-[0_18px_40px_rgba(1,10,20,0.22)]",
+        href && "cursor-pointer",
         className
       )}
     >
@@ -53,7 +53,7 @@ export function StatCard({
               </p>
             )}
           </div>
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-inner transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
             <Icon className="h-6 w-6" />
           </div>
         </div>

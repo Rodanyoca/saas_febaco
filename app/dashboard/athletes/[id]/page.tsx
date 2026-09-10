@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { Header } from "@/components/dashboard/header"
 import { StatusBadge } from "@/components/dashboard/status-badge"
+import { ActorEditor } from "@/components/dashboard/actor-editor"
+import { AffiliationsPanel } from "@/components/dashboard/affiliations-panel"
 import {
   Table,
   TableBody,
@@ -33,10 +35,7 @@ function display(value: unknown): string {
   return raw && raw !== "-" ? raw : "-"
 }
 
-function displaySync(value: unknown): string {
-  const raw = display(value)
-  return raw === "-" ? "En cours de synchronisation" : raw
-}
+const displaySync = display
 
 export default function AthleteDetailPage() {
   const params = useParams()
@@ -48,13 +47,13 @@ export default function AthleteDetailPage() {
   }, [params])
 
   const [athletes, setAthletes] = useState<Athlete[]>([])
-  const [transferts, setTransferts] = useState<Transfert[]>([])
-  const [transfertsLoading, setTransfertsLoading] = useState(false)
   const [licences, setLicences] = useState<AthleteLicence[]>([])
   const [licencesLoading, setLicencesLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
+  const transferts: Transfert[] = []
+  const transfertsLoading = false
 
   const reloadAthletes = async () => {
     try {
@@ -94,36 +93,6 @@ export default function AthleteDetailPage() {
   }, [athletes, athleteId])
 
   const avatarSrc = localAvatarUrl || athlete?.avatarUrl || null
-
-  useEffect(() => {
-    if (!athlete) {
-      setTransferts([])
-      return
-    }
-
-    let canceled = false
-    ;(async () => {
-      setTransfertsLoading(true)
-      try {
-        const query = new URLSearchParams({
-          athleteId: athlete.id,
-        })
-        const res = await fetch(`/api/transferts?${query.toString()}`, { cache: "no-store" })
-        const json = await res.json()
-        if (!canceled) {
-          setTransferts(Array.isArray(json?.transferts) ? json.transferts : [])
-        }
-      } catch {
-        if (!canceled) setTransferts([])
-      } finally {
-        if (!canceled) setTransfertsLoading(false)
-      }
-    })()
-
-    return () => {
-      canceled = true
-    }
-  }, [athlete])
 
   useEffect(() => {
     if (!athlete) {
@@ -184,10 +153,10 @@ export default function AthleteDetailPage() {
       <Header title={`Fiche Athlète: ${athlete.prenom} ${athlete.nom}`} />
 
       <div className="flex-1 space-y-6 p-6">
-        <Button variant="outline" onClick={() => router.back()}>
+        <div className="flex flex-wrap justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour à la liste
-        </Button>
+        </Button><ActorEditor kind="athletes" actor={athlete as unknown as Record<string,string>} onSaved={(saved)=>setAthletes([saved as unknown as Athlete])}/></div>
 
         <Card>
           <CardContent className="p-6">
@@ -263,7 +232,7 @@ export default function AthleteDetailPage() {
               Général
             </TabsTrigger>
             <TabsTrigger value="affiliation" className="w-full">
-              Affiliation
+              Affiliations
             </TabsTrigger>
             <TabsTrigger value="licence" className="w-full">
               Licence
@@ -317,7 +286,8 @@ export default function AthleteDetailPage() {
           </TabsContent>
 
           <TabsContent value="affiliation">
-            <Card>
+            <AffiliationsPanel kind="athlete" actorId={athlete.id} />
+            {false && <Card>
               <CardHeader>
                 <CardTitle>Historique des affiliations</CardTitle>
               </CardHeader>
@@ -365,7 +335,7 @@ export default function AthleteDetailPage() {
                   </Table>
                 </div>
               </CardContent>
-            </Card>
+            </Card>}
           </TabsContent>
 
           <TabsContent value="licence">

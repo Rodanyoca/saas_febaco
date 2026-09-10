@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
+import { ActorEditor } from "@/components/dashboard/actor-editor"
+import { AffiliationsPanel } from "@/components/dashboard/affiliations-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -105,8 +107,8 @@ export default function MedecinDetailPage() {
     ;(async () => {
       setAffiliationsLoading(true)
       try {
-        const query = new URLSearchParams({ medecinId: medecin.id })
-        const res = await fetch(`/api/medecin-affiliations?${query.toString()}`, { cache: "no-store" })
+        const query = new URLSearchParams({ actorId: medecin.id })
+        const res = await fetch(`/api/affiliations/medecin?${query.toString()}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setAffiliations(Array.isArray(json?.affiliations) ? json.affiliations : [])
@@ -155,10 +157,10 @@ export default function MedecinDetailPage() {
 
       <div className="flex-1 p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={() => router.back()}>
+        <div className="flex flex-wrap justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour à la liste
-          </Button>
+        </Button><ActorEditor kind="medecins" actor={medecin as unknown as Record<string,string>} onSaved={(saved)=>setMedecins([saved as unknown as Medecin])}/></div>
         </div>
 
         <Card>
@@ -240,7 +242,7 @@ export default function MedecinDetailPage() {
               Général
             </TabsTrigger>
             <TabsTrigger value="affiliation" className="w-full">
-              Affiliation
+              Affiliations
             </TabsTrigger>
           </TabsList>
 
@@ -284,7 +286,8 @@ export default function MedecinDetailPage() {
           </TabsContent>
 
           <TabsContent value="affiliation">
-            <Card>
+            <AffiliationsPanel kind="medecin" actorId={medecin.id} />
+            {false && <Card>
               <CardHeader>
                 <CardTitle>Historique des affiliations</CardTitle>
               </CardHeader>
@@ -332,7 +335,7 @@ export default function MedecinDetailPage() {
                   </Table>
                 </div>
               </CardContent>
-            </Card>
+            </Card>}
           </TabsContent>
         </Tabs>
       </div>

@@ -7,6 +7,7 @@ import { ArrowLeft, Briefcase, CalendarDays, Layers, Shield, Users } from "lucid
 import { DataTable, type Column } from "@/components/dashboard/data-table"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { Header } from "@/components/dashboard/header"
+import { FederalEditLink } from "@/components/dashboard/federal-edit-link"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -114,6 +115,7 @@ export default function ClubDetailPage() {
   const [officiels, setOfficiels] = useState<Officiel[]>([])
   const [arbitres, setArbitres] = useState<Arbitre[]>([])
   const [athletes, setAthletes] = useState<Athlete[]>([])
+  const [affiliatedStaff, setAffiliatedStaff] = useState<StaffMember[]>([])
   const [athletePagination, setAthletePagination] = useState<AthletePagination>({
     page: 1,
     pageSize: 25,
@@ -164,8 +166,7 @@ export default function ClubDetailPage() {
   const clubEquipes = useMemo(() => {
     if (!club) return []
     return equipes.filter((equipe) => {
-      if (same(equipe.clubId, club.id)) return true
-      return same(equipe.club, club.nom)
+      return same(equipe.clubId, club.id)
     })
   }, [club, equipes])
 
@@ -186,7 +187,7 @@ export default function ClubDetailPage() {
     if (!club) return false
     if (same(item.clubId, club.id)) return true
     if (item.equipeId && equipeIds.some((id) => same(item.equipeId, id))) return true
-    return same(item.club, club.nom)
+    return false
   }
 
   const linkedCoachs = useMemo(() => coachs.filter(isLinkedToClub), [coachs, club, equipeIdsKey])
@@ -240,6 +241,18 @@ export default function ClubDetailPage() {
   }, [athleteSearch, athleteSexe, athleteStatus, equipeIdsKey])
 
   useEffect(() => {
+    if (!club) return
+    let canceled = false
+    void Promise.all([fetch(`/api/affiliations/coach?clubId=${encodeURIComponent(club.id)}`, { cache: "no-store" }).then((response) => response.json()), fetch(`/api/affiliations/medecin?clubId=${encodeURIComponent(club.id)}`, { cache: "no-store" }).then((response) => response.json()), fetch(`/api/affiliations/officiel?typeEntiteId=STR003&entiteId=${encodeURIComponent(club.id)}`, { cache: "no-store" }).then((response) => response.json())])
+      .then(([coaches, doctors, officials]) => {
+        if (canceled) return
+        const map = (rows: Record<string, string>[], type: string) => (rows || []).map((row) => ({ key: `${type}-${row.id}`, type, nom: row.nomActeur || "Référence inconnue", fonction: row.fonction || "-", statut: row.statut || "-" }))
+        setAffiliatedStaff([...map(coaches.affiliations, "Coach"), ...map(doctors.affiliations, "Médecin"), ...map(officials.affiliations, "Officiel")])
+      }).catch(() => { if (!canceled) setAffiliatedStaff([]) })
+    return () => { canceled = true }
+  }, [club])
+
+  useEffect(() => {
     if (!club) {
       setAthletes([])
       setAthletePagination({ page: 1, pageSize: 25, total: 0, totalPages: 1 })
@@ -252,7 +265,6 @@ export default function ClubDetailPage() {
       try {
         const query = buildQuery({
           clubId: club.id,
-          club: club.nom,
           equipeIds: equipeIdsKey,
           search: athleteSearch,
           statut: athleteStatus === "all" ? undefined : athleteStatus,
@@ -260,7 +272,7 @@ export default function ClubDetailPage() {
           page: athletePage,
           pageSize: 25,
         })
-        const res = await fetch(`/api/athletes?${query}`, { cache: "no-store" })
+        const res = await fetch(`/api/athlete-affiliations?${query}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
@@ -312,10 +324,9 @@ export default function ClubDetailPage() {
       <Header title={`Fiche Club: ${club.nom}`} subtitle={club.entente || club.ligue || ""} />
 
       <div className="flex-1 space-y-6 p-6">
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour à la liste
-        </Button>
+        <div className="flex items-center justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
+          <ArrowLeft className="mr-2 h-4 w-4" />Retour à la liste
+        </Button><FederalEditLink href={`/dashboard/clubs?edit=${encodeURIComponent(club.id)}`} /></div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <DetailCard
@@ -383,9 +394,10 @@ export default function ClubDetailPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="actif">Actif</SelectItem>
-                  <SelectItem value="inactif">Inactif</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="SAF001">Actif</SelectItem>
+                  <SelectItem value="SAF002">Terminé</SelectItem>
+                  <SelectItem value="SAF003">Suspendu</SelectItem>
+                  <SelectItem value="SAF004">Annulé</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={athleteSexe} onValueChange={setAthleteSexe}>
@@ -488,11 +500,11 @@ export default function ClubDetailPage() {
             <CardTitle>Staff / entourage du club</CardTitle>
           </CardHeader>
           <CardContent>
-            {staffMembers.length === 0 ? (
+            {affiliatedStaff.length === 0 ? (
               <p className="text-sm text-muted-foreground">En cours de synchronisation.</p>
             ) : (
               <DataTable
-                data={staffMembers}
+                data={affiliatedStaff}
                 columns={staffColumns}
                 searchPlaceholder="Rechercher dans le staff..."
                 idKey="key"

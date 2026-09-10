@@ -43,6 +43,7 @@ const navigationActeurs: NavItem[] = [
   { name: "Arbitres", href: "/dashboard/arbitres", icon: Flag },
   { name: "Officiels", href: "/dashboard/officiels", icon: BadgeCheck },
   { name: "Medecins", href: "/dashboard/medecins", icon: Stethoscope },
+  { name: "Autres acteurs", href: "/dashboard/autres", icon: Users },
 ]
 
 const navigationCompetition: NavItem[] = [
@@ -141,13 +142,13 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
+        "fixed left-0 top-0 z-40 h-screen border-r border-sidebar-border bg-sidebar shadow-[16px_0_40px_rgba(1,10,20,0.22)] transition-all duration-300",
         collapsed ? "w-16" : "w-64"
       )}
     >
       <div className="flex h-full min-h-0 flex-col">
         {/* Logo */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-4">
+        <div className="relative flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-4 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-[#1188c7] after:via-[#f6c515] after:to-[#e23b52]">
           {!collapsed && (
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white overflow-hidden">
@@ -159,7 +160,7 @@ export function Sidebar() {
                   style={{ width: "100%", height: "100%", objectFit: "contain" }}
                 />
               </div>
-              <span className="text-lg font-bold text-sidebar-foreground">
+              <span className="text-lg font-black tracking-[0.12em] text-sidebar-foreground">
                 FEBACO
               </span>
             </div>
@@ -180,7 +181,8 @@ export function Sidebar() {
         {/* Toggle button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent"
+          className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-muted shadow-md transition-colors hover:border-primary/60 hover:bg-sidebar-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          aria-label={collapsed ? "Déployer la navigation" : "Réduire la navigation"}
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -190,7 +192,7 @@ export function Sidebar() {
         </button>
 
         {/* Navigation */}
-        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <nav aria-label="Navigation principale" className="min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {navigationDashboard.map((item) => (
             <NavLink key={item.name} item={item} collapsed={collapsed} pathname={pathname} />
           ))}

@@ -17,7 +17,7 @@ export const runtime = "nodejs"
 
 const text = (value: unknown) => String(value ?? "").replace(/[\u200B-\u200D\uFEFF]/g, "").trim()
 const normalized = (value: unknown) => text(value).normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
-const active = (value: unknown) => normalized(value) === "actif"
+const active = (value: unknown) => ["actif","saf001"].includes(normalized(value))
 const sameId = (left: unknown, right: unknown) => normalized(left) === normalized(right)
 const failure = (message: string, status: number) =>
   NextResponse.json({ success: false, message, error: message }, { status })
@@ -120,9 +120,9 @@ export async function POST(request: Request) {
     const activeAthletes: CompetitionAthleteRow[] = []
 
     for (const affiliation of affiliations) {
-      const teamId = pickFirst(affiliation, ["id_equipe_beneficiaire"])
+      const teamId = pickFirst(affiliation, ["id_equipe"])
       if (!selectedIdSet.has(normalized(teamId))) continue
-      if (!active(pickFirst(affiliation, ["statut_affiliation"]))) continue
+      if (!active(pickFirst(affiliation, ["id_statut_affiliation"]))) continue
       const athleteId = pickFirst(affiliation, ["id_athlete"])
       const athlete = athleteById.get(normalized(athleteId))
       if (!athlete || !athleteId) continue
@@ -135,8 +135,7 @@ export async function POST(request: Request) {
       if (!structure) continue
       activeAthletes.push({
         idAthlete: athleteId,
-        nomAthlete: pickFirst(athlete, ["nom_complet", "nom_athlete"]) ||
-          pickFirst(affiliation, ["nom_athlete"]),
+        nomAthlete: pickFirst(athlete, ["nom_complet"]),
         sexe: pickFirst(athlete, ["sexe"]),
         dateNaissance: pickFirst(athlete, ["date_de_naissance"]),
         idPoste: pickFirst(athlete, ["id_poste", "poste_id"]),
@@ -150,7 +149,7 @@ export async function POST(request: Request) {
         idLigue: structure.idLigue,
         nomLigue: structure.nomLigue,
         statutAthlete: athleteStatus || "ACTIF",
-        statutAffiliation: pickFirst(affiliation, ["statut_affiliation"]),
+        statutAffiliation: pickFirst(affiliation, ["id_statut_affiliation"]),
       })
     }
     if (activeAthletes.length > 500) {

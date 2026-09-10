@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { Header } from "@/components/dashboard/header"
 import { StatusBadge } from "@/components/dashboard/status-badge"
+import { ActorEditor } from "@/components/dashboard/actor-editor"
+import { AffiliationsPanel } from "@/components/dashboard/affiliations-panel"
 import {
   Table,
   TableBody,
@@ -103,8 +105,8 @@ export default function CoachDetailPage() {
     ;(async () => {
       setAffiliationsLoading(true)
       try {
-        const query = new URLSearchParams({ coachId: coach.id })
-        const res = await fetch(`/api/coach-affiliations?${query.toString()}`, { cache: "no-store" })
+        const query = new URLSearchParams({ actorId: coach.id })
+        const res = await fetch(`/api/affiliations/coach?${query.toString()}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setAffiliations(Array.isArray(json?.affiliations) ? json.affiliations : [])
@@ -154,10 +156,10 @@ export default function CoachDetailPage() {
       <Header title={`Fiche Entraineur: ${nomComplet}`} />
 
       <div className="flex-1 space-y-6 p-6">
-        <Button variant="outline" onClick={() => router.back()}>
+        <div className="flex flex-wrap justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour a la liste
-        </Button>
+        </Button><ActorEditor kind="coachs" actor={coach as unknown as Record<string,string>} onSaved={(saved)=>setCoachs([saved as unknown as Coach])}/></div>
 
         <Card>
           <CardContent className="p-6">
@@ -235,7 +237,7 @@ export default function CoachDetailPage() {
               General
             </TabsTrigger>
             <TabsTrigger value="affiliation" className="w-full">
-              Affiliation
+              Affiliations
             </TabsTrigger>
           </TabsList>
 
@@ -278,7 +280,8 @@ export default function CoachDetailPage() {
           </TabsContent>
 
           <TabsContent value="affiliation">
-            <Card>
+            <AffiliationsPanel kind="coach" actorId={coach.id} />
+            {false && <Card>
               <CardHeader>
                 <CardTitle>Historique des affiliations</CardTitle>
               </CardHeader>
@@ -326,7 +329,7 @@ export default function CoachDetailPage() {
                   </Table>
                 </div>
               </CardContent>
-            </Card>
+            </Card>}
           </TabsContent>
         </Tabs>
       </div>

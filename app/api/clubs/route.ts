@@ -2,8 +2,12 @@ import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
 import { scopeFromSession } from "@/lib/auth-scope"
+import { handleTerritorialWrite } from "@/app/api/_territorial-write"
+import { getReferenceMap } from "@/lib/territorial"
 
 export const dynamic = "force-dynamic"
+
+export async function POST(request: Request) { return handleTerritorialWrite(request, "clubs", "create") }
 
 export async function GET() {
   try {
@@ -13,7 +17,8 @@ export async function GET() {
     }
 
     const scope = scopeFromSession(user)
-    const rows = await readSheetRows({ block: "structure", sheet: "clubs", range: "A:ZZ" })
+    const [rows,ententeRows,ligueRows,categories] = await Promise.all([readSheetRows({ block: "structure", sheet: "clubs", range: "A:ZZ" }),readSheetRows({block:"structure",sheet:"ENTENTES",range:"A:M"}),readSheetRows({block:"structure",sheet:"LIGUES",range:"A:K"}),getReferenceMap("CATEGORIES_CLUB")])
+    const ententes=new Map(ententeRows.map(row=>[row.id_entente,row])), ligues=new Map(ligueRows.map(row=>[row.id_ligue,row]))
 
     const filteredRows =
       scope.role === "federal"
@@ -30,13 +35,15 @@ export async function GET() {
     const clubs = filteredRows.map((row, index) => {
       const id = pickFirst(row, ["id_club"])
       const nom = pickFirst(row, ["nom_club"])
-      const categorie = pickFirst(row, ["categorie"])
+      const categorie = pickFirst(row, ["id_categorie_club", "categorie", "id_categorie"])
       const version = pickFirst(row, ["version"])
-      const dateAffiliation = pickFirst(row, ["date_affiliation_club"])
+      const dateAffiliation = pickFirst(row, ["date_affiliation", "date_affiliation_club"])
       const ententeId = pickFirst(row, ["id_entente"])
-      const entente = pickFirst(row, ["pseudo_entente", "nom_entente"])
-      const ligueId = pickFirst(row, ["id_ligue"])
-      const ligue = pickFirst(row, ["pseudo_ligue", "nom_ligue"])
+      const ententeRow=ententes.get(ententeId)
+      const entente = pickFirst(row, ["sigle_entente", "pseudo_entente"]) || pickFirst(ententeRow || {}, ["sigle_entente", "pseudo_entente"]) || ententeId
+      const ligueId = ententeRow?.id_ligue || ""
+      const ligueRow = ligues.get(ligueId)
+      const ligue = pickFirst(row, ["sigle_ligue", "pseudo_ligue"]) || pickFirst(ligueRow || {}, ["sigle_ligue", "pseudo_ligue"]) || ligueId
       const statut = pickFirst(row, ["statut"])
       const observation = pickFirst(row, ["observations"])
 
@@ -44,6 +51,7 @@ export async function GET() {
       const __key = `${id || fallbackId}__${index + 2}`
 
       return {
+        ...row,
         __key,
         id: id || fallbackId,
         ligueId: ligueId || "",
@@ -51,7 +59,8 @@ export async function GET() {
         ligueKey: ligueId || ligue || "",
         ententeKey: ententeId || entente || "",
         nom: nom || "-",
-        categorie: categorie || "-",
+        sigle: pickFirst(row, ["sigle_club"]) || "-",
+        categorie: categories.get(categorie) || categorie || "-",
         version: version || "-",
         dateAffiliation: dateAffiliation || "-",
         entente: entente || "-",

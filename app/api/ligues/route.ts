@@ -2,8 +2,12 @@ import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
 import { scopeFromSession } from "@/lib/auth-scope"
+import { handleTerritorialWrite } from "@/app/api/_territorial-write"
+import { getReferenceMap } from "@/lib/territorial"
 
 export const dynamic = "force-dynamic"
+
+export async function POST(request: Request) { return handleTerritorialWrite(request, "ligues", "create") }
 
 export async function GET() {
   try {
@@ -13,7 +17,7 @@ export async function GET() {
     }
 
     const scope = scopeFromSession(user)
-    const rows = await readSheetRows({ block: "structure", sheet: "ligues", range: "A:ZZ" })
+    const [rows, provinces] = await Promise.all([readSheetRows({ block: "structure", sheet: "ligues", range: "A:ZZ" }), getReferenceMap("PROVINCES")])
 
     let allowedLigueId: string | null = null
     if (scope.role === "ligue") {
@@ -39,10 +43,10 @@ export async function GET() {
     const ligues = filteredRows.map((row, index) => {
       const id = pickFirst(row, ["id_ligue", "id", "code_ligue", "code"])
       const nom = pickFirst(row, ["nom_ligue", "nom", "ligue", "designation"])
-      const pseudo = pickFirst(row, ["pseudo_ligue", "pseudo", "sigle", "abreviation", "abbreviation"])
+      const pseudo = pickFirst(row, ["sigle_ligue", "pseudo_ligue", "pseudo", "sigle"])
       const provinceId = pickFirst(row, ["id_province", "province_id", "idprovince"])
-      const province = pickFirst(row, ["nom_province", "province", "province_nom"])
-      const email = pickFirst(row, ["email_ligue", "email", "mail_ligue", "mail"])
+      const province = pickFirst(row, ["nom_province", "province", "province_nom"]) || provinces.get(provinceId) || provinceId
+      const email = pickFirst(row, ["email", "email_ligue", "mail_ligue", "mail"])
       const presidentId = pickFirst(row, ["id_president_ligue", "president_ligue_id", "id_president"])
       const presidentNom = pickFirst(row, ["nom_president_ligue", "president_ligue", "president", "nom_president"])
       const presidentTelephone = pickFirst(row, [
@@ -67,10 +71,12 @@ export async function GET() {
       const __key = `${id || fallbackId}__${index + 2}`
 
       return {
+        ...row,
         __key,
         id: id || fallbackId,
         nom: nom || "-",
         pseudo: pseudo || "-",
+        sigle: pseudo || "-",
         provinceId: provinceId || "",
         province: province || "-",
         email: email || "-",
