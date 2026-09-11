@@ -41,6 +41,9 @@ export interface Club {
   version?: string
   dateAffiliation?: string
   avatarUrl?: string
+  logoUrl?: string
+  logo_drive_id?: string
+  logo_drive_url?: string
   contact?: string
   contactTelephone?: string
   email?: string

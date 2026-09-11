@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth-session"
 import { scopeFromSession } from "@/lib/auth-scope"
 import { handleTerritorialWrite } from "@/app/api/_territorial-write"
 import { getReferenceMap } from "@/lib/territorial"
+import { buildDrivePublicUrl } from "@/lib/google-drive-url"
 
 export const dynamic = "force-dynamic"
 
@@ -46,6 +47,8 @@ export async function GET() {
       const ligue = pickFirst(row, ["sigle_ligue", "pseudo_ligue"]) || pickFirst(ligueRow || {}, ["sigle_ligue", "pseudo_ligue"]) || ligueId
       const statut = pickFirst(row, ["statut"])
       const observation = pickFirst(row, ["observations"])
+      const logoDriveId = pickFirst(row, ["logo_drive_id"])
+      const logoDriveUrl = pickFirst(row, ["logo_drive_url"])
 
       const fallbackId = `row_${index + 2}`
       const __key = `${id || fallbackId}__${index + 2}`
@@ -66,6 +69,9 @@ export async function GET() {
         entente: entente || "-",
         ligue: ligue || "-",
         observation: observation || "",
+        logo_drive_id: logoDriveId,
+        logo_drive_url: logoDriveUrl,
+        logoUrl: logoDriveId ? buildDrivePublicUrl(logoDriveId) : logoDriveUrl,
         statut: statut || "-",
         nombreEquipes: 0,
         nombreAthletes: 0,
