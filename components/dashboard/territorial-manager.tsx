@@ -11,6 +11,7 @@ import {
 } from "@/components/dashboard/data-table";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,6 +44,16 @@ type Item = Record<string, unknown> & {
   statut: string;
 };
 type Option = { id: string; label: string };
+
+function clubInitials(name: unknown): string {
+  return String(name ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "CL";
+}
 type Field = {
   key: string;
   label: string;
@@ -89,6 +100,22 @@ const definitions: Record<
       { key: "observations", label: "Observations", type: "textarea" },
     ],
     columns: [
+      {
+        key: "logoUrl",
+        header: "Logo",
+        render: (i) => (
+          <Avatar className="size-10 rounded-lg border bg-background">
+            <AvatarImage
+              src={String(i.logoUrl || "") || undefined}
+              alt={`Logo de ${i.nom}`}
+              className="object-contain p-1"
+            />
+            <AvatarFallback className="rounded-lg text-xs">
+              {clubInitials(i.nom)}
+            </AvatarFallback>
+          </Avatar>
+        ),
+      },
       { key: "id", header: "ID", className: "font-mono" },
       { key: "nom", header: "Ligue", className: "font-medium" },
       { key: "sigle", header: "Sigle" },
@@ -537,11 +564,25 @@ export function TerritorialManager({ kind }: { kind: TerritorialKind }) {
             renderMobileCard={(i) => (
               <div className="rounded-xl border bg-card p-4">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-semibold">{i.nom}</p>
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">
-                      {i.id}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    {kind === "clubs" ? (
+                      <Avatar className="size-12 shrink-0 rounded-lg border bg-background">
+                        <AvatarImage
+                          src={String(i.logoUrl || "") || undefined}
+                          alt={`Logo de ${i.nom}`}
+                          className="object-contain p-1"
+                        />
+                        <AvatarFallback className="rounded-lg text-xs">
+                          {clubInitials(i.nom)}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : null}
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{i.nom}</p>
+                      <p className="mt-1 font-mono text-xs text-muted-foreground">
+                        {i.id}
+                      </p>
+                    </div>
                   </div>
                   <StatusBadge status={i.statut} />
                 </div>

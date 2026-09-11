@@ -10,6 +10,7 @@ import { Header } from "@/components/dashboard/header"
 import { FederalEditLink } from "@/components/dashboard/federal-edit-link"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -80,6 +81,10 @@ async function loadList<T>(url: string, key: string): Promise<T[]> {
 
 function getFullName(person: { prenom?: string; nom?: string }): string {
   return [person.prenom, person.nom].filter((part) => isSet(part)).join(" ") || "-"
+}
+
+function clubInitials(name: string): string {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "CL"
 }
 
 const equipeColumns: Column<Equipe>[] = [
@@ -327,6 +332,19 @@ export default function ClubDetailPage() {
         <div className="flex items-center justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="mr-2 h-4 w-4" />Retour à la liste
         </Button><FederalEditLink href={`/dashboard/clubs?edit=${encodeURIComponent(club.id)}`} /></div>
+
+        <Card>
+          <CardContent className="flex items-center gap-4 p-5">
+            <Avatar className="size-20 shrink-0 rounded-xl border bg-background shadow-sm">
+              <AvatarImage src={club.logoUrl || undefined} alt={`Logo de ${club.nom}`} className="object-contain p-2" />
+              <AvatarFallback className="rounded-xl text-lg font-semibold">{clubInitials(club.nom)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-semibold">{club.nom}</h2>
+              <p className="mt-1 font-mono text-sm text-muted-foreground">{club.id}</p>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <DetailCard
