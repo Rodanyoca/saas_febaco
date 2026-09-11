@@ -75,17 +75,18 @@ export async function mutateTerritorial(kind: TerritorialKind, mode: "create"|"u
   const { values, errors } = validateTerritorialInput(kind, body)
   if (Object.keys(errors).length) throw new TerritorialError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, errors)
 
-  if (kind === "ententes") await requireExisting("LIGUES", "id_ligue", values.id_ligue, "id_ligue")
-  if (kind === "clubs") await requireExisting("ENTENTES", "id_entente", values.id_entente, "id_entente")
-  if (kind === "equipes") await requireExisting("CLUBS", "id_club", values.id_club, "id_club")
-  for (const [field, sheet] of Object.entries(config.refs)) await requireReference(sheet, values[field], field)
-  if (kind === "ententes" && values.id_ville) await requireReference("VILLES", values.id_ville, "id_ville")
-
   const rows = await readSheetRows({ block: "structure", sheet: config.sheet, range: "A:ZZ" })
   const entityId = mode === "create" ? generateTerritorialId(kind, rows, values) : clean(id)
   if (!entityId) throw new TerritorialError("INTROUVABLE", "Identifiant manquant.", 404)
+  const current = mode === "update" ? rows.find((row) => clean(row[config.id]) === entityId) : undefined
+  if (mode === "update" && !current) throw new TerritorialError("INTROUVABLE", "L’élément demandé n’existe pas.", 404)
+
+  if (kind === "ententes") await requireExisting("LIGUES", "id_ligue", values.id_ligue, "id_ligue")
+  if (kind === "clubs") await requireExisting("ENTENTES", "id_entente", values.id_entente, "id_entente")
+  if (kind === "equipes") await requireExisting("CLUBS", "id_club", values.id_club, "id_club")
+  for (const [field, sheet] of Object.entries(config.refs)) if (!current || clean(current[field]) !== values[field]) await requireReference(sheet, values[field], field)
+  if (kind === "ententes" && values.id_ville && (!current || clean(current.id_ville) !== values.id_ville)) await requireReference("VILLES", values.id_ville, "id_ville")
   if (mode === "update" && kind === "ententes") {
-    const current = rows.find((row) => clean(row.id_entente) === entityId)
     if (current && current.id_ligue !== values.id_ligue) {
       const clubs = await readSheetRows({ block: "structure", sheet: "CLUBS", range: "A:H" })
       if (clubs.some((club) => clean(club.id_entente) === entityId)) throw new TerritorialError("RELATION_INCOHERENTE", "Cette entente possède des clubs et ne peut pas changer de ligue.", 409, { id_ligue: "Changement impossible tant que des clubs sont rattachés." })
@@ -100,7 +101,10 @@ export async function mutateTerritorial(kind: TerritorialKind, mode: "create"|"u
     const code = error instanceof Error ? error.message : ""
     if (code === "IDENTIFIANT_DUPLIQUE") throw new TerritorialError(code, "Cet identifiant existe déjà.", 409)
     if (code === "INTROUVABLE") throw new TerritorialError(code, "L’élément demandé n’existe pas.", 404)
-    if (code === "SCHEMA_INDISPONIBLE") throw new TerritorialError(code, "Le schéma Google Sheets est incompatible.", 503)
+    if (code.startsWith("SCHEMA_INDISPONIBLE")) {
+      const field = code.split(":")[1]
+      throw new TerritorialError("SCHEMA_INDISPONIBLE", "Le schéma Google Sheets ne permet pas d’enregistrer un des champs renseignés.", 422, field ? { [field]: "Cette colonne est absente du classeur." } : undefined)
+    }
     throw new TerritorialError("SERVICE_INDISPONIBLE", "L’écriture est temporairement indisponible.", 503)
   }
 }

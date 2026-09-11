@@ -274,7 +274,11 @@ export async function writeSheetRowByHeaders({
   const headers = (rows[0] ?? []).map((value) => normalizeHeader(String(value ?? "")))
   const idColumn = headers.indexOf(normalizeHeader(idHeader))
   if (idColumn < 0) throw new Error("SCHEMA_INDISPONIBLE")
-  for (const key of Object.keys(values)) if (!headers.includes(normalizeHeader(key))) throw new Error("SCHEMA_INDISPONIBLE")
+  for (const [key, value] of Object.entries(values)) {
+    if (!headers.includes(normalizeHeader(key)) && String(value ?? "").trim() !== "") {
+      throw new Error(`SCHEMA_INDISPONIBLE:${normalizeHeader(key)}`)
+    }
+  }
 
   const existingIndex = rows.slice(1).findIndex((row) => String(row?.[idColumn] ?? "").trim() === id)
   if (mode === "create" && existingIndex >= 0) throw new Error("IDENTIFIANT_DUPLIQUE")
