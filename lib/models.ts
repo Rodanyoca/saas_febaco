@@ -154,18 +154,18 @@ export interface Competition {
   __key?: string
   id: string
   nom: string
+  typeCompetitionId?: string
   typeCompetition: string
   disciplineId: string
   discipline: string
+  saisonId?: string
   saison: string
   categorie: string
   genre: string
   niveau: string
   dateDebut: string
   dateFin: string
-  lieu: string
-  structureOrganisatriceId: string
-  structureOrganisatriceNom: string
+  pays: string
   statut: string
   observation: string
 }

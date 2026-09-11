@@ -1,46 +1,82 @@
-import { NextResponse } from "next/server"
-import { getSessionUser } from "@/lib/auth-session"
-import { matchesId, pick, rawPick, readCompetitionRows, rowKey } from "./_helpers"
+import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/auth-session";
+import {
+  CompetitionError,
+  createCompetition,
+  listCompetitions,
+} from "@/lib/competitions";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    const user = await getSessionUser()
-    if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
+    const user = await getSessionUser();
+    if (!user)
+      return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
-    const filterCompetitionId = new URL(req.url).searchParams.get("competitionId")?.trim() ?? ""
-    const rows = await readCompetitionRows("competitions")
-    const validRows = rows.filter((row) => {
-      const id = rawPick(row, ["id_competition", "id", "code_competition", "code"])
-      return Boolean(id) && matchesId(id, filterCompetitionId)
-    })
-    const competitions = validRows.map((row, index) => {
-      const id = rawPick(row, ["id_competition", "id", "code_competition", "code"])
-      return {
-        __key: rowKey(id, index),
-        id,
-        nom: pick(row, ["nom_competition", "competition", "nom", "designation"]),
-        typeCompetition: pick(row, ["type_competition"]),
-        disciplineId: pick(row, ["id_discipline"]),
-        discipline: pick(row, ["discipline"]),
-        saison: pick(row, ["saison", "season", "annee_sportive"]),
-        categorie: pick(row, ["categorie", "catégorie", "category"]),
-        genre: pick(row, ["genre", "sexe", "version"]),
-        niveau: pick(row, ["niveau", "level"]),
-        dateDebut: pick(row, ["date_debut", "date_début", "debut"]),
-        dateFin: pick(row, ["date_fin", "fin"]),
-        lieu: pick(row, ["lieu", "site", "ville"]),
-        structureOrganisatriceId: pick(row, ["id_structure_organisatrice"]),
-        structureOrganisatriceNom: pick(row, ["nom_structure_organisatrice"]),
-        statut: pick(row, ["statut", "statut_competition", "status", "etat"]),
-        observation: pick(row, ["observation"]),
-      }
-    })
+    const filterCompetitionId =
+      new URL(req.url).searchParams.get("competitionId")?.trim() ?? "";
+    const all = await listCompetitions();
+    const competitions = filterCompetitionId
+      ? all.filter((item) => item.id === filterCompetitionId)
+      : all;
 
-    return NextResponse.json({ competitions })
+    return NextResponse.json({ competitions });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error"
-    return NextResponse.json({ competitions: [], error: message }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { competitions: [], error: message },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user)
+    return NextResponse.json(
+      {
+        error: {
+          code: "NON_AUTHENTIFIE",
+          message: "Authentification requise.",
+        },
+      },
+      { status: 401 },
+    );
+  if (user.role !== "federal")
+    return NextResponse.json(
+      { error: { code: "ECRITURE_REFUSEE", message: "Droit fédéral requis." } },
+      { status: 403 },
+    );
+  try {
+    return NextResponse.json(
+      {
+        competition: await createCompetition(
+          await request.json().catch(() => null),
+        ),
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    if (error instanceof CompetitionError)
+      return NextResponse.json(
+        {
+          error: {
+            code: error.code,
+            message: error.message,
+            fields: error.fields,
+          },
+        },
+        { status: error.status },
+      );
+    return NextResponse.json(
+      {
+        error: {
+          code: "SERVICE_INDISPONIBLE",
+          message: "Service temporairement indisponible.",
+        },
+      },
+      { status: 503 },
+    );
   }
 }
