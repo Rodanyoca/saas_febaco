@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Briefcase, CalendarDays, Layers, Shield, Users } from "lucide-react"
+import { ArrowLeft, Briefcase, CalendarDays, Layers, Pencil, Plus, Shield, Users } from "lucide-react"
 
 import { DataTable, type Column } from "@/components/dashboard/data-table"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { Header } from "@/components/dashboard/header"
 import { FederalEditLink } from "@/components/dashboard/federal-edit-link"
+import { EquipeFormModal } from "@/components/dashboard/equipe-form-modal"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -133,6 +134,9 @@ export default function ClubDetailPage() {
   const [athleteStatus, setAthleteStatus] = useState("all")
   const [athleteSexe, setAthleteSexe] = useState("all")
   const [athletePage, setAthletePage] = useState(1)
+  const [canEdit, setCanEdit] = useState(false)
+  const [equipeModalOpen, setEquipeModalOpen] = useState(false)
+  const [editingEquipe, setEditingEquipe] = useState<Equipe | null>(null)
 
   useEffect(() => {
     let canceled = false
@@ -162,6 +166,14 @@ export default function ClubDetailPage() {
       canceled = true
     }
   }, [])
+
+  useEffect(() => {
+    void fetch("/api/auth/me").then((response) => response.json()).then((payload) => setCanEdit(payload?.user?.role === "federal")).catch(() => setCanEdit(false))
+  }, [])
+
+  const reloadEquipes = async () => {
+    setEquipes(await loadList<Equipe>("/api/equipes", "equipes"))
+  }
 
   const club = useMemo(() => {
     if (!idParam) return undefined
@@ -380,8 +392,9 @@ export default function ClubDetailPage() {
         </div>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-3">
             <CardTitle>Équipes du club</CardTitle>
+            {canEdit ? <Button size="sm" onClick={() => { setEditingEquipe(null); setEquipeModalOpen(true) }}><Plus className="mr-2 h-4 w-4" />Créer une équipe</Button> : null}
           </CardHeader>
           <CardContent>
             <DataTable
@@ -389,9 +402,13 @@ export default function ClubDetailPage() {
               columns={equipeColumns}
               searchPlaceholder="Rechercher une équipe..."
               idKey="__key"
+              detailHref={(equipe) => `/dashboard/equipes/${encodeURIComponent(equipe.id)}`}
+              renderActions={canEdit ? (equipe) => <Button variant="ghost" size="icon-sm" title="Modifier" aria-label={`Modifier ${equipe.nom}`} onClick={() => { setEditingEquipe(equipe); setEquipeModalOpen(true) }}><Pencil className="h-4 w-4" /></Button> : undefined}
             />
           </CardContent>
         </Card>
+
+        <EquipeFormModal open={equipeModalOpen} onOpenChange={setEquipeModalOpen} clubId={club.id} equipe={editingEquipe} onSaved={reloadEquipes} />
 
         <Card>
           <CardHeader>
