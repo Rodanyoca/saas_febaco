@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 
 const SHEETS_REQUEST_TIMEOUT_MS = 10000;
-const SHEETS_CACHE_TTL_MS = 30_000;
+const SHEETS_CACHE_TTL_MS = 5 * 60_000;
 const readCache = new Map<string, { expiresAt: number; value: unknown[][] }>();
 const pendingReads = new Map<string, Promise<unknown[][]>>();
 
@@ -149,14 +149,48 @@ type ReadSheetRowsOptions = {
   range?: string;
 };
 
+const TERRITORIAL_SHEETS = new Set([
+  "provinces",
+  "ligues",
+  "ententes",
+  "clubs",
+  "equipes",
+]);
+
+export function canonicalizeReadRange(
+  block: SheetBlock,
+  sheet: string,
+  range: string,
+): string {
+  return block === "structure" && TERRITORIAL_SHEETS.has(normalizeHeader(sheet))
+    ? "A:ZZ"
+    : range;
+}
+
+function googleErrorStatus(error: unknown): number | undefined {
+  const candidate = error as {
+    code?: number;
+    response?: { status?: number };
+  };
+  return candidate?.response?.status ?? candidate?.code;
+}
+
+function isQuotaError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return googleErrorStatus(error) === 429 || /quota exceeded|rate limit/i.test(message);
+}
+
 export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
   const block = params.block ?? inferBlockFromSheetName(params.sheet);
   const spreadsheetId = getSpreadsheetId(block);
-  const range = params.range ?? "A:ZZ";
+  const range = canonicalizeReadRange(
+    block,
+    params.sheet,
+    params.range ?? "A:ZZ",
+  );
   const cacheKey = `${spreadsheetId}:${params.sheet.toLowerCase()}:${range}`;
   const cached = params.fresh ? undefined : readCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
-  if (cached) readCache.delete(cacheKey);
 
   const pending = params.fresh ? undefined : pendingReads.get(cacheKey);
   if (pending) return pending;
@@ -199,6 +233,10 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
         return values;
       } catch (error) {
         lastError = error;
+        if (isQuotaError(error) && cached) return cached.value;
+        if (googleErrorStatus(error) !== 400) {
+          throw withGoogleSheetsErrorContext(error, block, params.sheet);
+        }
       }
     }
 

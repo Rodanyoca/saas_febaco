@@ -187,6 +187,7 @@ const definitions: Record<
       { key: "observations", label: "Observations", type: "textarea" },
     ],
     columns: [
+      { key: "id", header: "ID", className: "font-mono" },
       {
         key: "logoUrl",
         header: "Logo",
@@ -203,7 +204,6 @@ const definitions: Record<
           </Avatar>
         ),
       },
-      { key: "id", header: "ID", className: "font-mono" },
       { key: "nom", header: "Club", className: "font-medium" },
       { key: "categorie", header: "Catégorie" },
       { key: "entente", header: "Entente" },
