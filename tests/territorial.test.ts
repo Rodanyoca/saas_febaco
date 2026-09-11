@@ -1,7 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import { generateTerritorialId, validateTerritorialInput } from "../lib/territorial"
-import { normalizeTerritorialRow } from "../components/dashboard/territorial-manager"
+import { editableValue, normalizeTerritorialRow } from "../components/dashboard/territorial-manager"
 import { saveAndReloadTerritorialItems, sortTerritorialItems } from "../lib/territorial-client"
 
 test("génère l'identifiant suivant d'une ligue", () => {
@@ -22,6 +22,12 @@ test("génère une équipe depuis son club", () => {
 
 test("valide une création de ligue", () => {
   assert.deepEqual(validateTerritorialInput("ligues", { nom_ligue: "Kinshasa", id_province: "PROV001", statut: "ACTIF" }).errors, {})
+})
+
+test("ne recopie pas les tirets d'affichage dans le formulaire", () => {
+  assert.equal(editableValue("-"), "")
+  assert.equal(editableValue("Non renseigné"), "")
+  assert.equal(editableValue("contact@febaco.cd"), "contact@febaco.cd")
 })
 
 test("refuse une date de reconnaissance antérieure", () => {
