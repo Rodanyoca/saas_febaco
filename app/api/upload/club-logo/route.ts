@@ -25,6 +25,20 @@ function validSignature(buffer: Buffer, mime: string) {
 }
 const bad = (message: string) =>
   NextResponse.json({ error: message }, { status: 400 });
+
+export function clubLogoErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const missing = message.match(/Missing environment variable: ([A-Z0-9_]+)/)?.[1];
+  if (missing) return `Configuration serveur incomplète : ${missing}.`;
+  if (/invalid_grant|refresh_token doit être renouvelé/i.test(message))
+    return "Autorisation Google Drive expirée. Le jeton doit être renouvelé.";
+  if (/file not found|not found|insufficient permissions|permission/i.test(message))
+    return "Le compte Google configuré n’a pas accès au dossier des logos.";
+  if (/colonnes logo_drive_id|club google sheets introuvable/i.test(message))
+    return message;
+  return "Téléversement du logo impossible.";
+}
+
 export async function POST(request: Request) {
   try {
     const user = await getSessionUser();
@@ -59,7 +73,6 @@ export async function POST(request: Request) {
       mimeType: file.type,
       buffer,
       existingFileId: current.logoDriveId || undefined,
-      makePublic: true,
     });
     await updateClubLogoFields(clubId, uploaded.fileId, uploaded.publicUrl);
     return NextResponse.json({
@@ -72,7 +85,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[api/upload/club-logo]", error);
     return NextResponse.json(
-      { error: "Téléversement du logo impossible." },
+      { error: clubLogoErrorMessage(error) },
       { status: 503 },
     );
   }

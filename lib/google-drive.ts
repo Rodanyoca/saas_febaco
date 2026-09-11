@@ -20,7 +20,7 @@ export function createDriveClient() {
   return google.drive({ version: "v3", auth });
 }
 
-function createDriveUploadClient() {
+export function createDriveUserClient() {
   const auth = new google.auth.OAuth2({
     clientId: requiredEnv("GOOGLE_OAUTH_CLIENT_ID"),
     clientSecret: requiredEnv("GOOGLE_OAUTH_CLIENT_SECRET"),
@@ -56,7 +56,7 @@ export async function uploadAvatarToDrive({
 }): Promise<DriveUploadResult> {
   // Ces dossiers appartiennent à un Drive personnel. Le Service Account peut
   // les lire, mais Google ne lui accorde aucun quota pour créer des fichiers.
-  const drive = createDriveUploadClient();
+  const drive = createDriveUserClient();
 
   let res: any;
   try {

@@ -1,5 +1,5 @@
 import { getSessionUser } from "@/lib/auth-session"
-import { createDriveClient } from "@/lib/google-drive"
+import { createDriveUserClient } from "@/lib/google-drive"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -15,7 +15,8 @@ export async function GET(req: Request) {
       return new Response("Identifiant invalide.", { status: 400 })
     }
 
-    const drive = createDriveClient()
+    // Les médias appartiennent au Drive personnel du compte OAuth.
+    const drive = createDriveUserClient()
 
     const meta = await drive.files.get({
       fileId,
