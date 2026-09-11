@@ -100,22 +100,6 @@ const definitions: Record<
       { key: "observations", label: "Observations", type: "textarea" },
     ],
     columns: [
-      {
-        key: "logoUrl",
-        header: "Logo",
-        render: (i) => (
-          <Avatar className="size-10 rounded-lg border bg-background">
-            <AvatarImage
-              src={String(i.logoUrl || "") || undefined}
-              alt={`Logo de ${i.nom}`}
-              className="object-contain p-1"
-            />
-            <AvatarFallback className="rounded-lg text-xs">
-              {clubInitials(i.nom)}
-            </AvatarFallback>
-          </Avatar>
-        ),
-      },
       { key: "id", header: "ID", className: "font-mono" },
       { key: "nom", header: "Ligue", className: "font-medium" },
       { key: "sigle", header: "Sigle" },
@@ -203,6 +187,22 @@ const definitions: Record<
       { key: "observations", label: "Observations", type: "textarea" },
     ],
     columns: [
+      {
+        key: "logoUrl",
+        header: "Logo",
+        render: (i) => (
+          <Avatar className="size-10 rounded-lg border bg-background">
+            <AvatarImage
+              src={String(i.logoUrl || "") || undefined}
+              alt={`Logo de ${i.nom}`}
+              className="object-contain p-1"
+            />
+            <AvatarFallback className="rounded-lg text-xs">
+              {clubInitials(i.nom)}
+            </AvatarFallback>
+          </Avatar>
+        ),
+      },
       { key: "id", header: "ID", className: "font-mono" },
       { key: "nom", header: "Club", className: "font-medium" },
       { key: "categorie", header: "Catégorie" },
