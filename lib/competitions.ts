@@ -93,8 +93,9 @@ async function options(
   sheet: string,
   idKey: string,
   labelKey: string,
+  fresh = false,
 ): Promise<CompetitionOption[]> {
-  return (await deps.readRows({ block, sheet, range: "A:ZZ" }))
+  return (await deps.readRows({ block, sheet, range: "A:ZZ", fresh }))
     .map((row) => ({
       id: clean(row[idKey]),
       label: clean(row[labelKey]) || clean(row[idKey]),
@@ -118,8 +119,9 @@ export async function getCompetitionReferences(deps: Deps = defaults) {
       "id_discipline",
       "nom_discipline",
     ),
-    options(deps, "referentiel", "SAISON", "id_saison", "nom_saison"),
+    options(deps, "referentiel", "SAISON", "id_saison", "nom_saison", true),
   ]);
+  seasons.sort((a, b) => b.label.localeCompare(a.label, "fr", { numeric: true }));
   return { types, disciplines, seasons };
 }
 
@@ -155,7 +157,8 @@ export async function listCompetitions(deps: Deps = defaults) {
         disciplineId,
         discipline: maps.discipline.get(disciplineId) || disciplineId,
         saisonId: seasonId,
-        saison: maps.season.get(seasonId) || seasonId,
+        saison: maps.season.get(seasonId) || "Saison non référencée",
+        saisonReferenceManquante: !maps.season.has(seasonId),
         dateDebut: clean(row.date_debut),
         dateFin: clean(row.date_fin),
         pays: clean(row.pays),
@@ -212,4 +215,16 @@ export async function createCompetition(body: unknown, deps: Deps = defaults) {
     mode: "create",
   });
   return (await listCompetitions(deps)).find((item) => item.id === id)!;
+}
+
+export async function updateCompetition(id: string, body: unknown, deps: Deps = defaults) {
+  const competitionId = clean(id);
+  const { values, errors } = validateCompetitionInput(body);
+  if (Object.keys(errors).length) throw new CompetitionError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, errors);
+  const [rows, refs] = await Promise.all([deps.readRows({ block: "competitions", sheet: "COMPETITIONS", range: "A:ZZ", fresh: true }), getCompetitionReferences(deps)]);
+  if (!rows.some((row) => clean(row.id_competition) === competitionId)) throw new CompetitionError("INTROUVABLE", "La compétition n’existe pas.", 404);
+  for (const [field, list] of [["id_type_competition", refs.types], ["id_discipline", refs.disciplines], ["id_saison", refs.seasons]] as Array<[string, CompetitionOption[]]>)
+    if (!list.some((item) => item.id === values[field])) throw new CompetitionError("REFERENCE_INVALIDE", "Une valeur sélectionnée est introuvable.", 422, { [field]: field === "id_saison" ? "Saison non référencée." : "Valeur inconnue." });
+  await deps.writeRow({ block: "competitions", sheet: "COMPETITIONS", idHeader: "id_competition", id: competitionId, values, mode: "update" });
+  return (await listCompetitions(deps)).find((item) => item.id === competitionId)!;
 }

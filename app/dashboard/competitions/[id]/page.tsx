@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, MapPin, Trophy } from "lucide-react";
 import { DetailCard } from "@/components/dashboard/detail-card";
 import { Header } from "@/components/dashboard/header";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CompetitionParticipantsPanel } from "@/components/dashboard/competition-participants-panel";
+import { CompetitionEditSheet } from "@/components/dashboard/competition-edit-sheet";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Competition } from "@/lib/models";
 
 function decodeRouteId(value: string): string {
@@ -18,6 +22,8 @@ function decodeRouteId(value: string): string {
 
 export default function CompetitionDetailPage() {
   const router = useRouter(),
+    pathname = usePathname(),
+    searchParams = useSearchParams(),
     params = useParams();
   const id = useMemo(() => {
     const raw = (params as { id?: string | string[] })?.id,
@@ -27,6 +33,9 @@ export default function CompetitionDetailPage() {
   const [competition, setCompetition] = useState<Competition | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
+  const tabNames = ["general", "participants", "phases", "matchs", "resultats", "classement"];
+  const activeTab = tabNames.includes(searchParams.get("tab") || "") ? searchParams.get("tab")! : "general";
+  const soon = <Card><CardHeader><CardTitle>Bientôt disponible</CardTitle></CardHeader><CardContent className="text-muted-foreground">Cette section sera activée dans une prochaine étape du développement du bloc Compétitions.</CardContent></Card>;
 
   useEffect(() => {
     let active = true;
@@ -92,7 +101,7 @@ export default function CompetitionDetailPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour à la liste
         </Button>
-        <div className="grid gap-6 lg:grid-cols-2">
+        <Tabs value={activeTab} onValueChange={(tab) => router.push(`${pathname}?tab=${tab}`)} className="min-w-0"><TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 sm:grid-cols-3 lg:grid-cols-6"><TabsTrigger value="general" className="min-w-0 whitespace-normal py-2">Général</TabsTrigger><TabsTrigger value="participants" className="min-w-0 whitespace-normal py-2">Participants</TabsTrigger><TabsTrigger value="phases" className="min-w-0 whitespace-normal py-2">Phases et groupes</TabsTrigger><TabsTrigger value="matchs" className="min-w-0 whitespace-normal py-2">Matchs</TabsTrigger><TabsTrigger value="resultats" className="min-w-0 whitespace-normal py-2">Résultats</TabsTrigger><TabsTrigger value="classement" className="min-w-0 whitespace-normal py-2">Classement</TabsTrigger></TabsList><TabsContent value="general" className="space-y-4"><div className="flex justify-end"><CompetitionEditSheet competition={competition} onUpdated={setCompetition}/></div><div className="grid gap-6 lg:grid-cols-2">
           <DetailCard
             title="Informations générales"
             icon={Trophy}
@@ -115,7 +124,7 @@ export default function CompetitionDetailPage() {
               { label: "Observations", value: competition.observation || "-" },
             ]}
           />
-        </div>
+        </div></TabsContent><TabsContent value="participants" className="min-w-0"><CompetitionParticipantsPanel competitionId={competition.id} /></TabsContent><TabsContent value="phases">{soon}</TabsContent><TabsContent value="matchs">{soon}</TabsContent><TabsContent value="resultats">{soon}</TabsContent><TabsContent value="classement">{soon}</TabsContent></Tabs>
       </main>
     </div>
   );

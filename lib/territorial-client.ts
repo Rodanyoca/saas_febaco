@@ -37,7 +37,7 @@ export function mergeClubLogo<T extends TerritorialListItem>(
   items: T[],
   clubId: string,
   logo: ClubLogoPayload,
-): T[] {
+): Array<T & ClubLogoPayload> {
   if (!clubId || !logo.logoUrl) return items;
 
   return items.map((item) =>

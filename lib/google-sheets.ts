@@ -385,6 +385,61 @@ export async function writeSheetRowByHeaders({
   );
 }
 
+export async function appendSheetRowsAtomically({
+  block,
+  rows,
+}: {
+  block: SheetBlock;
+  rows: Array<{ sheet: string; values: Record<string, string> }>;
+}): Promise<void> {
+  const spreadsheetId = getSpreadsheetId(block);
+  const client = createSheetsClientReadWrite();
+  const sheetNames = [...new Set(rows.map(({ sheet }) => sheet))];
+  const schemaEntries = await Promise.all(
+    sheetNames.map(async (sheet) => {
+      const response = await client.spreadsheets.values.get(
+        { spreadsheetId, range: `${quoteSheetName(sheet)}!A:ZZ` },
+        { timeout: SHEETS_REQUEST_TIMEOUT_MS },
+      );
+      const existing = response.data.values ?? [];
+      if (!existing.length) throw new Error(`SCHEMA_INDISPONIBLE:${sheet}`);
+      const headers = (existing[0] ?? []).map((value) =>
+        normalizeHeader(String(value ?? "")),
+      );
+      return [sheet, { headers, nextRow: existing.length + 1 }] as const;
+    }),
+  );
+  const schemaBySheet = new Map(schemaEntries);
+  const offsets = new Map<string, number>();
+  const schemas = rows.map(({ sheet, values }) => {
+    const schema = schemaBySheet.get(sheet)!;
+    for (const [key, value] of Object.entries(values))
+      if (!schema.headers.includes(normalizeHeader(key)) && value.trim())
+        throw new Error(`SCHEMA_INDISPONIBLE:${sheet}:${key}`);
+    const offset = offsets.get(sheet) ?? 0;
+    offsets.set(sheet, offset + 1);
+    const rowNumber = schema.nextRow + offset;
+    return {
+      sheet,
+      range: `${quoteSheetName(sheet)}!A${rowNumber}:${columnIndexToA1(schema.headers.length - 1)}${rowNumber}`,
+      values: [schema.headers.map((header) =>
+        Object.prototype.hasOwnProperty.call(values, header) ? values[header] : "",
+      )],
+    };
+  });
+  await client.spreadsheets.values.batchUpdate(
+    {
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: "RAW",
+        data: schemas.map(({ range, values }) => ({ range, values })),
+      },
+    },
+    { timeout: SHEETS_REQUEST_TIMEOUT_MS },
+  );
+  for (const { sheet } of schemas) clearSheetCache(spreadsheetId, sheet);
+}
+
 export async function getAvatarTargetByEntityId({
   sheetName,
   entityId,
