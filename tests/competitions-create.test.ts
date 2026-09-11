@@ -7,6 +7,7 @@ import {
   updateCompetition,
   validateCompetitionInput,
 } from "../lib/competitions";
+import { sortCompetitionsByStartDate } from "../lib/competition-client";
 import type { SheetRow } from "../lib/google-sheets";
 
 const references: Record<string, SheetRow[]> = {
@@ -22,6 +23,20 @@ test("génère un identifiant de compétition stable par saison", () => {
     generateCompetitionId([{ id_competition: "BKB-COMP-2026-002" }], "2026"),
     "BKB-COMP-2026-003",
   );
+});
+
+test("classe les compétitions de la date de début la plus récente à la plus ancienne", () => {
+  const sorted = sortCompetitionsByStartDate([
+    { nom: "Ancienne", dateDebut: "2025-08-01" },
+    { nom: "Future", dateDebut: "2027-01-10" },
+    { nom: "Actuelle", dateDebut: "2026-09-17" },
+  ]);
+  assert.deepEqual(sorted.map((item) => item.nom), ["Future", "Actuelle", "Ancienne"]);
+});
+
+test("la liste cliente n'importe aucun module Google Sheets serveur", async () => {
+  const source = await import("node:fs/promises").then((fs) => fs.readFile("app/dashboard/competitions/page.tsx", "utf8"));
+  assert.doesNotMatch(source, /@\/lib\/competitions["']/);
 });
 
 test("classe les saisons réelles de la plus récente à la plus ancienne", async () => {

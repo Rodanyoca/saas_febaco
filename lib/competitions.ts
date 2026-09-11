@@ -3,6 +3,7 @@ import {
   writeSheetRowByHeaders,
   type SheetRow,
 } from "@/lib/google-sheets";
+import { sortCompetitionsByStartDate } from "@/lib/competition-client";
 
 export type CompetitionInput = Record<string, string>;
 export type CompetitionOption = { id: string; label: string };
@@ -140,7 +141,7 @@ export async function listCompetitions(deps: Deps = defaults) {
     discipline: new Map(refs.disciplines.map((item) => [item.id, item.label])),
     season: new Map(refs.seasons.map((item) => [item.id, item.label])),
   };
-  return rows
+  return sortCompetitionsByStartDate(rows
     .filter((row) => clean(row.id_competition))
     .map((row, index) => {
       const id = clean(row.id_competition),
@@ -165,12 +166,7 @@ export async function listCompetitions(deps: Deps = defaults) {
         statut: clean(row.statut),
         observation: clean(row.observations),
       };
-    })
-    .sort(
-      (a, b) =>
-        b.dateDebut.localeCompare(a.dateDebut) ||
-        a.nom.localeCompare(b.nom, "fr"),
-    );
+    }));
 }
 
 export async function createCompetition(body: unknown, deps: Deps = defaults) {

@@ -12,6 +12,7 @@ import { CompetitionCreateModal } from "@/components/dashboard/competition-creat
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { type Competition, getFilterOptions } from "@/lib/models";
+import { sortCompetitionsByStartDate } from "@/lib/competition-client";
 
 function competitionRouteId(id: string): string {
   return encodeURIComponent(id).replace(/%/g, "~");
@@ -43,7 +44,7 @@ export default function CompetitionsPage() {
         const json = await res.json();
         if (!canceled)
           setCompetitions(
-            Array.isArray(json?.competitions) ? json.competitions : [],
+            sortCompetitionsByStartDate(Array.isArray(json?.competitions) ? json.competitions : []),
           );
       } catch {
         if (!canceled) setCompetitions([]);
@@ -108,7 +109,7 @@ export default function CompetitionsPage() {
           open={createOpen}
           onOpenChange={setCreateOpen}
           onCreated={(competition) =>
-            setCompetitions((current) => [competition, ...current])
+            setCompetitions((current) => sortCompetitionsByStartDate([competition, ...current]))
           }
         />
       </div>
