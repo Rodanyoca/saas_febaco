@@ -33,6 +33,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { TerritorialKind } from "@/lib/territorial";
 import {
+  mergeClubLogo,
   saveTerritorialEntityAndReload,
   sortTerritorialItems,
   TerritorialClientError,
@@ -452,6 +453,11 @@ export function TerritorialManager({ kind }: { kind: TerritorialKind }) {
       const entityId = String(
         saved.entity.id ?? saved.entity.id_club ?? editing?.id ?? "",
       );
+      let uploadedLogo: {
+        logoUrl?: string;
+        logo_drive_id?: string;
+        logo_drive_url?: string;
+      } = {};
       if (kind === "clubs" && logoFile) {
         const form = new FormData();
         form.set("file", logoFile);
@@ -466,10 +472,13 @@ export function TerritorialManager({ kind }: { kind: TerritorialKind }) {
             payload.error || "Téléversement du logo impossible.",
             { logo: "Logo non enregistré." },
           );
+        uploadedLogo = payload;
       }
       setItems(
         sortTerritorialItems(
-          saved.items.map((item) => normalizeTerritorialRow(item, kind)),
+          mergeClubLogo(saved.items, entityId, uploadedLogo).map((item) =>
+            normalizeTerritorialRow(item, kind),
+          ),
         ),
       );
       setLogoFile(null);

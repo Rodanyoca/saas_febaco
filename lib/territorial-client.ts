@@ -27,6 +27,24 @@ export function sortTerritorialItems<T extends { nom: string }>(
   );
 }
 
+type ClubLogoPayload = {
+  logoUrl?: string;
+  logo_drive_id?: string;
+  logo_drive_url?: string;
+};
+
+export function mergeClubLogo<T extends TerritorialListItem>(
+  items: T[],
+  clubId: string,
+  logo: ClubLogoPayload,
+): T[] {
+  if (!clubId || !logo.logoUrl) return items;
+
+  return items.map((item) =>
+    String(item.id) === clubId ? { ...item, ...logo } : item,
+  );
+}
+
 export async function saveAndReloadTerritorialItems(
   fetcher: typeof fetch,
   endpoint: string,

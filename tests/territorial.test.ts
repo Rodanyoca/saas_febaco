@@ -2,7 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { generateTerritorialId, validateTerritorialInput } from "../lib/territorial"
 import { editableValue, normalizeTerritorialRow } from "../components/dashboard/territorial-manager"
-import { saveAndReloadTerritorialItems, sortTerritorialItems } from "../lib/territorial-client"
+import { mergeClubLogo, saveAndReloadTerritorialItems, sortTerritorialItems } from "../lib/territorial-client"
 
 test("génère l'identifiant suivant d'une ligue", () => {
   assert.equal(generateTerritorialId("ligues", [{ id_ligue: "01" }, { id_ligue: "09" }], {}), "10")
@@ -98,4 +98,19 @@ test("relit la liste enrichie immédiatement après la création d'un club", asy
   assert.equal(items[1].entente, "EKK")
   assert.equal(items[1].ligue, "LIKIN")
   assert.equal(items[1].categorie, "Senior")
+})
+
+test("affiche immediatement le logo renvoye apres son televersement", () => {
+  const clubs = mergeClubLogo(
+    [{ id: "21", nom: "Aigles", statut: "ACTIF" }],
+    "21",
+    {
+      logoUrl: "/api/media/drive?id=logo-21",
+      logo_drive_id: "logo-21",
+      logo_drive_url: "https://drive.google.com/file/d/logo-21/view",
+    },
+  )
+
+  assert.equal(clubs[0].logoUrl, "/api/media/drive?id=logo-21")
+  assert.equal(clubs[0].logo_drive_id, "logo-21")
 })
