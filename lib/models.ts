@@ -165,7 +165,10 @@ export interface Competition {
   niveau: string
   dateDebut: string
   dateFin: string
-  pays: string
+    pays: string
+    lieu?: string
+    permanentId?: string
+    numeroEdition?: string
   statut: string
   observation: string
 }

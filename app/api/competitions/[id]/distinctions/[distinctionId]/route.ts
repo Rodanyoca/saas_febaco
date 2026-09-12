@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/auth-session";
+import { CompetitionParticipationError } from "@/lib/competition-participants";
+import { getCompetitionDistinctions, updateCompetitionDistinction } from "@/lib/competition-distinctions";
+const fail=(error:unknown)=>error instanceof CompetitionParticipationError?NextResponse.json({error:{code:error.code,message:error.message,fields:error.fields}},{status:error.status}):NextResponse.json({error:{code:"SERVICE_INDISPONIBLE",message:"Service temporairement indisponible."}},{status:500});
+export async function PUT(request:Request,{params}:{params:Promise<{id:string;distinctionId:string}>}){const user=await getSessionUser();if(!user)return NextResponse.json({error:{message:"Authentification requise."}},{status:401});if(user.role!=="federal")return NextResponse.json({error:{message:"Droit fédéral requis."}},{status:403});try{const p=await params,id=decodeURIComponent(p.id),updated=await updateCompetitionDistinction(id,decodeURIComponent(p.distinctionId),await request.json().catch(()=>null));return NextResponse.json({updated,...await getCompetitionDistinctions(id)})}catch(error){return fail(error)}}

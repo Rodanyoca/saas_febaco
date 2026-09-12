@@ -163,6 +163,9 @@ export async function listCompetitions(deps: Deps = defaults) {
         dateDebut: clean(row.date_debut),
         dateFin: clean(row.date_fin),
         pays: clean(row.pays),
+        lieu: clean(row.lieu),
+        permanentId: clean(row.id_competition_permanente),
+        numeroEdition: clean(row.numero_edition),
         statut: clean(row.statut),
         observation: clean(row.observations),
       };
@@ -219,6 +222,7 @@ export async function updateCompetition(id: string, body: unknown, deps: Deps = 
   if (Object.keys(errors).length) throw new CompetitionError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, errors);
   const [rows, refs] = await Promise.all([deps.readRows({ block: "competitions", sheet: "COMPETITIONS", range: "A:ZZ", fresh: true }), getCompetitionReferences(deps)]);
   if (!rows.some((row) => clean(row.id_competition) === competitionId)) throw new CompetitionError("INTROUVABLE", "La compétition n’existe pas.", 404);
+  if (rows.some((row) => clean(row.id_competition) === competitionId && clean(row.statut).toUpperCase() === "TERMINEE")) throw new CompetitionError("EDITION_CLOTUREE", "Cette édition est clôturée et consultable uniquement en historique.", 409);
   for (const [field, list] of [["id_type_competition", refs.types], ["id_discipline", refs.disciplines], ["id_saison", refs.seasons]] as Array<[string, CompetitionOption[]]>)
     if (!list.some((item) => item.id === values[field])) throw new CompetitionError("REFERENCE_INVALIDE", "Une valeur sélectionnée est introuvable.", 422, { [field]: field === "id_saison" ? "Saison non référencée." : "Valeur inconnue." });
   await deps.writeRow({ block: "competitions", sheet: "COMPETITIONS", idHeader: "id_competition", id: competitionId, values, mode: "update" });

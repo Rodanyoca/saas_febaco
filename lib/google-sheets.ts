@@ -192,7 +192,7 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
   const cached = params.fresh ? undefined : readCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
-  const pending = params.fresh ? undefined : pendingReads.get(cacheKey);
+  const pending = pendingReads.get(cacheKey);
   if (pending) return pending;
 
   const request = (async () => {
@@ -243,7 +243,7 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
     throw withGoogleSheetsErrorContext(lastError, block, params.sheet);
   })();
 
-  if (!params.fresh) pendingReads.set(cacheKey, request);
+  pendingReads.set(cacheKey, request);
   try {
     return await request;
   } finally {
@@ -438,6 +438,53 @@ export async function appendSheetRowsAtomically({
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
   );
   for (const { sheet } of schemas) clearSheetCache(spreadsheetId, sheet);
+}
+
+export async function upsertSheetRowsAtomically({
+  block,
+  rows,
+}: {
+  block: SheetBlock;
+  rows: Array<{ sheet: string; idHeader: string; values: Record<string, string> }>;
+}): Promise<void> {
+  const spreadsheetId = getSpreadsheetId(block);
+  const client = createSheetsClientReadWrite();
+  const sheetNames = [...new Set(rows.map((row) => row.sheet))];
+  const entries = await Promise.all(sheetNames.map(async (sheet) => {
+    const response = await client.spreadsheets.values.get(
+      { spreadsheetId, range: `${quoteSheetName(sheet)}!A:ZZ` },
+      { timeout: SHEETS_REQUEST_TIMEOUT_MS },
+    );
+    const existing = response.data.values ?? [];
+    if (!existing.length) throw new Error(`SCHEMA_INDISPONIBLE:${sheet}`);
+    return [sheet, {
+      headers: (existing[0] ?? []).map((value) => normalizeHeader(String(value ?? ""))),
+      existing,
+      nextRow: existing.length + 1,
+    }] as const;
+  }));
+  const bySheet = new Map(entries), offsets = new Map<string, number>();
+  const data = rows.map(({ sheet, idHeader, values }) => {
+    const schema = bySheet.get(sheet)!;
+    const normalizedId = normalizeHeader(idHeader), idColumn = schema.headers.indexOf(normalizedId);
+    if (idColumn < 0) throw new Error(`SCHEMA_INDISPONIBLE:${sheet}:${normalizedId}`);
+    for (const [key, value] of Object.entries(values))
+      if (!schema.headers.includes(normalizeHeader(key)) && value.trim())
+        throw new Error(`SCHEMA_INDISPONIBLE:${sheet}:${key}`);
+    const id = String(values[idHeader] ?? values[normalizedId] ?? "").trim();
+    const existingIndex = schema.existing.slice(1).findIndex((row) => String(row?.[idColumn] ?? "").trim() === id);
+    const offset = offsets.get(sheet) ?? 0;
+    if (existingIndex < 0) offsets.set(sheet, offset + 1);
+    const rowNumber = existingIndex >= 0 ? existingIndex + 2 : schema.nextRow + offset;
+    const previous = existingIndex >= 0 ? schema.existing[existingIndex + 1] ?? [] : [];
+    const line = schema.headers.map((header, index) => Object.prototype.hasOwnProperty.call(values, header) ? values[header] : String(previous[index] ?? ""));
+    return { sheet, range: `${quoteSheetName(sheet)}!A${rowNumber}:${columnIndexToA1(schema.headers.length - 1)}${rowNumber}`, values: [line] };
+  });
+  await client.spreadsheets.values.batchUpdate({
+    spreadsheetId,
+    requestBody: { valueInputOption: "RAW", data: data.map(({ range, values }) => ({ range, values })) },
+  }, { timeout: SHEETS_REQUEST_TIMEOUT_MS });
+  for (const sheet of sheetNames) clearSheetCache(spreadsheetId, sheet);
 }
 
 export async function getAvatarTargetByEntityId({

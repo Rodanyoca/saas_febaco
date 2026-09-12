@@ -15,3 +15,9 @@ test("conserve les plages précises des autres classeurs", () => {
     "A:F",
   );
 });
+
+test("déduplique aussi deux lectures fraîches simultanées", async () => {
+  const source = await import("node:fs/promises").then((fs) => fs.readFile("lib/google-sheets.ts", "utf8"));
+  assert.match(source, /const pending = pendingReads\.get\(cacheKey\)/);
+  assert.doesNotMatch(source, /const pending = params\.fresh \? undefined : pendingReads\.get\(cacheKey\)/);
+});

@@ -6,13 +6,15 @@ import type { SheetRow } from "../lib/google-sheets";
 function fixture(overrides: Record<string, SheetRow[]> = {}, failWrite = false) {
   const sheets: Record<string, SheetRow[]> = {
     COMPETITIONS: [{ id_competition: "COMP-1" }, { id_competition: "COMP-2" }],
-    COMPETITIONS_PARTICIPANTS: [], COMPETITIONS_UNITES: [], COMPETITIONS_GROUPES_UNITES: [],
-    COMPETITIONS_PHASES: [{ id_phase_competition: "PH-1", id_competition: "COMP-1" }, { id_phase_competition: "PH-2", id_competition: "COMP-2" }],
+    COMPETITIONS_PARTICIPANTS: [], COMPETITIONS_UNITES: [], COMPETITIONS_GROUPES_UNITES: [], COMPETITIONS_PHASES_UNITES: [],
+    COMPETITIONS_EPREUVES: [{ id_epreuve_competition: "EPR-1", id_competition: "COMP-1", id_discipline: "DIS1", id_categorie_age: "CAT1", id_sexe: "SEX1", statut: "ACTIF" }],
+    COMPETITIONS_PHASES: [{ id_phase_competition: "PH-1", id_competition: "COMP-1", id_epreuve_competition: "EPR-1", id_mode_phase: "MPH001" }, { id_phase_competition: "PH-2", id_competition: "COMP-2", id_mode_phase: "MPH001" }],
     COMPETITIONS_GROUPES: [{ id_groupe: "GR-1", id_phase_competition: "PH-1", nom_groupe: "Groupe A" }, { id_groupe: "GR-2", id_phase_competition: "PH-2", nom_groupe: "Groupe étranger" }],
     CLUBS: [{ id_club: "C1", nom_club: "Aigles" }, { id_club: "C2", nom_club: "Sans équipe" }],
-    EQUIPES: [{ id_equipe: "E1", id_club: "C1", nom_equipe: "Aigles A", id_categorie_age: "CAT1", id_sexe: "SEX1" }, { id_equipe: "E2", id_club: "C1", nom_equipe: "Aigles B", id_categorie_age: "CAT2", id_sexe: "SEX2" }],
+    EQUIPES: [{ id_equipe: "E1", id_club: "C1", nom_equipe: "Aigles A", id_discipline: "DIS1", id_categorie_age: "CAT1", id_sexe: "SEX1" }, { id_equipe: "E2", id_club: "C1", nom_equipe: "Aigles B", id_discipline: "DIS1", id_categorie_age: "CAT1", id_sexe: "SEX1" }],
     CATEGORIES_AGE: [{ id_categorie_age: "CAT1", nom_categorie_age: "Senior" }, { id_categorie_age: "CAT2", nom_categorie_age: "U18" }],
     SEXES: [{ id_sexe: "SEX1", nom_sexe: "Masculin" }, { id_sexe: "SEX2", nom_sexe: "Féminin" }],
+    MODES_PHASES: [{ id_mode_phase: "MPH001", nom_mode_phase: "GROUPES" }, { id_mode_phase: "MPH002", nom_mode_phase: "ELIMINATION_DIRECTE" }, { id_mode_phase: "MPH099", nom_mode_phase: "AUTRE" }],
     ...overrides,
   };
   let batch: Array<{ sheet: string; values: Record<string, string> }> = [];
@@ -25,11 +27,11 @@ function fixture(overrides: Record<string, SheetRow[]> = {}, failWrite = false) 
   };
 }
 
-const valid = { clubTeams: [{ clubId: "C1", teamId: "E1" }], groupId: "GR-1", dateInscription: "2026-09-11", statutParticipation: "INSCRIT", observations: "" };
+const valid = { clubTeams: [{ clubId: "C1", teamId: "E1" }], epreuveId: "EPR-1", phaseId: "PH-1", groupId: "GR-1", dateInscription: "2026-09-11", statutParticipation: "INSCRIT", observations: "" };
 
 test("charge uniquement les groupes de la compétition et les équipes de chaque club", async () => {
   const result = await getCompetitionParticipants("COMP-1", fixture().deps);
-  assert.deepEqual(result.groups, [{ id: "GR-1", label: "Groupe A" }]);
+  assert.deepEqual(result.groups, [{ id: "GR-1", phaseId: "PH-1", label: "Groupe A" }]);
   assert.equal(result.teams.filter((team) => team.clubId === "C1").length, 2);
   assert.equal(result.teams.some((team) => team.clubId === "C2"), false);
 });
@@ -37,6 +39,12 @@ test("charge uniquement les groupes de la compétition et les équipes de chaque
 test("conserve un club sans équipe dans la liste", async () => {
   const result = await getCompetitionParticipants("COMP-1", fixture().deps);
   assert.equal(result.clubs.find((club) => club.id === "C2")?.nom, "Sans équipe");
+});
+
+test("expose les identifiants équipe et club pour masquer les doublons dans le formulaire", async () => {
+  const setup = fixture({ COMPETITIONS_PARTICIPANTS: [{ id_participation: "1", id_competition: "COMP-1", id_equipe: "E1" }] });
+  const result = await getCompetitionParticipants("COMP-1", setup.deps);
+  assert.deepEqual({ equipeId: result.participants[0].equipeId, clubId: result.participants[0].clubId }, { equipeId: "E1", clubId: "C1" });
 });
 
 test("refuse un groupe appartenant à une autre compétition", async () => {
@@ -56,8 +64,12 @@ test("écrit participation, unité et groupe dans un seul lot cohérent", async 
   const setup = fixture();
   const created = await createCompetitionParticipations("COMP-1", valid, setup.deps);
   assert.equal(created.length, 1);
-  assert.deepEqual(setup.batch.map((row) => row.sheet), ["COMPETITIONS_PARTICIPANTS", "COMPETITIONS_UNITES", "COMPETITIONS_GROUPES_UNITES"]);
+  assert.deepEqual(setup.batch.map((row) => row.sheet), ["COMPETITIONS_PARTICIPANTS", "COMPETITIONS_UNITES", "COMPETITIONS_PHASES_UNITES"]);
   assert.equal(setup.batch[0].values.id_equipe, "E1");
+  assert.match(setup.batch[0].values.id_participation, /^BKB-PAR-COMP-1-\d{3}$/);
+  assert.match(setup.batch[1].values.id_unite_competition, /^BKB-UNI-COMP-1-\d{3}$/);
+  assert.match(setup.batch[2].values.id_phase_unite, /^BKB-PHU-COMP-1-\d{3}$/);
+  assert.equal(setup.batch[2].values.id_phase_competition, "PH-1");
   assert.equal(setup.batch[1].values.id_participation, setup.batch[0].values.id_participation);
   assert.equal(setup.batch[2].values.id_unite_competition, setup.batch[1].values.id_unite_competition);
 });
@@ -76,6 +88,8 @@ test("l'interface masque l'écriture aux rôles non fédéraux et évite le déb
   assert.match(source, /md:hidden/);
   assert.match(source, /hidden min-w-0 grid-cols-7 md:grid/);
   assert.doesNotMatch(source, /overflow-x-auto/);
+  assert.match(source, /participatingTeamIds/);
+  assert.match(source, /!participatingTeamIds\.has\(team\.id\)/);
 });
 
 test("la liste globale résout club, équipe et groupe uniquement par identifiants", async () => {

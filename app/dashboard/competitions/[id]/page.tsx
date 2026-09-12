@@ -1,131 +1,16 @@
 "use client";
-
-import { useEffect, useMemo, useState } from "react";
-import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, MapPin, Trophy } from "lucide-react";
-import { DetailCard } from "@/components/dashboard/detail-card";
-import { Header } from "@/components/dashboard/header";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CompetitionParticipantsPanel } from "@/components/dashboard/competition-participants-panel";
-import { CompetitionEditSheet } from "@/components/dashboard/competition-edit-sheet";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Competition } from "@/lib/models";
-
-function decodeRouteId(value: string): string {
-  try {
-    return decodeURIComponent(value.replace(/~/g, "%"));
-  } catch {
-    return value;
-  }
-}
-
-export default function CompetitionDetailPage() {
-  const router = useRouter(),
-    pathname = usePathname(),
-    searchParams = useSearchParams(),
-    params = useParams();
-  const id = useMemo(() => {
-    const raw = (params as { id?: string | string[] })?.id,
-      value = Array.isArray(raw) ? raw[0] : raw;
-    return value ? decodeRouteId(value) : "";
-  }, [params]);
-  const [competition, setCompetition] = useState<Competition | null>(null),
-    [loading, setLoading] = useState(true),
-    [error, setError] = useState("");
-  const tabNames = ["general", "participants", "phases", "matchs", "resultats", "classement"];
-  const activeTab = tabNames.includes(searchParams.get("tab") || "") ? searchParams.get("tab")! : "general";
-  const soon = <Card><CardHeader><CardTitle>Bientôt disponible</CardTitle></CardHeader><CardContent className="text-muted-foreground">Cette section sera activée dans une prochaine étape du développement du bloc Compétitions.</CardContent></Card>;
-
-  useEffect(() => {
-    let active = true;
-    void fetch(`/api/competitions?competitionId=${encodeURIComponent(id)}`, {
-      cache: "no-store",
-    })
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Lecture impossible.");
-        if (active) setCompetition(data.competitions?.[0] || null);
-      })
-      .catch((cause) => {
-        if (active)
-          setError(
-            cause instanceof Error ? cause.message : "Lecture impossible.",
-          );
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [id]);
-
-  if (loading)
-    return (
-      <>
-        <Header title="Chargement…" />
-        <div className="p-6 text-muted-foreground">
-          Chargement de la compétition…
-        </div>
-      </>
-    );
-  if (error || !competition)
-    return (
-      <>
-        <Header title="Compétition non trouvée" />
-        <div className="p-6">
-          <p className="text-destructive">
-            {error || "La compétition demandée n’existe pas."}
-          </p>
-          <Button
-            className="mt-4"
-            variant="outline"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour
-          </Button>
-        </div>
-      </>
-    );
-
-  return (
-    <div className="flex flex-col">
-      <Header
-        title={`Compétition : ${competition.nom}`}
-        subtitle={competition.saison}
-      />
-      <main className="space-y-6 p-6">
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour à la liste
-        </Button>
-        <Tabs value={activeTab} onValueChange={(tab) => router.push(`${pathname}?tab=${tab}`)} className="min-w-0"><TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 sm:grid-cols-3 lg:grid-cols-6"><TabsTrigger value="general" className="min-w-0 whitespace-normal py-2">Général</TabsTrigger><TabsTrigger value="participants" className="min-w-0 whitespace-normal py-2">Participants</TabsTrigger><TabsTrigger value="phases" className="min-w-0 whitespace-normal py-2">Phases et groupes</TabsTrigger><TabsTrigger value="matchs" className="min-w-0 whitespace-normal py-2">Matchs</TabsTrigger><TabsTrigger value="resultats" className="min-w-0 whitespace-normal py-2">Résultats</TabsTrigger><TabsTrigger value="classement" className="min-w-0 whitespace-normal py-2">Classement</TabsTrigger></TabsList><TabsContent value="general" className="space-y-4"><div className="flex justify-end"><CompetitionEditSheet competition={competition} onUpdated={setCompetition}/></div><div className="grid gap-6 lg:grid-cols-2">
-          <DetailCard
-            title="Informations générales"
-            icon={Trophy}
-            fields={[
-              { label: "ID", value: competition.id },
-              { label: "Nom", value: competition.nom },
-              { label: "Type", value: competition.typeCompetition },
-              { label: "Discipline", value: competition.discipline },
-              { label: "Saison", value: competition.saison },
-              { label: "Statut", value: competition.statut },
-            ]}
-          />
-          <DetailCard
-            title="Organisation"
-            icon={MapPin}
-            fields={[
-              { label: "Date de début", value: competition.dateDebut },
-              { label: "Date de fin", value: competition.dateFin },
-              { label: "Pays", value: competition.pays },
-              { label: "Observations", value: competition.observation || "-" },
-            ]}
-          />
-        </div></TabsContent><TabsContent value="participants" className="min-w-0"><CompetitionParticipantsPanel competitionId={competition.id} /></TabsContent><TabsContent value="phases">{soon}</TabsContent><TabsContent value="matchs">{soon}</TabsContent><TabsContent value="resultats">{soon}</TabsContent><TabsContent value="classement">{soon}</TabsContent></Tabs>
-      </main>
-    </div>
-  );
-}
+import { useEffect,useMemo,useState } from "react";
+import { useParams,usePathname,useRouter,useSearchParams } from "next/navigation";
+import { ArrowLeft,MapPin,Trophy } from "lucide-react";
+import { CompetitionProgress } from "@/components/dashboard/competition-progress";
+import { Header } from "@/components/dashboard/header"; import { DetailCard } from "@/components/dashboard/detail-card"; import { Button } from "@/components/ui/button"; import { Tabs,TabsContent,TabsList,TabsTrigger } from "@/components/ui/tabs";
+import { CompetitionEditSheet } from "@/components/dashboard/competition-edit-sheet"; import { CompetitionEventsPanel } from "@/components/dashboard/competition-events-panel"; import { CompetitionParticipantsPanel } from "@/components/dashboard/competition-participants-panel"; import { CompetitionPeoplePanel } from "@/components/dashboard/competition-people-panel"; import { CompetitionStructurePanel } from "@/components/dashboard/competition-structure-panel"; import { CompetitionPlayPanel } from "@/components/dashboard/competition-play-panel"; import type { Competition } from "@/lib/models";
+import { CompetitionDistinctionsPanel } from "@/components/dashboard/competition-distinctions-panel";
+const tabs=[{id:"general",label:"Général"},{id:"epreuves",label:"Épreuves"},{id:"equipes",label:"Équipes engagées"},{id:"participants",label:"Intervenants"},{id:"phases",label:"Phases et groupes"},{id:"matchs",label:"Matchs"},{id:"resultats",label:"Résultats"},{id:"classement",label:"Classements et qualifications"},{id:"distinctions",label:"Distinctions"}];
+export default function CompetitionDetailPage(){const router=useRouter(),pathname=usePathname(),query=useSearchParams(),params=useParams();const id=useMemo(()=>decodeURIComponent(String((params as {id?:string}).id||"").replace(/~/g,"%")),[params]);const [competition,setCompetition]=useState<Competition|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(""),[federal,setFederal]=useState(false),[closing,setClosing]=useState(false);const active=tabs.some(t=>t.id===query.get("tab"))?query.get("tab")!:"general";
+useEffect(()=>{let live=true;void Promise.all([fetch(`/api/competitions?competitionId=${encodeURIComponent(id)}`,{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Lecture impossible.");if(live)setCompetition(d.competitions?.[0]||null)}),fetch("/api/auth/me").then(r=>r.json()).then(d=>{if(live)setFederal(d?.user?.role==="federal")})]).catch(e=>live&&setError(e.message)).finally(()=>live&&setLoading(false));return()=>{live=false}},[id]);
+if(loading)return <><Header title="Chargement…"/><div className="p-6 text-muted-foreground">Chargement de l’édition…</div></>;if(error||!competition)return <><Header title="Compétition non trouvée"/><div className="p-6"><p className="text-destructive">{error||"Cette édition n’existe pas."}</p><Button className="mt-4" variant="outline" onClick={()=>router.back()}><ArrowLeft/>Retour</Button></div></>;
+const closed=competition.statut==="TERMINEE";const close=async()=>{if(closing||!confirm("Clôturer définitivement cette édition ?"))return;setClosing(true);try{const r=await fetch(`/api/competitions/${encodeURIComponent(id)}/close`,{method:"POST"}),d=await r.json();if(!r.ok)throw new Error(d?.error?.message||"Clôture impossible.");setCompetition({...competition,statut:"TERMINEE"})}catch(e){setError(e instanceof Error?e.message:"Clôture impossible.")}finally{setClosing(false)}};
+return <div className="flex flex-col"><Header title={`Édition : ${competition.nom}`} subtitle={competition.saison}/><main className="space-y-5 p-4 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><Button variant="outline" onClick={()=>router.back()}><ArrowLeft/>Retour à la liste</Button>{federal&&!closed?<Button variant="destructive" disabled={closing} onClick={()=>void close()}>{closing?"Clôture…":"Clôturer l’édition"}</Button>:null}</div>{closed?<p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Édition clôturée : consultation historique en lecture seule.</p>:null}<CompetitionProgress competitionId={id} closed={closed}/><Tabs value={active} onValueChange={tab=>router.push(`${pathname}?tab=${tab}`)}><TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">{tabs.map(t=><TabsTrigger key={t.id} value={t.id} className="min-w-0 whitespace-normal py-2">{t.label}</TabsTrigger>)}</TabsList>
+<TabsContent value="general" className="space-y-4">{!closed?<div className="flex justify-end"><CompetitionEditSheet competition={competition} onUpdated={setCompetition}/></div>:null}<div className="grid gap-5 lg:grid-cols-2"><DetailCard title="Informations générales" icon={Trophy} fields={[{label:"Référence",value:competition.id},{label:"Nom",value:competition.nom},{label:"Type",value:competition.typeCompetition},{label:"Discipline",value:competition.discipline},{label:"Saison",value:competition.saison},{label:"Statut",value:competition.statut}]}/><DetailCard title="Organisation" icon={MapPin} fields={[{label:"Début",value:competition.dateDebut},{label:"Fin",value:competition.dateFin},{label:"Pays",value:competition.pays},{label:"Observations",value:competition.observation||"-"}]}/></div></TabsContent>
+<TabsContent value="epreuves"><CompetitionEventsPanel competitionId={id} readOnly={closed}/></TabsContent><TabsContent value="equipes"><CompetitionParticipantsPanel competitionId={id} readOnly={closed}/></TabsContent><TabsContent value="participants"><CompetitionPeoplePanel competitionId={id} readOnly={closed}/></TabsContent><TabsContent value="phases"><CompetitionStructurePanel competitionId={id} readOnly={closed}/></TabsContent><TabsContent value="matchs"><CompetitionPlayPanel competitionId={id} view="matchs" readOnly={closed}/></TabsContent><TabsContent value="resultats"><CompetitionPlayPanel competitionId={id} view="resultats" readOnly={closed}/></TabsContent><TabsContent value="classement"><CompetitionPlayPanel competitionId={id} view="classement" readOnly={closed}/></TabsContent><TabsContent value="distinctions"><CompetitionDistinctionsPanel competitionId={id} readOnly={closed}/></TabsContent></Tabs></main></div>}
