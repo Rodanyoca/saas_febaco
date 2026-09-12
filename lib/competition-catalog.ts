@@ -17,6 +17,20 @@ async function load(deps: Dependencies) {
 
 const labelMap = (rows: SheetRow[], idKey: string, labelKey: string) => new Map(rows.map((row) => [clean(row[idKey]), clean(row[labelKey]) || clean(row[idKey])]));
 
+export async function listCompetitionEditionsCatalog(deps: Dependencies = defaults) {
+  const [permanentRows, editionRows, typeRows, disciplineRows, seasonRows] = await Promise.all([
+    deps.readRows({ block: "competitions", sheet: "COMPETITIONS_PERMANENTES", range: "A:ZZ" }),
+    deps.readRows({ block: "competitions", sheet: "COMPETITIONS", range: "A:ZZ", fresh: true }),
+    deps.readRows({ block: "referentiel", sheet: "TYPES_COMPETITIONS", range: "A:ZZ" }),
+    deps.readRows({ block: "referentiel", sheet: "DISCIPLINES", range: "A:ZZ" }),
+    deps.readRows({ block: "referentiel", sheet: "SAISON", range: "A:ZZ" }),
+  ]);
+  const types = labelMap(typeRows, "id_type_competition", "nom_type_competition"), disciplines = labelMap(disciplineRows, "id_discipline", "nom_discipline"), seasons = labelMap(seasonRows, "id_saison", "nom_saison");
+  const permanents = permanentRows.filter(row => clean(row.id_competition_permanente)).map(row => ({ id: clean(row.id_competition_permanente), nom: clean(row.nom_competition), typeId: clean(row.id_type_competition), type: types.get(clean(row.id_type_competition)) || clean(row.id_type_competition), disciplineId: clean(row.id_discipline), discipline: disciplines.get(clean(row.id_discipline)) || clean(row.id_discipline), statut: clean(row.statut), observations: clean(row.observations) }));
+  const editions = editionRows.filter(row => clean(row.id_competition)).map(row => ({ id: clean(row.id_competition), permanentId: clean(row.id_competition_permanente), numeroEdition: clean(row.numero_edition), nom: clean(row.nom_competition), typeId: clean(row.id_type_competition), disciplineId: clean(row.id_discipline), discipline: disciplines.get(clean(row.id_discipline)) || clean(row.id_discipline), saisonId: clean(row.id_saison), saison: seasons.get(clean(row.id_saison)) || clean(row.id_saison), dateDebut: clean(row.date_debut), dateFin: clean(row.date_fin), pays: clean(row.pays), lieu: clean(row.lieu), statut: clean(row.statut), observations: clean(row.observations) }));
+  return { permanents, editions, references: { types: [...types].map(([id,label]) => ({ id,label })), disciplines: [...disciplines].map(([id,label]) => ({ id,label })), seasons: [...seasons].map(([id,label]) => ({ id,label })) } };
+}
+
 export async function listCompetitionCatalog(deps: Dependencies = defaults) {
   const data = await load(deps), types = labelMap(data.types, "id_type_competition", "nom_type_competition"), disciplines = labelMap(data.disciplines, "id_discipline", "nom_discipline"), seasons = labelMap(data.seasons, "id_saison", "nom_saison"), categories = labelMap(data.categories, "id_categorie_age", "nom_categorie_age"), sexes = labelMap(data.sexes, "id_sexe", "nom_sexe");
   const permanents = data.permanents.filter((row) => clean(row.id_competition_permanente)).map((row) => ({ id: clean(row.id_competition_permanente), nom: clean(row.nom_competition), typeId: clean(row.id_type_competition), type: types.get(clean(row.id_type_competition)) || clean(row.id_type_competition), disciplineId: clean(row.id_discipline), discipline: disciplines.get(clean(row.id_discipline)) || clean(row.id_discipline), statut: clean(row.statut), observations: clean(row.observations) }));

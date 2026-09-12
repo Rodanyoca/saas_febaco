@@ -30,6 +30,16 @@ test("relit les éditions directement depuis Sheets pour refléter les modificat
   assert.equal(reads.find((read) => read.sheet === "COMPETITIONS")?.fresh, true);
 });
 
+test("la route éditions utilise une lecture minimale sans phases ni matchs", async () => {
+  const [route, catalog] = await Promise.all([
+    import("node:fs/promises").then((fs) => fs.readFile("app/api/competitions/editions/route.ts", "utf8")),
+    import("node:fs/promises").then((fs) => fs.readFile("lib/competition-catalog.ts", "utf8")),
+  ]);
+  assert.match(route, /listCompetitionEditionsCatalog/);
+  const implementation = catalog.match(/export async function listCompetitionEditionsCatalog[\s\S]*?\n}/)?.[0] || "";
+  assert.doesNotMatch(implementation, /COMPETITIONS_PHASES|COMPETITIONS_MATCHS|COMPETITIONS_UNITES|COMPETITIONS_EPREUVES/);
+});
+
 test("crée une compétition permanente avec un identifiant stable", async () => {
   const setup = fixture();
   await createPermanentCompetition({ nomCompetition: "Championnat national", typeId: "TC003", disciplineId: "DIS001", statut: "ACTIF" }, setup.deps);
