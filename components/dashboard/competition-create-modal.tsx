@@ -42,6 +42,7 @@ const blank = {
   date_debut: "",
   date_fin: "",
   pays: "",
+  lieu: "",
   statut: "PLANIFIEE",
   observations: "",
 };
@@ -230,7 +231,7 @@ export function CompetitionCreateModal({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="competition-pays">Lieu *</Label>
+            <Label htmlFor="competition-pays">Pays *</Label>
             <Input
               id="competition-pays"
               value={values.pays}
@@ -239,6 +240,14 @@ export function CompetitionCreateModal({
             {errors.pays ? (
               <p className="text-sm text-destructive">{errors.pays}</p>
             ) : null}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="competition-lieu">Lieu</Label>
+            <Input
+              id="competition-lieu"
+              value={values.lieu}
+              onChange={(event) => set("lieu", event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="competition-observations">Observations</Label>

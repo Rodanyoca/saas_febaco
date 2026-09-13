@@ -95,6 +95,7 @@ test("crée uniquement une ligne COMPETITIONS et cible la colonne id_competition
       date_debut: "2026-09-01",
       date_fin: "2026-09-10",
       pays: "RDC",
+      lieu: "Kinshasa",
       statut: "PLANIFIEE",
       observations: "",
     },
@@ -104,4 +105,16 @@ test("crée uniquement une ligne COMPETITIONS et cible la colonne id_competition
   assert.deepEqual(writeTarget, { sheet: "COMPETITIONS", idHeader: "id_competition", id: "BKB-COMP-2026-001" });
   assert.equal(created.id, "BKB-COMP-2026-001");
   assert.equal(created.pays, "RDC");
+  assert.equal(created.lieu, "Kinshasa");
+});
+
+test("le formulaire sépare Pays et Lieu et l'onglet Général les affiche dans cet ordre", async () => {
+  const fs = await import("node:fs/promises");
+  const [form, detail] = await Promise.all([
+    fs.readFile("components/dashboard/competition-create-modal.tsx", "utf8"),
+    fs.readFile("app/dashboard/competitions/[id]/page.tsx", "utf8"),
+  ]);
+  assert.match(form, /set\("pays", event\.target\.value\)/);
+  assert.match(form, /set\("lieu", event\.target\.value\)/);
+  assert.match(detail, /label:"Pays"[\s\S]*label:"Lieu"/);
 });

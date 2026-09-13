@@ -35,6 +35,7 @@ const fields = [
   "date_debut",
   "date_fin",
   "pays",
+  "lieu",
   "statut",
   "observations",
 ];
@@ -47,7 +48,7 @@ export function validateCompetitionInput(body: unknown) {
     fields.map((field) => [field, clean(source[field])]),
   );
   const errors: Record<string, string> = {};
-  for (const field of fields.filter((field) => !["numero_edition", "observations"].includes(field)))
+  for (const field of fields.filter((field) => !["numero_edition", "lieu", "observations"].includes(field)))
     if (!values[field]) errors[field] = "Ce champ est obligatoire.";
   if (values.date_debut && !/^\d{4}-\d{2}-\d{2}$/.test(values.date_debut))
     errors.date_debut = "Date invalide.";
