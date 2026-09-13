@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getAthleteLicenceEligibility, listAthleteLicences, renewAthleteLicences, updateAthleteLicence, LicenceError } from "../lib/licences";
+import { generateLicenceId, getAthleteLicenceEligibility, listAthleteLicences, renewAthleteLicences, updateAthleteLicence, LicenceError } from "../lib/licences";
 import type { SheetRow } from "../lib/google-sheets";
 
 const base: Record<string, SheetRow[]> = {
@@ -31,6 +31,11 @@ test("liste les licences enrichies et applique le scope territorial", async () =
   const result = await listAthleteLicences({}, { role: "ligue", ligueId: "LIG-1" }, setup.deps);
   assert.deepEqual(result.licences.map((item) => item.id), ["LIC-1"]);
   assert.equal(result.licences[0].athleteNom, "Alice"); assert.equal(result.licences[0].equipeNom, "Matonge"); assert.equal(result.licences[0].statut, "ACTIVE");
+});
+
+test("génère un identifiant de licence séquentiel pour la saison", () => {
+  assert.equal(generateLicenceId({ seasonLabel: "2026", existing: [{ id_licence: "BKB-LIC-2026-000004" }, { id_licence: "BKB-LIC-2025-000099" }], offset: 0 }), "BKB-LIC-2026-000005");
+  assert.equal(generateLicenceId({ seasonLabel: "2026", existing: [{ id_licence: "BKB-LIC-2026-000004" }], offset: 1 }), "BKB-LIC-2026-000006");
 });
 
 test("l'éligibilité équipe garde visibles les athlètes déjà licenciés", async () => {

@@ -367,6 +367,7 @@ export default function ClubDetailPage() {
               { label: "Nom du club", value: club.nom },
               { label: "Ligue", value: club.ligue },
               { label: "Entente", value: club.entente },
+              { label: "Ville", value: club.ville },
               { label: "Statut", value: club.statut },
               { label: "Observation", value: club.observation || "-" },
             ]}

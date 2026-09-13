@@ -36,6 +36,23 @@ test("liste uniquement les phases et groupes de la compétition", async () => {
   assert.deepEqual(result.groups.map((group) => group.id), ["GR-1"]);
 });
 
+test("relit toutes les épreuves sans cache et limite les plages Sheets", async () => {
+  const setup = fixture();
+  const baseDeps = setup.deps as unknown as { readRows: (params: { sheet: string; range?: string; fresh?: boolean }) => Promise<SheetRow[]>; appendRows: (input: unknown) => Promise<void> };
+  const calls: Array<{ sheet: string; range?: string; fresh?: boolean }> = [];
+  const deps = {
+    ...baseDeps,
+    readRows: async (params: { sheet: string; range?: string; fresh?: boolean }) => {
+      calls.push(params);
+      return baseDeps.readRows(params);
+    },
+  } as never;
+  await getCompetitionStructure("COMP-1", deps);
+  const eventsCall = calls.find((call) => call.sheet === "COMPETITIONS_EPREUVES");
+  assert.deepEqual(eventsCall, { block: "competitions", sheet: "COMPETITIONS_EPREUVES", range: "A:H", fresh: true });
+  assert.equal(calls.some((call) => call.range === "A:ZZ"), false);
+});
+
 test("crée les phases et les groupes par deux actions distinctes", async () => {
   const phaseSetup = fixture();
   await createCompetitionStructureItem("COMP-1", { kind: "phase", nom: "Phase de groupes", eventId: "EPR-1", typeId: "TPH002", modeId: "MPH001" }, phaseSetup.deps);

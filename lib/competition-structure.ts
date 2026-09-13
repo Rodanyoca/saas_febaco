@@ -14,13 +14,22 @@ type Dependencies = {
 
 const defaults: Dependencies = { readRows: readSheetRows, appendRows: appendSheetRowsAtomically };
 
+async function resilientRead(deps: Dependencies, params: Parameters<Dependencies["readRows"]>[0]) {
+  try {
+    return await deps.readRows(params);
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return deps.readRows(params);
+  }
+}
+
 async function load(competitionId: string, deps: Dependencies) {
-  const read = (sheet: string) => deps.readRows({ block: "competitions", sheet, range: "A:ZZ" });
+  const read = (sheet: string, range: string, fresh = false) => resilientRead(deps, { block: "competitions", sheet, range, fresh });
   const [competitions, events, allPhases, allGroups, phaseTypes, phaseModes, canonicalPhaseUnits, historicalAssignments, matches] = await Promise.all([
-    read("COMPETITIONS"), read("COMPETITIONS_EPREUVES"), read("COMPETITIONS_PHASES"), read("COMPETITIONS_GROUPES"),
-    deps.readRows({ block: "referentiel", sheet: "TYPES_PHASES", range: "A:ZZ" }),
-    deps.readRows({ block: "referentiel", sheet: "MODES_PHASES", range: "A:ZZ" }),
-    read("COMPETITIONS_PHASES_UNITES"), read("COMPETITIONS_GROUPES_UNITES"), read("COMPETITIONS_MATCHS"),
+    read("COMPETITIONS", "A:L"), read("COMPETITIONS_EPREUVES", "A:H", true), read("COMPETITIONS_PHASES", "A:I"), read("COMPETITIONS_GROUPES", "A:E"),
+    resilientRead(deps, { block: "referentiel", sheet: "TYPES_PHASES", range: "A:C" }),
+    resilientRead(deps, { block: "referentiel", sheet: "MODES_PHASES", range: "A:C" }),
+    read("COMPETITIONS_PHASES_UNITES", "A:J"), read("COMPETITIONS_GROUPES_UNITES", "A:E"), read("COMPETITIONS_MATCHS", "A:J"),
   ]);
   if (!competitions.some((row) => clean(row.id_competition) === competitionId))
     throw new CompetitionParticipationError("COMPETITION_INTROUVABLE", "La compétition n’existe pas.", 404);

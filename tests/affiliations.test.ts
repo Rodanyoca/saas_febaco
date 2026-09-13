@@ -13,7 +13,8 @@ function fakeDeps(kind: AffiliationKind, initial: SheetRow[] = []) {
         if (sheet === "STATUTS_AFFILIATION") return [{ id_statut_affiliation: "SAF001", nom_statut_affiliation: "ACTIF" }]
         if (sheet === "FONCTIONS") return [{ id_fonction: "FON001", nom_fonction: "PRESIDENT" }]
         if (sheet === "CLUBS") return [{ id_club: "CLU-001", nom_club: "Club Test" }]
-        if (sheet === "EQUIPES") return [{ id_equipe: "EQ-001", nom_equipe: "Équipe Test", id_club: "CLU-001" }]
+        if (sheet === "EQUIPES") return [{ id_equipe: "EQ-001", nom_equipe: "Équipe Test", id_club: "CLU-001", id_categorie_age: "AGE001" }]
+        if (sheet === "CATEGORIES_AGE") return [{ id_categorie_age: "AGE001", nom_categorie_age: "Senior" }]
         if (sheet === "LIGUES") return [{ id_ligue: "LIG-001", nom_ligue: "Ligue Test" }]
         if (sheet === "ENTENTES") return [{ id_entente: "ENT-001", nom_entente: "Entente Test" }]
         return [{ [affiliationConfig[kind].actor]: "ACT-001" }]
@@ -73,6 +74,7 @@ test("résout le club exclusivement via l'équipe", async () => {
   assert.equal(affiliations[0].equipe, "Équipe Test")
   assert.equal(affiliations[0].club, "Club Test")
   assert.equal(affiliations[0].clubId, "CLU-001")
+  assert.equal(affiliations[0].categorie, "Senior")
 })
 
 test("signale une équipe orpheline sans fabriquer de club", async () => {

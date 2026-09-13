@@ -38,7 +38,7 @@ La page `/dashboard/licences` utilise un seul `LicenceEditor` adaptatif. Les lis
 
 ## Décision en attente
 
-`FORMATS_ID` ne contient aucun format pour les licences. Le format proposé est `BKB-LIC-AAAA-######`. Tant qu’il n’est pas confirmé, la commande réelle renvoie `FORMAT_ID_LICENCE_NON_CONFIGURE` avant toute écriture. `numero_licence` reste une donnée administrative libre et distincte.
+Les identifiants techniques sont générés au format `BKB-LIC-AAAA-######`, séquentiellement pour la saison concernée. `numero_licence` reste une donnée administrative libre et distincte.
 
 ## Vérification
 

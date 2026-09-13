@@ -4,9 +4,11 @@ import { CompetitionParticipationError } from "@/lib/competition-participants";
 import { createCompetitionStructureItem, getCompetitionStructure } from "@/lib/competition-structure";
 
 export const dynamic = "force-dynamic";
-const fail = (error: unknown) => error instanceof CompetitionParticipationError
-  ? NextResponse.json({ error: { code: error.code, message: error.message, fields: error.fields } }, { status: error.status })
-  : NextResponse.json({ error: { code: "SERVICE_INDISPONIBLE", message: "Service temporairement indisponible." } }, { status: 503 });
+const fail = (error: unknown) => {
+  if (error instanceof CompetitionParticipationError) return NextResponse.json({ error: { code: error.code, message: error.message, fields: error.fields } }, { status: error.status });
+  console.error("[competitions:structure] Lecture ou écriture impossible", error);
+  return NextResponse.json({ error: { code: "SERVICE_INDISPONIBLE", message: "Chargement des phases temporairement indisponible. Réessayez dans quelques secondes." } }, { status: 503 });
+};
 
 export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
   if (!(await getSessionUser())) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });

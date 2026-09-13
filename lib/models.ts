@@ -44,6 +44,7 @@ export interface Club {
   ententeKey?: string
   nom: string
   categorie?: string
+  sexeId?: string
   version?: string
   dateAffiliation?: string
   avatarUrl?: string

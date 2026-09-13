@@ -81,9 +81,14 @@ function validateAdmin(input: Record<string, unknown>, data: Awaited<ReturnType<
   if (Object.keys(fields).length) throw new LicenceError("VALIDATION", "Veuillez corriger les champs indiqués.", 400, fields);
 }
 
-const missingIdFactory: IdFactory = () => { throw new LicenceError("FORMAT_ID_LICENCE_NON_CONFIGURE", "Le format des identifiants de licence doit être confirmé avant le premier renouvellement.", 409); };
+export const generateLicenceId: IdFactory = ({ seasonLabel, existing, offset }) => {
+  const year = seasonLabel.match(/\b(19|20)\d{2}\b/)?.[0] || String(new Date().getFullYear());
+  const pattern = new RegExp(`^BKB-LIC-${year}-(\\d{6})$`);
+  const highest = Math.max(0, ...existing.map((row) => clean(row.id_licence).match(pattern)).filter((match): match is RegExpMatchArray => Boolean(match)).map((match) => Number(match[1])).filter(Number.isFinite));
+  return `BKB-LIC-${year}-${String(highest + offset + 1).padStart(6, "0")}`;
+};
 
-export async function renewAthleteLicences(body: unknown, deps: Dependencies = defaults, makeId: IdFactory = missingIdFactory) {
+export async function renewAthleteLicences(body: unknown, deps: Dependencies = defaults, makeId: IdFactory = generateLicenceId) {
   const input = commandSource(body), mode = clean(input.mode), seasonId = clean(input.id_saison), data = await load(deps), maps = indexes(data);
   if (!maps.seasons.has(seasonId)) throw new LicenceError("SAISON_INTROUVABLE", "La saison sélectionnée n’existe pas.", 404, { id_saison: "Saison inconnue." });
   validateAdmin(input, data);
