@@ -14,25 +14,26 @@ test("les mutations de licences exigent le rôle fédéral côté serveur", asyn
   }
 });
 
-test("l'éditeur unique contient les modes athlète et équipe", async () => {
+test("l'éditeur couvre l'enregistrement individuel, le renouvellement collectif et la consultation", async () => {
   const source = await readFile("components/dashboard/licence-editor.tsx", "utf8");
-  assert.match(source, /"ATHLETE" \| "EQUIPE"/);
-  assert.match(source, />Un athlète</);
-  assert.match(source, />Une équipe</);
+  assert.match(source, /"ATHLETE"\|"EQUIPE"/);
+  assert.match(source, /Enregistrer une licence/);
+  assert.match(source, /Renouveler les licences d’une équipe/);
+  assert.match(source, /Consulter la licence/);
   assert.match(source, /Tout sélectionner/);
-  assert.match(source, /Tout désélectionner/);
-  assert.match(source, /Déjà licencié/);
-  assert.match(source, /disabled=\{item\.alreadyLicensed\}/);
-  assert.match(source, /if \(saving\) return/);
-  assert.doesNotMatch(source, /overflow-x-auto/);
+  assert.match(source, /x\.situation/);
+  assert.match(source, /Première licence à enregistrer individuellement/);
+  assert.match(source, /if\(saving\|\|readOnly\)return/);
+  assert.match(source, /disabled=\{readOnly\}/);
 });
 
 test("la page masque les actions d'écriture aux rôles non fédéraux et rend des cartes mobiles", async () => {
   const source = await readFile("app/dashboard/licences/page.tsx", "utf8");
-  assert.match(source, /setFederal\(data\?\.user\?\.role === "federal"\)/);
-  assert.match(source, /\{federal \?/);
+  assert.match(source, /setFederal\(p\?\.user\?\.role==="federal"\)/);
+  assert.match(source, /\{federal\?/);
   assert.match(source, /renderMobileCard/);
   assert.match(source, /Réessayer/);
+  assert.match(source, /readOnly=\{editorReadOnly\}/);
 });
 
 test("les nouvelles écritures ciblent uniquement les huit colonnes ATHLETE_LICENCES", async () => {

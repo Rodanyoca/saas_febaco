@@ -14,7 +14,7 @@ test("la navigation regroupe Transferts et Licences sous Mouvement", async () =>
 
 test("la page Licences expose la consultation et le renouvellement", async () => {
   const source = await readFile("app/dashboard/licences/page.tsx", "utf8");
-  assert.match(source, /title="Licences"/);
-  assert.match(source, /Renouveler des licences/);
+  assert.match(source, /title="Licences des athlètes"/);
+  assert.match(source, /Renouveler par équipe/);
   assert.match(source, /LicenceEditor/);
 });
