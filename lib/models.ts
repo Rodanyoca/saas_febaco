@@ -34,6 +34,8 @@ export interface Entente {
 
 export interface Club {
   id: string
+  villeId?: string
+  ville?: string
   ligueId?: string
   ententeId?: string
   ligueKey?: string

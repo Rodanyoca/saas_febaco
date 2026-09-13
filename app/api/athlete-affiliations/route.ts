@@ -13,6 +13,17 @@ export async function GET(request: Request) {
       equipeId: params.get("equipeId")?.trim(),
       clubId: params.get("clubId")?.trim(),
     })
+    const equipeIds = new Set(
+      (params.get("equipeIds") ?? "")
+        .split(",")
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean),
+    )
+    if (equipeIds.size) {
+      affiliations = affiliations.filter((item) =>
+        equipeIds.has(String(item.equipeId ?? item.id_equipe ?? "").trim().toLowerCase()),
+      )
+    }
     const search = params.get("search")?.trim().toLocaleLowerCase("fr")
     const status = params.get("statut")?.trim()
     const sex = params.get("sexe")?.trim()

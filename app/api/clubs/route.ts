@@ -18,7 +18,7 @@ export async function GET() {
     }
 
     const scope = scopeFromSession(user)
-    const [rows,ententeRows,ligueRows,categories] = await Promise.all([readSheetRows({ block: "structure", sheet: "clubs", range: "A:ZZ" }),readSheetRows({block:"structure",sheet:"ENTENTES",range:"A:M"}),readSheetRows({block:"structure",sheet:"LIGUES",range:"A:K"}),getReferenceMap("CATEGORIES_CLUB")])
+    const [rows,ententeRows,ligueRows,categories,villes] = await Promise.all([readSheetRows({ block: "structure", sheet: "clubs", range: "A:ZZ" }),readSheetRows({block:"structure",sheet:"ENTENTES",range:"A:M"}),readSheetRows({block:"structure",sheet:"LIGUES",range:"A:K"}),getReferenceMap("CATEGORIES_CLUB"),getReferenceMap("VILLES")])
     const ententes=new Map(ententeRows.map(row=>[row.id_entente,row])), ligues=new Map(ligueRows.map(row=>[row.id_ligue,row]))
 
     const filteredRows =
@@ -37,6 +37,7 @@ export async function GET() {
       const id = pickFirst(row, ["id_club"])
       const nom = pickFirst(row, ["nom_club"])
       const categorie = pickFirst(row, ["id_categorie_club", "categorie", "id_categorie"])
+      const villeId = pickFirst(row, ["id_ville"])
       const version = pickFirst(row, ["version"])
       const dateAffiliation = pickFirst(row, ["date_affiliation", "date_affiliation_club"])
       const ententeId = pickFirst(row, ["id_entente"])
@@ -64,6 +65,8 @@ export async function GET() {
         nom: nom || "-",
         sigle: pickFirst(row, ["sigle_club"]) || "-",
         categorie: categories.get(categorie) || categorie || "-",
+        villeId: villeId || "",
+        ville: pickFirst(row, ["nom_ville", "ville"]) || villes.get(villeId) || villeId || "-",
         version: version || "-",
         dateAffiliation: dateAffiliation || "-",
         entente: entente || "-",

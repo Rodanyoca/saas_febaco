@@ -77,7 +77,7 @@ const clubColumns: Column<Club>[] = [
   { key: "id", header: "ID", className: "font-mono text-sm" },
   { key: "nom", header: "Nom", className: "font-medium" },
   { key: "entente", header: "Entente" },
-  { key: "province", header: "Province" },
+  { key: "ville", header: "Ville" },
   { key: "statut", header: "Statut", render: (item) => <StatusBadge status={item.statut} /> },
 ]
 
@@ -233,7 +233,7 @@ export default function LigueDetailPage() {
           page: athletePage,
           pageSize: 25,
         })
-        const res = await fetch(`/api/athletes?${query}`, { cache: "no-store" })
+        const res = await fetch(`/api/athlete-affiliations?${query}`, { cache: "no-store" })
         const json = await res.json()
         if (!canceled) {
           setAthletes(Array.isArray(json?.athletes) ? json.athletes : [])
@@ -438,7 +438,7 @@ export default function LigueDetailPage() {
                           {athlete.prenom} {athlete.nom}
                         </TableCell>
                         <TableCell>{athlete.equipe}</TableCell>
-                        <TableCell>{athlete.categorie}</TableCell>
+                        <TableCell>{athlete.categorie || "Non définie"}</TableCell>
                         <TableCell>{athlete.sexe}</TableCell>
                         <TableCell>
                           <StatusBadge status={athlete.statut} />
