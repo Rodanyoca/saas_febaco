@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LucideIcon } from "lucide-react"
+import { formatDateField } from "@/lib/date-format"
 
 interface DetailField {
   label: string
@@ -26,7 +27,7 @@ export function DetailCard({ title, icon: Icon, fields }: DetailCardProps) {
           <div key={index} className="flex items-start justify-between gap-3">
             <span className="text-sm text-muted-foreground shrink-0">{field.label}</span>
             <span className="text-sm font-medium text-foreground text-right min-w-0 max-w-[70%] whitespace-normal break-words">
-              {field.value ?? "-"}
+              {formatDateField(field.value, "", field.label)}
             </span>
           </div>
         ))}

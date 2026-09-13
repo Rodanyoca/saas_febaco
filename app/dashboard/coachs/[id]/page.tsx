@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Coach, CoachAffiliation } from "@/lib/models"
+import { formatDisplayDate } from "@/lib/date-format"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
@@ -313,8 +314,8 @@ export default function CoachDetailPage() {
                             <TableCell>{display(affiliation.equipeNom)}</TableCell>
                             <TableCell>{display(affiliation.clubNom)}</TableCell>
                             <TableCell>{display(affiliation.fonction)}</TableCell>
-                            <TableCell>{display(affiliation.dateDebut)}</TableCell>
-                            <TableCell>{display(affiliation.dateFin)}</TableCell>
+                            <TableCell>{formatDisplayDate(affiliation.dateDebut)}</TableCell>
+                            <TableCell>{formatDisplayDate(affiliation.dateFin)}</TableCell>
                             <TableCell><StatusBadge status={affiliation.statut} /></TableCell>
                           </TableRow>
                         ))

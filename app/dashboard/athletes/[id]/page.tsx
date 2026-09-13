@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Athlete, AthleteLicence, Transfert } from "@/lib/models"
+import { formatDisplayDate } from "@/lib/date-format"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
@@ -313,8 +314,8 @@ export default function AthleteDetailPage() {
                             <TableCell>{display(transfert.clubOrigine)}</TableCell>
                             <TableCell>{display(transfert.equipeBeneficiaire)}</TableCell>
                             <TableCell className="font-medium">{display(transfert.clubBeneficiaire)}</TableCell>
-                            <TableCell>{displaySync(transfert.dateDebut)}</TableCell>
-                            <TableCell>{displaySync(transfert.dateFin)}</TableCell>
+                            <TableCell>{formatDisplayDate(transfert.dateDebut)}</TableCell>
+                            <TableCell>{formatDisplayDate(transfert.dateFin)}</TableCell>
                             <TableCell><StatusBadge status={transfert.statut} /></TableCell>
                           </TableRow>
                         ))
@@ -364,7 +365,7 @@ export default function AthleteDetailPage() {
                             <TableCell className="font-mono font-medium">{display(licence.numero)}</TableCell>
                             <TableCell>{display(licence.structure)}</TableCell>
                             <TableCell>{display(licence.dateDelivrance)}</TableCell>
-                            <TableCell>{display(licence.dateFinValidite)}</TableCell>
+                            <TableCell>{formatDisplayDate(licence.dateFinValidite)}</TableCell>
                             <TableCell><StatusBadge status={licence.statut} /></TableCell>
                           </TableRow>
                         ))

@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { formatDateField } from "@/lib/date-format"
 
 export interface Column<T> {
   key: keyof T | string
@@ -204,7 +205,7 @@ export function DataTable<T extends object>({
                     >
                       {column.render
                         ? column.render(item)
-                        : String(getValue(item, column.key) ?? "-")}
+                        : formatDateField(getValue(item, column.key), String(column.key), column.header)}
                     </TableCell>
                   ))}
                   {(detailHref || renderActions) && (

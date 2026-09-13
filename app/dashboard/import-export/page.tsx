@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { ExportActionId, ImportExportMode } from "@/lib/import-export/template-types"
 import { cn } from "@/lib/utils"
+import { formatDisplayDate } from "@/lib/date-format"
 
 type LigueOption = { id: string; nom: string }
 type EntenteOption = { id: string; nom: string; ligueId: string }
@@ -170,7 +171,7 @@ export default function ImportExportPage() {
       setLigues(Array.isArray(leagueData?.ligues) ? leagueData.ligues : [])
       setEntentes(Array.isArray(ententeData?.ententes) ? ententeData.ententes : [])
       setTeams(Array.isArray(teamData?.equipes) ? teamData.equipes : [])
-      setCompetitions(Array.isArray(competitionData?.competitions) ? competitionData.competitions : [])
+      setCompetitions(Array.isArray(competitionData?.competitions) ? competitionData.competitions.map((item: CompetitionOption) => ({ ...item, dateDebut: formatDisplayDate(item.dateDebut), dateFin: formatDisplayDate(item.dateFin) })) : [])
       setCanGenerate(sessionData?.user?.role === "federal")
     }).catch(() => {
       if (!cancelled) setLoadError(true)

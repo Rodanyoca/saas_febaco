@@ -3,6 +3,7 @@
 import { LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { formatDatesInText } from "@/lib/date-format"
 
 interface HeaderProps {
   title: string
@@ -25,7 +26,7 @@ export function Header({ title, subtitle }: HeaderProps) {
       <div className="min-w-0 border-l-2 border-primary pl-3">
         <h1 className="truncate text-xl font-bold tracking-[-0.02em] text-foreground">{title}</h1>
         {subtitle && (
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
+          <p className="text-sm text-muted-foreground">{formatDatesInText(subtitle)}</p>
         )}
       </div>
 

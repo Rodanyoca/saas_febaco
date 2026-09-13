@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ArrowLeft, Camera, Contact, Fingerprint, Flag } from "lucide-react"
+import { formatDisplayDate } from "@/lib/date-format"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
@@ -300,8 +301,8 @@ export default function OfficielDetailPage() {
                           <TableRow key={mandat.__key ?? mandat.id}>
                             <TableCell className="font-medium">{display(mandat.fonction)}</TableCell>
                             <TableCell>{display(mandat.structureNom)}</TableCell>
-                            <TableCell>{display(mandat.dateDebut)}</TableCell>
-                            <TableCell>{display(mandat.dateFin)}</TableCell>
+                            <TableCell>{formatDisplayDate(mandat.dateDebut)}</TableCell>
+                            <TableCell>{formatDisplayDate(mandat.dateFin)}</TableCell>
                             <TableCell><StatusBadge status={mandat.statut} /></TableCell>
                           </TableRow>
                         ))

@@ -7,12 +7,13 @@ import { Header } from "@/components/dashboard/header";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatDisplayDate } from "@/lib/date-format";
 
 type Participant = { id: string; competitionId: string; competition: string; club: string; equipe: string; categorie: string; sexe: string; groupe: string; dateInscription: string; statut: string };
 
 export default function CompetitionParticipantsPage() {
   const [items, setItems] = useState<Participant[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState(""), [query, setQuery] = useState(""), [competition, setCompetition] = useState("all");
-  useEffect(() => { let active = true; void fetch("/api/competitions-participants", { cache: "no-store" }).then(async (response) => { const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Lecture impossible."); if (active) setItems(payload.participants || []); }).catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "Lecture impossible."); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
+  useEffect(() => { let active = true; void fetch("/api/competitions-participants", { cache: "no-store" }).then(async (response) => { const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Lecture impossible."); if (active) setItems((payload.participants || []).map((item: Participant) => ({ ...item, dateInscription: formatDisplayDate(item.dateInscription) }))); }).catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : "Lecture impossible."); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, []);
   const competitions = useMemo(() => [...new Map(items.map((item) => [item.competitionId, item.competition])).entries()], [items]);
   const visible = useMemo(() => items.filter((item) => (competition === "all" || item.competitionId === competition) && `${item.competition} ${item.club} ${item.equipe} ${item.groupe}`.toLocaleLowerCase("fr").includes(query.trim().toLocaleLowerCase("fr"))), [items, competition, query]);
   return <div className="flex min-w-0 flex-col"><Header title="Clubs participants" subtitle="Équipes engagées dans les compétitions"/><main className="min-w-0 space-y-5 p-6">
