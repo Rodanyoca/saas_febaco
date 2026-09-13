@@ -102,6 +102,18 @@ test("recherche aussi par numéro officiel", async () => {
   assert.equal(result.licences.length, 1);
 });
 
+test("classe les licences de la saison la plus récente à la plus ancienne", async () => {
+  const setup = fixture({
+    SAISON: [{ id_saison: "SAI005", nom_saison: "2025" }, { id_saison: "SAI006", nom_saison: "2026" }],
+    ATHLETE_LICENCES: [
+      { id_licence: "LIC-OLD", id_athlete: "ATH-1", id_saison: "SAI005", id_affiliation_athlete: "AFA-1", date_delivrance: "2025-01-01", id_statut_licence: "STL001" },
+      { id_licence: "LIC-NEW", id_athlete: "ATH-2", id_saison: "SAI006", id_affiliation_athlete: "AFA-2", date_delivrance: "2026-01-01", id_statut_licence: "STL001" },
+    ],
+  });
+  const result = await listAthleteLicences({}, { role: "federal" }, setup.deps);
+  assert.deepEqual(result.licences.map((item) => item.id), ["LIC-NEW", "LIC-OLD"]);
+});
+
 test("refuse les dates fictives de 1900", async () => {
   const setup = fixture();
   await assert.rejects(renewAthleteLicences({ mode: "ATHLETE", id_saison: "SAI006", id_affiliation_athlete: "AFA-1", numero_licence: "100", date_delivrance: "1900-01-01", id_statut_licence: "STL001" }, setup.deps), (error: unknown) => error instanceof LicenceError && !!error.fields.date_delivrance);

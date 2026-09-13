@@ -2,13 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 
-test("la navigation regroupe Transferts et Licences sous Mouvement", async () => {
+test("la navigation conserve uniquement Licences sous Mouvement", async () => {
   const source = await readFile("components/dashboard/sidebar.tsx", "utf8");
   const movement = source.match(/const navigationMouvement[\s\S]*?\n\]/)?.[0] || "";
   const competition = source.match(/const navigationCompetition[\s\S]*?\n\]/)?.[0] || "";
-  assert.match(movement, /\/dashboard\/transferts/);
   assert.match(movement, /\/dashboard\/licences/);
-  assert.doesNotMatch(competition, /transferts/);
+  assert.doesNotMatch(competition, /licences/);
   assert.match(source, /title="Mouvement"/);
 });
 

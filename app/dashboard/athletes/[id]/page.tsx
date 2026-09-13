@@ -22,8 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { Athlete, AthleteLicence, Transfert } from "@/lib/models"
-import { formatDisplayDate } from "@/lib/date-format"
+import type { Athlete, AthleteLicence } from "@/lib/models"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
@@ -53,8 +52,6 @@ export default function AthleteDetailPage() {
   const [loading, setLoading] = useState(true)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
-  const transferts: Transfert[] = []
-  const transfertsLoading = false
 
   const reloadAthletes = async () => {
     try {
@@ -282,55 +279,6 @@ export default function AthleteDetailPage() {
 
           <TabsContent value="affiliation">
             <AffiliationsPanel kind="athlete" actorId={athlete.id} />
-            {false && <Card>
-              <CardHeader>
-                <CardTitle>Historique des affiliations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Saison</TableHead>
-                        <TableHead>Club origine</TableHead>
-                        <TableHead>Équipe bénéficiaire</TableHead>
-                        <TableHead>Club bénéficiaire</TableHead>
-                        <TableHead>Date début</TableHead>
-                        <TableHead>Date fin</TableHead>
-                        <TableHead>Statut</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transfertsLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                            Chargement des affiliations...
-                          </TableCell>
-                        </TableRow>
-                      ) : transferts.length > 0 ? (
-                        transferts.map((transfert) => (
-                          <TableRow key={transfert.__key ?? transfert.id}>
-                            <TableCell>{display(transfert.saison)}</TableCell>
-                            <TableCell>{display(transfert.clubOrigine)}</TableCell>
-                            <TableCell>{display(transfert.equipeBeneficiaire)}</TableCell>
-                            <TableCell className="font-medium">{display(transfert.clubBeneficiaire)}</TableCell>
-                            <TableCell>{formatDisplayDate(transfert.dateDebut)}</TableCell>
-                            <TableCell>{formatDisplayDate(transfert.dateFin)}</TableCell>
-                            <TableCell><StatusBadge status={transfert.statut} /></TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                            Aucune affiliation enregistrée.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>}
           </TabsContent>
 
           <TabsContent value="licence">
@@ -347,14 +295,13 @@ export default function AthleteDetailPage() {
                         <TableHead>Numéro</TableHead>
                         <TableHead>Structure</TableHead>
                         <TableHead>Délivrée le</TableHead>
-                        <TableHead>Expire le</TableHead>
                         <TableHead>Statut</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {licencesLoading ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                          <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                             Chargement des licences...
                           </TableCell>
                         </TableRow>
@@ -365,13 +312,12 @@ export default function AthleteDetailPage() {
                             <TableCell className="font-mono font-medium">{display(licence.numero)}</TableCell>
                             <TableCell>{display(licence.structure)}</TableCell>
                             <TableCell>{display(licence.dateDelivrance)}</TableCell>
-                            <TableCell>{formatDisplayDate(licence.dateFinValidite)}</TableCell>
                             <TableCell><StatusBadge status={licence.statut} /></TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                          <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                             Aucune licence enregistrée.
                           </TableCell>
                         </TableRow>

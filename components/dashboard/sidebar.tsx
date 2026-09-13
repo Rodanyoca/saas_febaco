@@ -15,7 +15,6 @@ import {
   Flag,
   BadgeCheck,
   Stethoscope,
-  ArrowRightLeft,
   CreditCard,
   Trophy,
   ClipboardList,
@@ -52,7 +51,6 @@ const navigationCompetition: NavItem[] = [
 ]
 
 const navigationMouvement: NavItem[] = [
-  { name: "Transferts", href: "/dashboard/transferts", icon: ArrowRightLeft },
   { name: "Licences", href: "/dashboard/licences", icon: CreditCard },
 ]
 

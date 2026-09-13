@@ -117,27 +117,6 @@ export interface Athlete {
   statut: string
 }
 
-export interface Transfert {
-  __key?: string
-  id: string
-  athleteId?: string
-  athleteNom: string
-  equipeOrigineId?: string
-  equipeOrigine: string
-  clubOrigineId?: string
-  clubOrigine: string
-  equipeBeneficiaireId?: string
-  equipeBeneficiaire: string
-  clubBeneficiaireId?: string
-  clubBeneficiaire: string
-  typeTransfert: string
-  saison: string
-  dateDebut: string
-  dateFin: string
-  statut: string
-  observation: string
-}
-
 export interface AthleteLicence {
   __key?: string
   id: string
@@ -152,7 +131,6 @@ export interface AthleteLicence {
   saison: string
   numero: string
   dateDelivrance: string
-  dateFinValidite: string
   statut: string
   observation: string
 }
