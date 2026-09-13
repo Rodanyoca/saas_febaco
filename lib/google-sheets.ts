@@ -26,6 +26,11 @@ const spreadsheetEnvByBlock: Record<SheetBlock, string> = {
   importExport: "GOOGLE_SHEETS_IMPORT_EXPORT_ID",
 };
 
+const spreadsheetFallbackByBlock: Partial<Record<SheetBlock, string>> = {
+  referentiel: "1hoW2S9NRzhhtBuXtkLnMqOSdhYyjKtDEVPHQr7pVQRg",
+  competitions: "19pBbuaxnDlaCIjNQdJBce5NrNE6sxanqtLNBbWkrdY4",
+};
+
 const sheetBlockByName: Record<string, SheetBlock> = {
   provinces: "structure",
   ligues: "structure",
@@ -63,11 +68,7 @@ function requiredEnv(name: string): string {
 
 function getSpreadsheetId(block: SheetBlock): string {
   const envName = spreadsheetEnvByBlock[block];
-  const value =
-    process.env[envName] ??
-    (block === "referentiel"
-      ? "1hoW2S9NRzhhtBuXtkLnMqOSdhYyjKtDEVPHQr7pVQRg"
-      : undefined);
+  const value = process.env[envName] ?? spreadsheetFallbackByBlock[block];
   if (!value) {
     throw new Error(
       `Spreadsheet ID absent pour le bloc '${block}' (${envName}).`,

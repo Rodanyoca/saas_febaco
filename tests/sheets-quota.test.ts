@@ -21,3 +21,9 @@ test("déduplique aussi deux lectures fraîches simultanées", async () => {
   assert.match(source, /const pending = pendingReads\.get\(cacheKey\)/);
   assert.doesNotMatch(source, /const pending = params\.fresh \? undefined : pendingReads\.get\(cacheKey\)/);
 });
+
+test("dispose d'un classeur canonique pour le bloc compétitions en production", async () => {
+  const source = await import("node:fs/promises").then((fs) => fs.readFile("lib/google-sheets.ts", "utf8"));
+  assert.match(source, /spreadsheetFallbackByBlock/);
+  assert.match(source, /competitions:\s*"[A-Za-z0-9_-]+"/);
+});

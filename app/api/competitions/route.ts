@@ -22,7 +22,8 @@ export async function GET(req: Request) {
       : all;
 
     return NextResponse.json({ competitions });
-  } catch {
+  } catch (error) {
+    console.error("[competitions:list] Lecture impossible", error);
     return NextResponse.json(
       { competitions: [], error: { code: "SERVICE_INDISPONIBLE", message: "Service temporairement indisponible." } },
       { status: 503 },
