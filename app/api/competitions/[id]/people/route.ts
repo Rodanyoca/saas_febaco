@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
   if (!(await getSessionUser())) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   try { return NextResponse.json(await getCompetitionPeople(decodeURIComponent((await context.params).id))); }
-  catch (error) { return error instanceof CompetitionParticipationError ? NextResponse.json({ error: error.message }, { status: error.status }) : NextResponse.json({ error: "Lecture des participants impossible." }, { status: 503 }); }
+  catch (error) { if (!(error instanceof CompetitionParticipationError)) console.error("[competitions:people] Lecture impossible", error); return error instanceof CompetitionParticipationError ? NextResponse.json({ error: error.message }, { status: error.status }) : NextResponse.json({ error: "Lecture des participants impossible." }, { status: 503 }); }
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {

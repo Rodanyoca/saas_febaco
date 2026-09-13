@@ -1,8 +1,9 @@
 import { pickFirst, readSheetRows, writeSheetRowByHeaders, type SheetRow } from "@/lib/google-sheets"
+import { resolveAthleteAgeCategory } from "@/lib/athlete-age-category"
 
 export type AffiliationKind = "athlete" | "coach" | "medecin" | "officiel" | "autre"
 export type AffiliationFields = Record<string, string>
-export type AffiliationFilters = { actorId?: string; equipeId?: string; clubId?: string; typeEntiteId?: string; entiteId?: string }
+export type AffiliationFilters = { actorId?: string; equipeId?: string; clubId?: string; ligueId?: string; typeEntiteId?: string; entiteId?: string }
 export class AffiliationError extends Error { constructor(public code: string, message: string, public status = 400, public fields?: AffiliationFields) { super(message) } }
 
 export const affiliationConfig = {
@@ -52,13 +53,13 @@ const overlaps = (aStart: string, aEnd: string, bStart: string, bEnd: string) =>
 
 export async function listAffiliations(kind: AffiliationKind, filters: string | AffiliationFilters = {}, deps: Deps = defaults) {
   const query = typeof filters === "string" ? { actorId: filters } : filters, config = affiliationConfig[kind]
-  const [rows, statuses, actors] = await Promise.all([deps.readRows({ block: "affiliations", sheet: config.sheet, range: "A:ZZ", fresh: true }), rowsOrUnavailable(deps, "referentiel", "STATUTS_AFFILIATION"), rowsOrUnavailable(deps, "acteurs", actorSheets[kind][0])])
+  const [rows, statuses, actors] = await Promise.all([deps.readRows({ block: "affiliations", sheet: config.sheet, range: "A:ZZ" }), rowsOrUnavailable(deps, "referentiel", "STATUTS_AFFILIATION"), rowsOrUnavailable(deps, "acteurs", actorSheets[kind][0])])
   const statusById = new Map(statuses.map((r) => [clean(r.id_statut_affiliation), r])), actorById = new Map(actors.map((r) => [clean(r[actorSheets[kind][1]]), r]))
-  let teams: SheetRow[] = [], clubs: SheetRow[] = [], categories: SheetRow[] = [], functions: SheetRow[] = []
-  if (kind === "athlete") [teams, clubs, categories] = await Promise.all([rowsOrUnavailable(deps, "structure", "EQUIPES"), rowsOrUnavailable(deps, "structure", "CLUBS"), rowsOrUnavailable(deps, "referentiel", "CATEGORIES_AGE")])
+  let teams: SheetRow[] = [], clubs: SheetRow[] = [], ententes: SheetRow[] = [], categories: SheetRow[] = [], functions: SheetRow[] = []
+  if (kind === "athlete") [teams, clubs, ententes, categories] = await Promise.all([rowsOrUnavailable(deps, "structure", "EQUIPES"), rowsOrUnavailable(deps, "structure", "CLUBS"), rowsOrUnavailable(deps, "structure", "ENTENTES"), rowsOrUnavailable(deps, "referentiel", "CATEGORIES_AGE")])
   else if (["coach", "medecin"].includes(kind)) [teams, clubs] = await Promise.all([rowsOrUnavailable(deps, "structure", "EQUIPES"), rowsOrUnavailable(deps, "structure", "CLUBS")])
   if (["coach", "officiel"].includes(kind)) functions = await rowsOrUnavailable(deps, "referentiel", "FONCTIONS")
-  const teamById = new Map(teams.map((r) => [clean(r.id_equipe), r])), clubById = new Map(clubs.map((r) => [clean(r.id_club), r])), categoryById = new Map(categories.map((r) => [clean(r.id_categorie_age), clean(r.nom_categorie_age)])), functionById = new Map(functions.map((r) => [clean(r.id_fonction), r]))
+  const teamById = new Map(teams.map((r) => [clean(r.id_equipe), r])), clubById = new Map(clubs.map((r) => [clean(r.id_club), r])), ententeById = new Map(ententes.map((r) => [clean(r.id_entente), r])), functionById = new Map(functions.map((r) => [clean(r.id_fonction), r]))
   const entityRows = new Map<string, Map<string, SheetRow>>()
   if (kind === "officiel") for (const [type, ref] of Object.entries(entityTypes)) entityRows.set(type, new Map((await rowsOrUnavailable(deps, ref.block, ref.sheet)).map((r) => [clean(r[ref.id]), r])))
   return rows.map((row) => {
@@ -66,10 +67,10 @@ export async function listAffiliations(kind: AffiliationKind, filters: string | 
     for (const field of config.fields) item[field] = clean(row[field])
     item[actorLabels[kind]] = fullName(actor); item.nomActeur = fullName(actor); item.id_sexe = clean(actor?.id_sexe); item.sexe = item.id_sexe === "SEX001" ? "M" : item.id_sexe === "SEX002" ? "F" : ""; item.statut = clean(statusById.get(item.id_statut_affiliation)?.nom_statut_affiliation) || item.id_statut_affiliation; item.fonction = clean(functionById.get(item.id_fonction)?.nom_fonction)
     const anomalies: string[] = []; if (!actor) anomalies.push(`Acteur introuvable : ${actorId}`)
-    if (["athlete", "coach", "medecin"].includes(kind)) { const team = teamById.get(item.id_equipe), clubId = clean(team?.id_club), club = clubById.get(clubId), categorieId = clean(team?.id_categorie_age); item.equipeId = item.id_equipe; item.equipe = clean(team?.nom_equipe); item.clubId = clubId; item.club = clean(club?.nom_club); if (kind === "athlete") { item.categorieId = categorieId; item.categorie = categoryById.get(categorieId) || categorieId } if (!team) anomalies.push(`Équipe introuvable : ${item.id_equipe}`); else if (!club) anomalies.push(`Club introuvable : ${clubId}`) }
+    if (["athlete", "coach", "medecin"].includes(kind)) { const team = teamById.get(item.id_equipe), clubId = clean(team?.id_club), club = clubById.get(clubId); item.equipeId = item.id_equipe; item.equipe = clean(team?.nom_equipe); item.clubId = clubId; item.club = clean(club?.nom_club); if (kind === "athlete") { const ageCategory = resolveAthleteAgeCategory(pickFirst(actor || {}, ["date_de_naissance", "date_naissance"]), categories); item.categorieId = ageCategory.id; item.categorie = ageCategory.label; item.ligueId = clean(ententeById.get(clean(club?.id_entente))?.id_ligue) } if (!team) anomalies.push(`Équipe introuvable : ${item.id_equipe}`); else if (!club) anomalies.push(`Club introuvable : ${clubId}`) }
     if (kind === "officiel") { const ref = entityTypes[item.id_type_entite], entity = entityRows.get(item.id_type_entite)?.get(item.id_entite); item.typeEntite = item.id_type_entite; item.entiteId = item.id_entite; item.entite = ref && entity ? clean(entity[ref.label]) : ""; if (item.id_type_entite === "STR099") anomalies.push("L’entité AUTRE ne possède pas de référentiel résolvable."); else if (!ref || !entity) anomalies.push(`Entité introuvable : ${item.id_entite}`) }
     item.anomalie = anomalies.join(" · "); item.dateDebut = item.date_debut; item.dateFin = item.date_fin; return item
-  }).filter((i) => (!query.actorId || i.actorId === query.actorId) && (!query.equipeId || i.equipeId === query.equipeId) && (!query.clubId || i.clubId === query.clubId) && (!query.typeEntiteId || i.id_type_entite === query.typeEntiteId) && (!query.entiteId || i.id_entite === query.entiteId)).sort((a, b) => b.date_debut.localeCompare(a.date_debut))
+  }).filter((i) => (!query.actorId || i.actorId === query.actorId) && (!query.equipeId || i.equipeId === query.equipeId) && (!query.clubId || i.clubId === query.clubId) && (!query.ligueId || i.ligueId === query.ligueId) && (!query.typeEntiteId || i.id_type_entite === query.typeEntiteId) && (!query.entiteId || i.id_entite === query.entiteId)).sort((a, b) => b.date_debut.localeCompare(a.date_debut))
 }
 export const listAthleteAffiliations = (filters: AffiliationFilters = {}, deps: Deps = defaults) => listAffiliations("athlete", filters, deps)
 

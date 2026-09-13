@@ -9,3 +9,24 @@ export function sanitizeLicenceOptions(options: LicenceOption[]): LicenceOption[
     return [{ id, label: String(item?.label ?? "").trim() || id }]
   })
 }
+
+function normalizeLicenceSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("fr")
+    .trim()
+}
+
+export function searchLicenceOptions(
+  options: LicenceOption[],
+  query: string,
+  limit = 50,
+): LicenceOption[] {
+  const term = normalizeLicenceSearch(query)
+  if (term.length < 2 || limit <= 0) return []
+
+  return options
+    .filter((item) => normalizeLicenceSearch(`${item.label} ${item.id}`).includes(term))
+    .slice(0, limit)
+}

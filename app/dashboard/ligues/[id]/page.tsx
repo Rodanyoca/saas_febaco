@@ -124,7 +124,7 @@ export default function LigueDetailPage() {
           fetch("/api/ligues", { cache: "no-store" }),
           fetch("/api/ententes", { cache: "no-store" }),
           fetch("/api/clubs", { cache: "no-store" }),
-          fetch("/api/equipes", { cache: "no-store" }),
+          fetch("/api/equipes?fresh=1", { cache: "no-store" }),
         ])
 
         const [liguesJson, ententesJson, clubsJson, equipesJson] = await Promise.all([
@@ -202,19 +202,12 @@ export default function LigueDetailPage() {
     })
   }, [equipes, ligue, ligueNameCandidates, relatedClubs, relatedEntentes])
 
-  const equipeIdsKey = useMemo(() => {
-    return relatedEquipes
-      .map((item) => String(item.id ?? "").trim())
-      .filter((id) => id && id !== "-")
-      .join(",")
-  }, [relatedEquipes])
-
   useEffect(() => {
     setAthletePage(1)
-  }, [athleteSearch, athleteStatus, athleteSexe, equipeIdsKey])
+  }, [athleteSearch, athleteStatus, athleteSexe, ligue?.id])
 
   useEffect(() => {
-    if (!ligue || !equipeIdsKey) {
+    if (!ligue) {
       setAthletes([])
       setAthletePagination((prev) => ({ ...prev, page: 1, total: 0, totalPages: 1 }))
       return
@@ -226,7 +219,6 @@ export default function LigueDetailPage() {
       try {
         const query = buildQuery({
           ligueId: ligue.id,
-          equipeIds: equipeIdsKey,
           search: athleteSearch,
           statut: athleteStatus === "all" ? undefined : athleteStatus,
           sexe: athleteSexe === "all" ? undefined : athleteSexe,
@@ -254,7 +246,7 @@ export default function LigueDetailPage() {
     return () => {
       canceled = true
     }
-  }, [athletePage, athleteSearch, athleteSexe, athleteStatus, equipeIdsKey, ligue])
+  }, [athletePage, athleteSearch, athleteSexe, athleteStatus, ligue])
 
   if (loading) {
     return (

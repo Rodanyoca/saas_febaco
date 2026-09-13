@@ -22,7 +22,7 @@ const categoryType: Record<ParticipantCategory, StoredType> = { athletes: "ATHLE
 const typeCategory = Object.fromEntries(Object.entries(categoryType).map(([category, type]) => [type, category])) as Record<StoredType, ParticipantCategory>;
 
 async function load(deps: Dependencies) {
-  const comp = (sheet: string) => deps.readRows({ block: "competitions", sheet, range: "A:ZZ", fresh: true });
+  const comp = (sheet: string) => deps.readRows({ block: "competitions", sheet, range: "A:ZZ" });
   const actors = (sheet: string) => deps.readRows({ block: "acteurs", sheet, range: "A:ZZ" });
   const affiliations = (sheet: string) => deps.readRows({ block: "affiliations", sheet, range: "A:ZZ" });
   const refs = (sheet: string) => deps.readRows({ block: "referentiel", sheet, range: "A:ZZ" });

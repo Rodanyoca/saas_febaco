@@ -41,6 +41,20 @@ test("ne lit aucune feuille de membres absente du classeur compétitions", async
   assert.equal(sheets.includes("COMPETITIONS_PARTICIPANTS_MEMBRES"), false);
 });
 
+test("les participants utilisent le cache Sheets de secours en cas de quota", async () => {
+  const setup = fixture();
+  const base = setup.deps as unknown as { readRows: (params: { sheet: string; fresh?: boolean }) => Promise<SheetRow[]> };
+  const calls: Array<{ sheet: string; fresh?: boolean }> = [];
+  await getCompetitionPeople("COMP-1", {
+    ...base,
+    readRows: async (params: { sheet: string; fresh?: boolean }) => {
+      calls.push(params);
+      return base.readRows(params);
+    },
+  } as never);
+  assert.equal(calls.filter((call) => call.sheet.startsWith("COMPETITIONS_") || call.sheet === "COMPETITIONS").some((call) => call.fresh), false);
+});
+
 test("propose les athlètes affiliés et les rôles adaptés des autres registres", async () => {
   const result = await getCompetitionPeople("COMP-1", fixture({ COMPETITIONS_PARTICIPANTS_MEMBRES: [] }).deps);
   assert.deepEqual({ nom: result.available.athletes[0].nom, equipe: result.available.athletes[0].equipe }, { nom: "Jean Test", equipe: "Matonge Senior" });

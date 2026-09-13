@@ -144,7 +144,7 @@ export default function ClubDetailPage() {
       const [clubsData, equipesData, coachsData, medecinsData, officielsData, arbitresData] =
         await Promise.all([
           loadList<Club>("/api/clubs", "clubs"),
-          loadList<Equipe>("/api/equipes", "equipes"),
+          loadList<Equipe>("/api/equipes?fresh=1", "equipes"),
           loadList<Coach>("/api/coachs", "coachs"),
           loadList<Medecin>("/api/medecins", "medecins"),
           loadList<Officiel>("/api/officiels", "officiels"),
@@ -172,7 +172,7 @@ export default function ClubDetailPage() {
   }, [])
 
   const reloadEquipes = async () => {
-    setEquipes(await loadList<Equipe>("/api/equipes", "equipes"))
+    setEquipes(await loadList<Equipe>("/api/equipes?fresh=1", "equipes"))
   }
 
   const club = useMemo(() => {
@@ -384,12 +384,11 @@ export default function ClubDetailPage() {
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatTile icon={Layers} label="Équipes" value={clubEquipes.length} />
           <StatTile icon={Users} label="Athlètes" value={athletePagination.total} />
           <StatTile icon={Briefcase} label="Coachs" value={linkedCoachs.length} />
           <StatTile icon={Shield} label="Médecins" value={linkedMedecins.length} />
-          <StatTile icon={CalendarDays} label="Compétitions" value="En cours" />
         </div>
 
         <Card>

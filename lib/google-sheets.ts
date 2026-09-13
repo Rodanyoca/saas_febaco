@@ -168,9 +168,8 @@ export function canonicalizeReadRange(
   sheet: string,
   range: string,
 ): string {
-  return block === "structure" && TERRITORIAL_SHEETS.has(normalizeHeader(sheet))
-    ? "A:ZZ"
-    : range;
+  if (block === "referentiel" || block === "competitions") return "A:ZZ";
+  return block === "structure" && TERRITORIAL_SHEETS.has(normalizeHeader(sheet)) ? "A:ZZ" : range;
 }
 
 function googleErrorStatus(error: unknown): number | undefined {
@@ -231,11 +230,10 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
             if (entry.expiresAt <= now) readCache.delete(key);
           if (readCache.size >= 100) readCache.clear();
         }
-        if (!params.fresh)
-          readCache.set(cacheKey, {
-            expiresAt: Date.now() + SHEETS_CACHE_TTL_MS,
-            value: values,
-          });
+        readCache.set(cacheKey, {
+          expiresAt: Date.now() + SHEETS_CACHE_TTL_MS,
+          value: values,
+        });
         return values;
       } catch (error) {
         lastError = error;

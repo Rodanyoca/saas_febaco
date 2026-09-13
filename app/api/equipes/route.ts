@@ -13,6 +13,14 @@ function normalize(value: unknown): string {
   return String(value ?? "").trim().toLowerCase()
 }
 
+async function optionalReferenceMap(sheet: string) {
+  try { return await getReferenceMap(sheet) }
+  catch (error) {
+    console.warn(`[api/equipes] Référentiel facultatif indisponible: ${sheet}`, error)
+    return new Map<string, string>()
+  }
+}
+
 export async function GET(req: Request) {
   try {
     const user=await getSessionUser()
@@ -21,11 +29,12 @@ export async function GET(req: Request) {
     }
     const scope=scopeFromSession(user)
     const { searchParams } = new URL(req.url)
+    const fresh = searchParams.get("fresh") === "1"
     const filterLigueId = normalize(searchParams.get("ligueId"))
     const filterLigueName = normalize(searchParams.get("ligue"))
     const filterClubId = normalize(searchParams.get("clubId"))
     const filterClubName = normalize(searchParams.get("club"))
-    const [rows,clubRows,ententeRows,ligueRows,categories,sexes] = await Promise.all([readSheetRows("equipes"),readSheetRows({block:"structure",sheet:"CLUBS",range:"A:P"}),readSheetRows({block:"structure",sheet:"ENTENTES",range:"A:M"}),readSheetRows({block:"structure",sheet:"LIGUES",range:"A:K"}),getReferenceMap("CATEGORIES_AGE"),getReferenceMap("SEXES")])
+    const [rows,clubRows,ententeRows,ligueRows,categories,sexes] = await Promise.all([readSheetRows({block:"structure",sheet:"EQUIPES",range:"A:ZZ",fresh}),readSheetRows({block:"structure",sheet:"CLUBS",range:"A:P"}),readSheetRows({block:"structure",sheet:"ENTENTES",range:"A:M"}),readSheetRows({block:"structure",sheet:"LIGUES",range:"A:K"}),optionalReferenceMap("CATEGORIES_AGE"),optionalReferenceMap("SEXES")])
     const clubs=new Map(clubRows.map(row=>[row.id_club,row])),ententes=new Map(ententeRows.map(row=>[row.id_entente,row])),ligues=new Map(ligueRows.map(row=>[row.id_ligue,row.nom_ligue]))
 
     const filteredRows = rows.filter((row) => {

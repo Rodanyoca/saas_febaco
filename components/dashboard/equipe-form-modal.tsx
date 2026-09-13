@@ -75,7 +75,14 @@ export function EquipeFormModal({
         const payload = await response.json();
         if (!response.ok)
           throw new Error(payload.error || "Référentiels indisponibles.");
-        setRefs(payload.referentiels || {});
+        const nextRefs = payload.referentiels || {};
+        setRefs(nextRefs);
+        if (!equipe) {
+          const basketball = (nextRefs.DISCIPLINES || []).find((option: Option) =>
+            option.label.toLocaleLowerCase("fr").includes("basket"),
+          );
+          if (basketball) setValues((current) => ({ ...current, id_discipline: current.id_discipline || basketball.id }));
+        }
       })
       .catch((error) =>
         setErrors({
@@ -179,7 +186,6 @@ export function EquipeFormModal({
             ) : null}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            {referenceField("id_discipline", "Discipline", "DISCIPLINES")}
             {referenceField(
               "id_categorie_age",
               "Catégorie d’âge",

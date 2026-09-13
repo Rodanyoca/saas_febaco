@@ -2,12 +2,13 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { readFile } from "node:fs/promises"
 
-test("la fiche Athlète calcule la catégorie depuis l'affiliation active", async () => {
+test("la fiche Athlète affiche la catégorie calculée depuis sa naissance", async () => {
   const page = await readFile("app/dashboard/athletes/[id]/page.tsx", "utf8")
-  assert.match(page, /\/api\/athlete-affiliations\?/)
-  assert.match(page, /const activeAffiliation = useMemo/)
+  const route = await readFile("app/api/athletes/route.ts", "utf8")
   assert.match(page, /label: "Catégorie d’âge"/)
-  assert.match(page, /activeAffiliation\?\.categorie \|\| "Non définie"/)
+  assert.match(page, /athlete\.categorie \|\| "Non définie"/)
+  assert.match(route, /resolveAthleteAgeCategory/)
+  assert.doesNotMatch(page, /\/api\/athlete-affiliations\?/)
 })
 
 test("la fiche Athlète centralise les identifiants et le statut dans leur carte", async () => {

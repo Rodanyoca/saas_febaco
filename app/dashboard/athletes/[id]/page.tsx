@@ -24,14 +24,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Athlete, AthleteLicence, Transfert } from "@/lib/models"
 
-type AthleteAffiliationSummary = {
-  categorie?: string
-  date_debut?: string
-  date_fin?: string
-  id_statut_affiliation?: string
-  statut?: string
-}
-
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
   const n = String(nom ?? "").trim()
@@ -56,7 +48,6 @@ export default function AthleteDetailPage() {
 
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [licences, setLicences] = useState<AthleteLicence[]>([])
-  const [athleteAffiliations, setAthleteAffiliations] = useState<AthleteAffiliationSummary[]>([])
   const [licencesLoading, setLicencesLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
@@ -106,7 +97,6 @@ export default function AthleteDetailPage() {
   useEffect(() => {
     if (!athlete) {
       setLicences([])
-      setAthleteAffiliations([])
       return
     }
 
@@ -117,19 +107,14 @@ export default function AthleteDetailPage() {
         const query = new URLSearchParams({
           athleteId: athlete.id,
         })
-        const [licenceRes, affiliationRes] = await Promise.all([
-          fetch(`/api/athlete-licences?${query.toString()}`, { cache: "no-store" }),
-          fetch(`/api/athlete-affiliations?${query.toString()}`, { cache: "no-store" }),
-        ])
-        const [json, affiliationJson] = await Promise.all([licenceRes.json(), affiliationRes.json()])
+        const licenceRes = await fetch(`/api/athlete-licences?${query.toString()}`, { cache: "no-store" })
+        const json = await licenceRes.json()
         if (!canceled) {
           setLicences(Array.isArray(json?.licences) ? json.licences : [])
-          setAthleteAffiliations(Array.isArray(affiliationJson?.affiliations) ? affiliationJson.affiliations : [])
         }
       } catch {
         if (!canceled) {
           setLicences([])
-          setAthleteAffiliations([])
         }
       } finally {
         if (!canceled) setLicencesLoading(false)
@@ -140,14 +125,6 @@ export default function AthleteDetailPage() {
       canceled = true
     }
   }, [athlete])
-
-  const activeAffiliation = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10)
-    return athleteAffiliations.find((item) => {
-      const activeStatus = item.id_statut_affiliation === "SAF001" || item.statut?.toUpperCase() === "ACTIF"
-      return activeStatus && (!item.date_debut || item.date_debut <= today) && (!item.date_fin || item.date_fin >= today)
-    })
-  }, [athleteAffiliations])
 
   if (loading) {
     return (
@@ -266,7 +243,7 @@ export default function AthleteDetailPage() {
                 fields={[
                   { label: "Nom complet", value: `${athlete.prenom} ${athlete.nom}` },
                   { label: "Sexe", value: athlete.sexe === "M" ? "Masculin" : "Féminin" },
-                  { label: "Catégorie d’âge", value: activeAffiliation?.categorie || "Non définie" },
+                  { label: "Catégorie d’âge", value: athlete.categorie || "Non définie" },
                   { label: "Date de naissance", value: athlete.dateNaissance },
                   { label: "Lieu de naissance", value: athlete.lieuNaissance },
                   { label: "Nationalité", value: athlete.nationalite },

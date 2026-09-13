@@ -74,7 +74,7 @@ test("résout le club exclusivement via l'équipe", async () => {
   assert.equal(affiliations[0].equipe, "Équipe Test")
   assert.equal(affiliations[0].club, "Club Test")
   assert.equal(affiliations[0].clubId, "CLU-001")
-  assert.equal(affiliations[0].categorie, "Senior")
+  assert.equal(affiliations[0].categorie, "Non définie")
 })
 
 test("signale une équipe orpheline sans fabriquer de club", async () => {

@@ -12,6 +12,7 @@ export async function GET(request: Request) {
       actorId: params.get("athleteId")?.trim(),
       equipeId: params.get("equipeId")?.trim(),
       clubId: params.get("clubId")?.trim(),
+      ligueId: params.get("ligueId")?.trim(),
     })
     const equipeIds = new Set(
       (params.get("equipeIds") ?? "")

@@ -9,11 +9,33 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { sanitizeLicenceOptions } from "@/lib/licence-options";
+import { searchLicenceOptions, sanitizeLicenceOptions } from "@/lib/licence-options";
 
 type Option = { id: string; label: string };
 export type LicenceView = { id: string; athleteId: string; athleteNom: string; affiliationId: string; equipeId: string; equipeNom: string; clubNom: string; seasonId: string; saison: string; numero: string; dateDelivrance: string; statusId: string; statut: string; observations: string };
 type Candidate = { affiliationId: string; athleteId: string; athleteNom: string; teamId: string; teamName: string; clubName: string; affiliationStatusId: string; alreadyLicensed: boolean; existingLicence: LicenceView | null };
+
+function SearchableLicenceOption({ value, onValueChange, options, placeholder, disabled = false }: { value: string; onValueChange: (value: string) => void; options: Option[]; placeholder: string; disabled?: boolean }) {
+  const selectedOption = options.find((item) => item.id === value);
+  const [query, setQuery] = useState(selectedOption?.label || "");
+  const [focused, setFocused] = useState(false);
+  const results = useMemo(() => searchLicenceOptions(options, query), [options, query]);
+
+  useEffect(() => {
+    setQuery(selectedOption?.label || "");
+  }, [selectedOption?.id, selectedOption?.label]);
+
+  return <div className="relative">
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input className="pl-9" value={query} disabled={disabled} placeholder={placeholder} autoComplete="off" onFocus={() => setFocused(true)} onBlur={() => window.setTimeout(() => setFocused(false), 150)} onChange={(event) => { setQuery(event.target.value); if (value) onValueChange(""); }} />
+    </div>
+    {focused && !disabled ? <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+      {query.trim().length < 2 ? <p className="px-3 py-2 text-sm text-muted-foreground">Saisissez au moins 2 caractères.</p> : results.length ? results.map((item) => <button key={item.id} type="button" className="flex w-full flex-col rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground" onMouseDown={(event) => event.preventDefault()} onClick={() => { onValueChange(item.id); setQuery(item.label); setFocused(false); }}><span>{item.label}</span><span className="text-xs text-muted-foreground">{item.id}</span></button>) : <p className="px-3 py-2 text-sm text-muted-foreground">Aucun résultat.</p>}
+      {results.length === 50 ? <p className="border-t px-3 py-2 text-xs text-muted-foreground">50 résultats affichés. Précisez la recherche pour affiner.</p> : null}
+    </div> : null}
+  </div>;
+}
 
 const today = () => new Date().toISOString().slice(0, 10);
 export function LicenceEditor({ open, onOpenChange, references, editing, onSaved }: { open: boolean; onOpenChange: (open: boolean) => void; references: { seasons: Option[]; statuses: Option[]; teams: Option[]; athletes: Option[] }; editing?: LicenceView | null; onSaved: () => void }) {
@@ -43,7 +65,7 @@ export function LicenceEditor({ open, onOpenChange, references, editing, onSaved
   const option = (value: string, setValue: (value: string) => void, options: Option[], placeholder: string, disabled = false) => <Select value={value} onValueChange={setValue} disabled={disabled || saving}><SelectTrigger><SelectValue placeholder={placeholder}/></SelectTrigger><SelectContent>{options.map((item) => <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>)}</SelectContent></Select>;
   return <Sheet open={open} onOpenChange={(next) => !saving && onOpenChange(next)}><SheetContent className="w-full overflow-y-auto sm:max-w-2xl"><SheetHeader><SheetTitle>{existing ? "Modifier la licence" : "Renouveler des licences"}</SheetTitle><SheetDescription>Une licence d’athlète est toujours liée à une affiliation réelle et à une saison.</SheetDescription></SheetHeader><div className="space-y-5 px-4 pb-28">
     {!editing ? <div className="space-y-2"><Label>Renouvellement</Label><div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1"><Button type="button" variant={mode === "ATHLETE" ? "default" : "ghost"} onClick={() => { setMode("ATHLETE"); setCandidates([]); setSelected([]); }}>Un athlète</Button><Button type="button" variant={mode === "EQUIPE" ? "default" : "ghost"} onClick={() => { setMode("EQUIPE"); setCandidates([]); setSelected([]); }}>Une équipe</Button></div></div> : null}
-    <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label>Saison *</Label>{option(seasonId, setSeasonId, safeReferences.seasons, "Choisir une saison", !!editing)}</div>{mode === "ATHLETE" ? <div className="space-y-2"><Label>Athlète *</Label>{option(athleteId, setAthleteId, safeReferences.athletes, "Rechercher un athlète", !!editing)}</div> : <div className="space-y-2"><Label>Équipe *</Label>{option(teamId, setTeamId, safeReferences.teams, "Choisir une équipe")}</div>}</div>
+    <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label>Saison *</Label>{option(seasonId, setSeasonId, safeReferences.seasons, "Choisir une saison", !!editing)}</div>{mode === "ATHLETE" ? <div className="space-y-2"><Label>Athlète *</Label><SearchableLicenceOption value={athleteId} onValueChange={setAthleteId} options={safeReferences.athletes} placeholder="Rechercher un athlète" disabled={!!editing || saving}/></div> : <div className="space-y-2"><Label>Équipe *</Label><SearchableLicenceOption value={teamId} onValueChange={setTeamId} options={safeReferences.teams} placeholder="Rechercher une équipe" disabled={saving}/></div>}</div>
     {mode === "ATHLETE" && !editing && candidates.length ? <div className="rounded-lg border p-3 text-sm"><p className="font-medium">{candidates[0].teamName}</p><p className="text-muted-foreground">{candidates[0].clubName} · Affiliation {candidates[0].affiliationId}</p>{existing ? <p className="mt-2 font-medium text-amber-600">Une licence existe déjà : vous modifiez la licence en cours.</p> : <p className="mt-2 font-medium text-primary">1 licence sera créée.</p>}</div> : null}
     {mode === "EQUIPE" && teamId ? <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{selectedCount} athlète{selectedCount > 1 ? "s" : ""} sélectionné{selectedCount > 1 ? "s" : ""}</p><p className="text-xs text-muted-foreground">{available.length} licences à créer · {alreadyCount} déjà licencié{alreadyCount > 1 ? "s" : ""}</p></div><div className="flex gap-2"><Button type="button" size="sm" variant="outline" onClick={() => setSelected(available.map((item) => item.affiliationId))}>Tout sélectionner</Button><Button type="button" size="sm" variant="ghost" onClick={() => setSelected([])}>Tout désélectionner</Button></div></div><div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher dans l’équipe"/></div><div className="grid max-h-72 gap-2 overflow-y-auto">{visible.map((item) => <label key={item.affiliationId} className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 has-[:checked]:border-primary"><Checkbox checked={selected.includes(item.affiliationId)} disabled={item.alreadyLicensed} onCheckedChange={(checked) => setSelected((current) => checked ? [...current, item.affiliationId] : current.filter((id) => id !== item.affiliationId))} aria-label={`Sélectionner ${item.athleteNom}`}/><span className="min-w-0 flex-1"><span className="block font-medium">{item.athleteNom}</span><span className="block text-xs text-muted-foreground">{item.athleteId} · {item.affiliationId} · {item.affiliationStatusId}</span></span>{item.alreadyLicensed ? <span className="rounded-full bg-muted px-2 py-1 text-xs">Déjà licencié</span> : <Check className="h-4 w-4 text-primary"/>}</label>)}</div></div> : null}
     {loading ? <p className="text-sm text-muted-foreground">Chargement des affiliations…</p> : null}
