@@ -45,3 +45,9 @@ test("modifie une épreuve sans modifier son identifiant", async () => {
   await updateCompetitionEventTable("BKB-COMP-2026-001", "E1", { id_epreuve_competition: "AUTRE", nomEpreuve: "Nouveau", statut: "INACTIF" }, setup.deps);
   assert.equal(setup.writes[0].id, "E1"); assert.equal(setup.writes[0].mode, "update"); assert.equal(setup.writes[0].values.nom_epreuve, "Nouveau");
 });
+
+test("la modale d'épreuve fournit une description accessible", async () => {
+  const source = await import("node:fs/promises").then((fs) => fs.readFile("components/dashboard/competition-events-panel.tsx", "utf8"));
+  assert.match(source, /DialogDescription/);
+  assert.match(source, /<DialogTitle>[\s\S]*?<DialogDescription>/);
+});
