@@ -458,7 +458,6 @@ export default function ClubDetailPage() {
                     <TableHead>Nom complet</TableHead>
                     <TableHead>Genre</TableHead>
                     <TableHead>Catégorie</TableHead>
-                    <TableHead>ID équipe</TableHead>
                     <TableHead>Équipe</TableHead>
                     <TableHead>Statut</TableHead>
                   </TableRow>
@@ -466,13 +465,13 @@ export default function ClubDetailPage() {
                 <TableBody>
                   {athletesLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                         Chargement des athlètes...
                       </TableCell>
                     </TableRow>
                   ) : athletes.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                         Aucun athlète trouvé.
                       </TableCell>
                     </TableRow>
@@ -485,7 +484,6 @@ export default function ClubDetailPage() {
                         </TableCell>
                         <TableCell>{athlete.sexe}</TableCell>
                         <TableCell>{athlete.categorie || "Non définie"}</TableCell>
-                        <TableCell className="font-mono text-sm">{athlete.equipeId || "-"}</TableCell>
                         <TableCell>{athlete.equipe}</TableCell>
                         <TableCell>
                           <StatusBadge status={athlete.statut} />
