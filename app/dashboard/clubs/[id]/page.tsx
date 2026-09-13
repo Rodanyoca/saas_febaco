@@ -484,7 +484,7 @@ export default function ClubDetailPage() {
                           {athlete.prenom} {athlete.nom}
                         </TableCell>
                         <TableCell>{athlete.sexe}</TableCell>
-                        <TableCell>{athlete.categorie}</TableCell>
+                        <TableCell>{athlete.categorie || "Non définie"}</TableCell>
                         <TableCell className="font-mono text-sm">{athlete.equipeId || "-"}</TableCell>
                         <TableCell>{athlete.equipe}</TableCell>
                         <TableCell>
