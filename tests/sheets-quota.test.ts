@@ -39,3 +39,15 @@ test("une lecture fraîche remplace aussi la valeur du cache partagé", async ()
   assert.doesNotMatch(source, /if \(!params\.fresh\)\s*readCache\.set/);
   assert.match(source, /readCache\.set\(cacheKey/);
 });
+
+test("dispose aussi d'un classeur canonique pour les équipes nationales en production", async () => {
+  const source = await import("node:fs/promises").then((fs) => fs.readFile("lib/google-sheets.ts", "utf8"));
+  assert.match(source, /equipeNationale:\s*"[A-Za-z0-9_-]+"/);
+});
+
+test("la liste globale des participants ne force pas les phases hors cache", async () => {
+  const source = await import("node:fs/promises").then((fs) => fs.readFile("lib/competition-participants.ts", "utf8"));
+  assert.match(source, /async function loadRows\(deps: Dependencies, fresh = false\)/);
+  assert.match(source, /createCompetitionParticipations[\s\S]*loadRows\(deps, true\)/);
+  assert.match(source, /listAllCompetitionParticipants[\s\S]*loadRows\(deps\);/);
+});

@@ -5,6 +5,7 @@ import { Header } from "@/components/dashboard/header"
 import { AnalyticsTable, DashboardSection, EmptyAnalyticsState, StatGrid, StatValue, StatusText } from "@/components/dashboard/analytics"
 import { Button } from "@/components/ui/button"
 import { clean, completionSummary, countActors, groupCount, groupStatuses, missingFields, percent, sexSummary, statusSummary, type DataRow } from "@/lib/dashboard/calculations"
+import { mapWithConcurrency } from "@/lib/dashboard/source-loader"
 
 type DatasetKey = "ligues" | "ententes" | "clubs" | "equipes" | "athletes" | "coachs" | "arbitres" | "officiels" | "medecins" | "affiliations" | "competitions" | "participants" | "competitionResults" | "nationalTeams" | "selections" | "nationalCompetitions" | "nationalResults"
 type Datasets = Record<DatasetKey, DataRow[]>
@@ -35,10 +36,10 @@ export default function DashboardPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const results = await Promise.all(sources.map(async (source) => {
+    const results = await mapWithConcurrency(sources, async (source) => {
       try { const response = await fetch(source.url, { cache: "no-store" }); const json = await response.json(); if (!response.ok) throw new Error(json?.error || "Lecture impossible"); return { source, rows: Array.isArray(json?.[source.responseKey]) ? json[source.responseKey] as DataRow[] : [], error: "" } }
       catch (error) { return { source, rows: [] as DataRow[], error: `${source.key}: ${error instanceof Error ? error.message : "Lecture impossible"}` } }
-    }))
+    }, 3)
     setData((previous) => { const next = { ...previous }; for (const result of results) next[result.source.key] = result.error ? previous[result.source.key] : result.rows; return next })
     setErrors(results.flatMap((result) => result.error ? [result.error] : []))
     setUpdatedAt(new Date()); setLoading(false)

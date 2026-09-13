@@ -32,6 +32,7 @@ const spreadsheetFallbackByBlock: Partial<Record<SheetBlock, string>> = {
   referentiel: "1hoW2S9NRzhhtBuXtkLnMqOSdhYyjKtDEVPHQr7pVQRg",
   competitions: "19pBbuaxnDlaCIjNQdJBce5NrNE6sxanqtLNBbWkrdY4",
   licences: "1Jy35NhhvprjLj2k_Exu90yzkSaNXvr-JFdUd9RbrGBY",
+  equipeNationale: "1QF5TwdAUkj4wO6KZUu2aMKxmeQ4FzAFLyhX0iwIf8Ak",
 };
 
 const sheetBlockByName: Record<string, SheetBlock> = {

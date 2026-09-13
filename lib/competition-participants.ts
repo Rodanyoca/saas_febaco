@@ -46,8 +46,8 @@ export function generateNextId(rows: SheetRow[], field: string): string {
   return `${last.match[1]}${next}`;
 }
 
-async function loadRows(deps: Dependencies) {
-  const competitionSheet = (sheet: string, fresh = false) =>
+async function loadRows(deps: Dependencies, fresh = false) {
+  const competitionSheet = (sheet: string) =>
     deps.readRows({ block: "competitions", sheet, range: "A:ZZ", fresh });
   const structureSheet = (sheet: string) =>
     deps.readRows({ block: "structure", sheet, range: "A:ZZ" });
@@ -59,8 +59,8 @@ async function loadRows(deps: Dependencies) {
       competitionSheet("COMPETITIONS_EPREUVES"),
       competitionSheet("COMPETITIONS_PARTICIPANTS"),
       competitionSheet("COMPETITIONS_UNITES"),
-      competitionSheet("COMPETITIONS_PHASES", true),
-      competitionSheet("COMPETITIONS_GROUPES", true),
+      competitionSheet("COMPETITIONS_PHASES"),
+      competitionSheet("COMPETITIONS_GROUPES"),
       competitionSheet("COMPETITIONS_GROUPES_UNITES"),
       competitionSheet("COMPETITIONS_PHASES_UNITES"),
       structureSheet("CLUBS"),
@@ -77,7 +77,7 @@ export async function getCompetitionParticipants(
   competitionId: string,
   deps: Dependencies = defaults,
 ) {
-  const data = await loadRows(deps);
+  const data = await loadRows(deps, true);
   if (!data.competitions.some((row) => clean(row.id_competition) === competitionId))
     throw new CompetitionParticipationError("COMPETITION_INTROUVABLE", "La compétition n’existe pas.", 404);
   const phaseIds = new Set(data.phases.filter((row) => clean(row.id_competition) === competitionId).map((row) => clean(row.id_phase_competition)));
@@ -118,7 +118,7 @@ export async function createCompetitionParticipations(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fields.dateInscription = "Date d’inscription invalide.";
   if (!status) fields.statutParticipation = "Le statut est obligatoire.";
   if (Object.keys(fields).length) throw new CompetitionParticipationError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, fields);
-  const data = await loadRows(deps);
+  const data = await loadRows(deps, true);
   requireMutableEdition(data.competitions, competitionId);
   if (!data.competitions.some((row) => clean(row.id_competition) === competitionId)) throw new CompetitionParticipationError("COMPETITION_INTROUVABLE", "La compétition n’existe pas.", 404);
   const event = data.events.find((row) => clean(row.id_epreuve_competition) === eventId && clean(row.id_competition) === competitionId && clean(row.statut).toUpperCase() !== "INACTIF");
