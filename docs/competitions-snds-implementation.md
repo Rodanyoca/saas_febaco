@@ -2,14 +2,13 @@
 
 ## Modèle retenu
 
-`COMPETITION PERMANENTE → ÉDITION → ÉPREUVE → PHASE → GROUPE FACULTATIF → MATCH → RÉSULTAT`.
+`COMPÉTITION → ÉPREUVE → PHASE → GROUPE FACULTATIF → MATCH → RÉSULTAT`.
 
-Une compétition permanente porte l’identité stable. `COMPETITIONS` porte les éditions opérationnelles. Une épreuve est un tableau homogène par discipline, catégorie et sexe. Une unité sportive est engagée dans une épreuve puis affectée à ses phases. Le type de compétition ne détermine jamais le moteur sportif : le fonctionnement vient du mode explicite de chaque phase.
+`COMPETITIONS` porte directement chaque compétition opérationnelle. `numero_edition` reste une information facultative sans entité parente. Une épreuve est un tableau homogène par discipline, catégorie et sexe. Une unité sportive est engagée dans une épreuve puis affectée à ses phases. Le type de compétition ne détermine jamais le moteur sportif : le fonctionnement vient du mode explicite de chaque phase.
 
 ## Feuilles et responsabilités
 
-- `COMPETITIONS_PERMANENTES` : identité récurrente.
-- `COMPETITIONS` : édition, saison, dates, pays, lieu et statut.
+- `COMPETITIONS` : identifiant de compétition, numéro d’édition facultatif, saison, dates, pays, lieu et statut.
 - `COMPETITIONS_EPREUVES` : tableaux sportifs.
 - `COMPETITIONS_PARTICIPANTS` et `COMPETITIONS_UNITES` : engagement administratif et unité jouable.
 - `COMPETITIONS_INTERVENANTS` : personnes inscrites ; les nouvelles écritures renseignent `id_type_acteur`, `id_unite_competition` et `id_fonction` lorsqu’ils sont résolus.
@@ -21,7 +20,7 @@ Une compétition permanente porte l’identité stable. `COMPETITIONS` porte les
 
 ## Cycle opérationnel et interfaces
 
-La liste distingue « Nouvelle compétition » de « Créer une édition », présente les identités permanentes et les éditions. La fiche d’édition conserve `?tab=` et expose huit onglets : Général, Épreuves, Équipes engagées, Intervenants, Phases et groupes, Matchs, Résultats, Classements et qualifications. Un indicateur rappelle le cycle jusqu’à la clôture.
+La liste présente directement les lignes de `COMPETITIONS` et propose une seule action « Créer une compétition ». La fiche de compétition conserve `?tab=` et expose ses onglets métier. Un indicateur rappelle le cycle jusqu’à la clôture.
 
 Les épreuves filtrent la compatibilité des équipes et des phases. Les matchs de groupes exigent un groupe commun ; les autres modes utilisent directement les unités de phase. Un résultat joué calcule les totaux et le vainqueur. Seul `MPH001` recalcule `COMPETITIONS_CLASSEMENT`.
 
@@ -31,7 +30,7 @@ Une qualification est une ligne `COMPETITIONS_PHASES_UNITES` avec un identifiant
 
 ## Identifiants
 
-Les nouvelles clés utilisent `BKB-CPT-###`, `BKB-COMP-AAAA-###` puis les préfixes contextualisés `EPR`, `PAR`, `UNI`, `PHA`, `GRP`, `PHU`, `MAT`, `RES`, `CLA` et `INV`. Elles sont générées côté serveur et ne sont jamais reprises d’un corps de modification. Les identifiants numériques et `BKB-AFG-*` historiques restent lisibles.
+Les nouvelles clés utilisent `BKB-COMP-AAAA-###` puis les préfixes contextualisés `EPR`, `PAR`, `UNI`, `PHA`, `GRP`, `PHU`, `MAT`, `RES`, `CLA` et `INV`. Elles sont générées côté serveur et ne sont jamais reprises d’un corps de modification. Les identifiants numériques et `BKB-AFG-*` historiques restent lisibles.
 
 ## Autorisations et clôture
 
@@ -61,9 +60,9 @@ Lecture du 12 septembre 2026 pour `BKB-COMP-2026-002` : 2 épreuves, 36 unités,
 
 ## Routes et composants principaux
 
-Routes : `/api/competitions/permanentes`, `/api/competitions/editions`, `/api/competitions/[id]/epreuves`, `participants`, `people`, `structure`, `play` et `close`. Les routes historiques globales de résultats et classements réutilisent les mêmes services de lecture.
+Routes : `/api/competitions`, `/api/competitions/[id]/epreuves`, `participants`, `people`, `structure`, `play` et `close`. Les routes historiques globales de résultats et classements réutilisent les mêmes services de lecture.
 
-Composants : `competition-catalog-dialog`, `competition-events-panel`, `competition-participants-panel`, `competition-people-panel`, `competition-structure-panel` et `competition-play-panel`.
+Composants : `competition-create-modal`, `competition-events-panel`, `competition-participants-panel`, `competition-people-panel`, `competition-structure-panel` et `competition-play-panel`.
 
 ## Vérifications
 

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth-session";
 import {
+  createCompetition,
   CompetitionError,
   listCompetitions,
 } from "@/lib/competitions";
-import { createCompetitionEvent } from "@/lib/competition-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   try {
     return NextResponse.json(
       {
-        competition: await createCompetitionEvent(await request.json().catch(() => null)),
+        competition: await createCompetition(await request.json().catch(() => null)),
       },
       { status: 201 },
     );

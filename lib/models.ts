@@ -167,7 +167,6 @@ export interface Competition {
   dateFin: string
     pays: string
     lieu?: string
-    permanentId?: string
     numeroEdition?: string
   statut: string
   observation: string

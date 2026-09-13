@@ -1,6 +1,6 @@
 # Cahier des charges détaillé — Section Compétitions FEBACO
 
-> Mise à jour SNDS : le document d’implémentation canonique est [competitions-snds-implementation.md](./competitions-snds-implementation.md). Les passages historiques ci-dessous qui décrivent sept onglets, une création directe de compétition ou des groupes facultatifs en mode `AUTRE` sont remplacés par le cycle permanente → édition → épreuve et par la règle « groupe uniquement en `MPH001` ».
+> Mise à jour SNDS : le document d’implémentation canonique est [competitions-snds-implementation.md](./competitions-snds-implementation.md). La compétition est créée directement dans `COMPETITIONS`; `numero_edition` est facultatif et aucune entité « compétition permanente » n’existe. Les groupes sont réservés au mode `MPH001`.
 
 ## 1. Objet du document
 

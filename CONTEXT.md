@@ -24,9 +24,9 @@ Les statuts d'une structure territoriale sont `ACTIF` et `INACTIF`.
 
 ## Compétitions
 
-- **Compétition permanente** : identité stable d’une compétition récurrente, indépendante de ses occurrences datées. _Éviter_ : édition, tournoi annuel.
-- **Édition de compétition** : occurrence opérationnelle et datée d’une compétition permanente. Elle porte les épreuves, engagements, intervenants, phases, matchs, résultats et classements. _Éviter_ : compétition permanente.
-- **Épreuve de compétition** : tableau sportif homogène d’une édition, défini notamment par une discipline, une catégorie d’âge et un sexe. _Éviter_ : phase, groupe.
+- **Compétition** : entité opérationnelle et datée enregistrée directement dans `COMPETITIONS`. Elle porte les épreuves, engagements, intervenants, phases, matchs, résultats et classements.
+- **Numéro d’édition** : propriété facultative d’une compétition (`numero_edition`) ; il ne crée ni entité parente ni relation vers une compétition permanente.
+- **Épreuve de compétition** : tableau sportif homogène d’une compétition, défini notamment par une discipline, une catégorie d’âge et un sexe. _Éviter_ : phase, groupe.
 
 - **Équipe engagée** : équipe de club inscrite administrativement à une compétition. Une même équipe ne peut être engagée qu’une fois dans cette compétition.
 - **Unité de compétition** : représentation sportive d’une équipe engagée utilisée pour les affectations, matchs, résultats et classements.

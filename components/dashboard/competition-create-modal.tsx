@@ -34,6 +34,7 @@ const emptyRefs: Refs = {
   seasons: [],
 };
 const blank = {
+  numero_edition: "",
   nom_competition: "",
   id_type_competition: "",
   id_discipline: "",
@@ -41,6 +42,7 @@ const blank = {
   date_debut: "",
   date_fin: "",
   pays: "",
+  lieu: "",
   statut: "PLANIFIEE",
   observations: "",
 };
@@ -171,6 +173,14 @@ export function CompetitionCreateModal({
               </p>
             ) : null}
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="competition-edition">Numéro d’édition</Label>
+            <Input
+              id="competition-edition"
+              value={values.numero_edition}
+              onChange={(event) => set("numero_edition", event.target.value)}
+            />
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {select("id_type_competition", "Type", refs.types)}
             {select("id_discipline", "Discipline", refs.disciplines)}
@@ -230,6 +240,14 @@ export function CompetitionCreateModal({
             {errors.pays ? (
               <p className="text-sm text-destructive">{errors.pays}</p>
             ) : null}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="competition-lieu">Lieu</Label>
+            <Input
+              id="competition-lieu"
+              value={values.lieu}
+              onChange={(event) => set("lieu", event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="competition-observations">Observations</Label>

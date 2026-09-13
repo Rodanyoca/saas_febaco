@@ -27,6 +27,7 @@ const defaults: Deps = {
   writeRow: writeSheetRowByHeaders,
 };
 const fields = [
+  "numero_edition",
   "nom_competition",
   "id_type_competition",
   "id_discipline",
@@ -34,6 +35,7 @@ const fields = [
   "date_debut",
   "date_fin",
   "pays",
+  "lieu",
   "statut",
   "observations",
 ];
@@ -46,7 +48,7 @@ export function validateCompetitionInput(body: unknown) {
     fields.map((field) => [field, clean(source[field])]),
   );
   const errors: Record<string, string> = {};
-  for (const field of fields.filter((field) => field !== "observations"))
+  for (const field of fields.filter((field) => !["numero_edition", "lieu", "observations"].includes(field)))
     if (!values[field]) errors[field] = "Ce champ est obligatoire.";
   if (values.date_debut && !/^\d{4}-\d{2}-\d{2}$/.test(values.date_debut))
     errors.date_debut = "Date invalide.";
@@ -164,7 +166,6 @@ export async function listCompetitions(deps: Deps = defaults) {
         dateFin: clean(row.date_fin),
         pays: clean(row.pays),
         lieu: clean(row.lieu),
-        permanentId: clean(row.id_competition_permanente),
         numeroEdition: clean(row.numero_edition),
         statut: clean(row.statut),
         observation: clean(row.observations),

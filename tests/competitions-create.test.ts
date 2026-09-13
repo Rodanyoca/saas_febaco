@@ -71,14 +71,16 @@ test("refuse une période inversée", () => {
   assert.match(result.errors.date_fin, /précéder/);
 });
 
-test("crée uniquement une ligne COMPETITIONS avec des identifiants de référentiel", async () => {
+test("crée uniquement une ligne COMPETITIONS et cible la colonne id_competition", async () => {
   let rows: SheetRow[] = [],
-    writes = 0;
+    writes = 0,
+    writeTarget: { sheet?: string; idHeader?: string; id?: string } = {};
   const deps = {
     readRows: async ({ sheet }: { sheet: string }) =>
       sheet === "COMPETITIONS" ? rows : references[sheet] || [],
-    writeRow: async ({ id, values }: { id: string; values: SheetRow }) => {
+    writeRow: async ({ sheet, idHeader, id, values }: { sheet: string; idHeader: string; id: string; values: SheetRow }) => {
       writes++;
+      writeTarget = { sheet, idHeader, id };
       const row = { id_competition: id, ...values };
       rows = [...rows, row];
       return row;
@@ -99,6 +101,7 @@ test("crée uniquement une ligne COMPETITIONS avec des identifiants de référen
     deps,
   );
   assert.equal(writes, 1);
+  assert.deepEqual(writeTarget, { sheet: "COMPETITIONS", idHeader: "id_competition", id: "BKB-COMP-2026-001" });
   assert.equal(created.id, "BKB-COMP-2026-001");
   assert.equal(created.pays, "RDC");
 });
