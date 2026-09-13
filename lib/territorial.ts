@@ -15,7 +15,7 @@ export const territorialConfig = {
 } as const
 
 const allowedFields: Record<TerritorialKind, string[]> = {
-  ligues: ["nom_ligue","sigle_ligue","telephone","email","id_province","statut","observations","id_ligue_coc","date_creation","date_reconnaissance"],
+  ligues: ["nom_ligue","sigle_ligue","telephone","email","id_province","statut","observations","id_ligue_coc","année_creation","date_affiliation_ligue"],
   ententes: ["code_entente","nom_entente","sigle_entente","id_ligue","id_ville","email","statut","observations","id_entente_coc","date_creation","date_reconnaissance","telephone"],
   clubs: ["nom_club","id_categorie_club","id_sexe","date_affiliation","id_ville","id_entente","telephone","statut","observations","id_club_coc","sigle_club","id_niveau_competitif_club","date_creation","email"],
   equipes: ["nom_equipe","id_categorie_age","id_club","id_sexe","statut","observations","id_equipe_coc","id_discipline"],
@@ -37,6 +37,7 @@ export function validateTerritorialInput(kind: TerritorialKind, body: unknown): 
   const errors: FieldErrors = {}
   for (const field of territorialConfig[kind].required) if (!values[field]) errors[field] = "Ce champ est obligatoire."
   if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) errors.email = "Adresse e-mail invalide."
+  if (values.année_creation && !/^\d{4}$/.test(values.année_creation)) errors.année_creation = "Année invalide."
   if (values.statut && !["ACTIF","INACTIF"].includes(values.statut)) errors.statut = "Statut invalide."
   if (values.date_creation && values.date_reconnaissance && values.date_reconnaissance < values.date_creation) errors.date_reconnaissance = "La reconnaissance ne peut pas précéder la création."
   return { values, errors }

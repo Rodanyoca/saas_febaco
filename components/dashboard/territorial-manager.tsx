@@ -59,7 +59,7 @@ type Field = {
   key: string;
   label: string;
   required?: boolean;
-  type?: "email" | "date" | "textarea";
+  type?: "email" | "date" | "number" | "textarea";
   ref?: string;
   parent?: TerritorialKind;
 };
@@ -90,12 +90,8 @@ const definitions: Record<
       },
       { key: "telephone", label: "Téléphone" },
       { key: "email", label: "E-mail", type: "email" },
-      { key: "date_creation", label: "Date de création", type: "date" },
-      {
-        key: "date_reconnaissance",
-        label: "Date de reconnaissance",
-        type: "date",
-      },
+      { key: "année_creation", label: "Année de création", type: "number" },
+      { key: "date_affiliation_ligue", label: "Date d’affiliation", type: "date" },
       { key: "id_ligue_coc", label: "Identifiant COC" },
       { key: "statut", label: "Statut", required: true },
       { key: "observations", label: "Observations", type: "textarea" },

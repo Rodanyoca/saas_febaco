@@ -30,8 +30,8 @@ test("ne recopie pas les tirets d'affichage dans le formulaire", () => {
   assert.equal(editableValue("contact@febaco.cd"), "contact@febaco.cd")
 })
 
-test("refuse une date de reconnaissance antérieure", () => {
-  const { errors } = validateTerritorialInput("ligues", { nom_ligue: "Kinshasa", id_province: "PROV001", statut: "ACTIF", date_creation: "2026-02-01", date_reconnaissance: "2026-01-01" })
+test("refuse une date de reconnaissance d'entente antérieure", () => {
+  const { errors } = validateTerritorialInput("ententes", { nom_entente: "Entente test", id_ligue: "01", statut: "ACTIF", date_creation: "2026-02-01", date_reconnaissance: "2026-01-01" })
   assert.ok(errors.date_reconnaissance)
 })
 

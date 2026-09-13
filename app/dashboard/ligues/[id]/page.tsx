@@ -298,6 +298,8 @@ export default function LigueDetailPage() {
               { label: "Nom", value: ligue.nom },
               { label: "Pseudo", value: ligue.pseudo },
               { label: "Ville", value: relatedCities },
+              { label: "Année de création", value: ligue.anneeCreation },
+              { label: "Date d’affiliation", value: ligue.dateAffiliation },
               { label: "Email", value: ligue.email },
               { label: "Statut", value: ligue.statut },
             ]}

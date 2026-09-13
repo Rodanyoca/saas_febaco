@@ -47,6 +47,8 @@ export async function GET() {
       const provinceId = pickFirst(row, ["id_province", "province_id", "idprovince"])
       const province = pickFirst(row, ["nom_province", "province", "province_nom"]) || provinces.get(provinceId) || provinceId
       const email = pickFirst(row, ["email", "email_ligue", "mail_ligue", "mail"])
+      const anneeCreation = pickFirst(row, ["année_creation"])
+      const dateAffiliation = pickFirst(row, ["date_affiliation_ligue"])
       const presidentId = pickFirst(row, ["id_president_ligue", "president_ligue_id", "id_president"])
       const presidentNom = pickFirst(row, ["nom_president_ligue", "president_ligue", "president", "nom_president"])
       const presidentTelephone = pickFirst(row, [
@@ -80,6 +82,8 @@ export async function GET() {
         provinceId: provinceId || "",
         province: province || "-",
         email: email || "-",
+        anneeCreation: anneeCreation || "-",
+        dateAffiliation: dateAffiliation || "-",
         presidentId: presidentId || "",
         presidentNom: presidentNom || "-",
         presidentTelephone: presidentTelephone || "-",

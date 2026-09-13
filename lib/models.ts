@@ -5,6 +5,8 @@ export interface Ligue {
   pseudo: string
   provinceId?: string
   province: string
+  anneeCreation?: string
+  dateAffiliation?: string
   email?: string
   presidentId?: string
   presidentNom?: string
