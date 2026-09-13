@@ -195,16 +195,10 @@ export default function AthleteDetailPage() {
                   <h2 className="text-2xl font-bold">
                     {athlete.prenom} {athlete.nom}
                   </h2>
-                  <p className="text-muted-foreground">{athlete.idNational || athlete.idFiba || athlete.id}</p>
-                  <div className="mt-2">
-                    <StatusBadge status={athlete.statut} />
-                  </div>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">ID Athlète</p>
-                <p className="font-mono font-medium">{athlete.id}</p>
-                <div className="mt-3 flex justify-end">
+                <div className="flex justify-end">
                   <Button type="button" variant="outline" size="sm" onClick={() => setAvatarModalOpen(true)}>
                     <Camera className="mr-2 h-4 w-4" />
                     Ajouter la photo
@@ -270,9 +264,6 @@ export default function AthleteDetailPage() {
                 title="Identité"
                 icon={User}
                 fields={[
-                  { label: "ID Athlète", value: athlete.id },
-                  { label: "ID national", value: athlete.idNational },
-                  { label: "ID FIBA", value: athlete.idFiba },
                   { label: "Nom complet", value: `${athlete.prenom} ${athlete.nom}` },
                   { label: "Sexe", value: athlete.sexe === "M" ? "Masculin" : "Féminin" },
                   { label: "Catégorie d’âge", value: activeAffiliation?.categorie || "Non définie" },

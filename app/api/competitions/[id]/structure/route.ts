@@ -23,6 +23,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   try {
     const competitionId = decodeURIComponent((await context.params).id);
     const created = await createCompetitionStructureItem(competitionId, await request.json().catch(() => null));
-    return NextResponse.json({ created, ...(await getCompetitionStructure(competitionId)) }, { status: 201 });
+    return NextResponse.json({ created }, { status: 201 });
   } catch (error) { return fail(error); }
 }

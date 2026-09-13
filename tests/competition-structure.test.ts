@@ -3,6 +3,7 @@ import test from "node:test";
 import { createCompetitionStructureItem, getCompetitionStructure } from "../lib/competition-structure";
 import { CompetitionParticipationError } from "../lib/competition-participants";
 import type { SheetRow } from "../lib/google-sheets";
+import { readFile } from "node:fs/promises";
 
 function fixture() {
   const sheets: Record<string, SheetRow[]> = {
@@ -86,4 +87,12 @@ test("refuse de rattacher un groupe à la phase d’une autre compétition", asy
     createCompetitionStructureItem("COMP-1", { kind: "groupe", nom: "Groupe X", phaseId: "PH-2" }, fixture().deps),
     (error: unknown) => error instanceof CompetitionParticipationError && error.code === "PHASE_INVALIDE",
   );
+});
+
+test("le POST structure ne transforme pas une écriture réussie en 503 par une relecture Sheets", async () => {
+  const route = await readFile("app/api/competitions/[id]/structure/route.ts", "utf8");
+  const panel = await readFile("components/dashboard/competition-structure-panel.tsx", "utf8");
+
+  assert.doesNotMatch(route, /created, \.\.\.\(await getCompetitionStructure\(competitionId\)\)/);
+  assert.match(panel, /setGroups\(current=>\[\.\.\.current,/);
 });
