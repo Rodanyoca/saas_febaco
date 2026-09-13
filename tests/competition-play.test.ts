@@ -203,7 +203,8 @@ test("l’interface pilote groupes, unités et qualifications par le mode de pha
   assert.match(source, /competitionQualificationDestinations\(phases, sourcePhaseId\)/);
   assert.match(source, /sourcePhaseId/);
   assert.match(source, /row\.phaseId === phaseId/);
-  assert.match(source, /federal && played && result\.winnerId/);
+  assert.doesNotMatch(source, /Qualifier le vainqueur/);
+  assert.match(source, /Qualifier l’équipe/);
   assert.match(source, /submitting\.current/);
   assert.match(source, /Équipes qualifiées/);
   assert.match(source, /assignment\.phaseId === phase\.id/);
