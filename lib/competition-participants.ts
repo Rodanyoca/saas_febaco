@@ -47,8 +47,8 @@ export function generateNextId(rows: SheetRow[], field: string): string {
 }
 
 async function loadRows(deps: Dependencies) {
-  const competitionSheet = (sheet: string) =>
-    deps.readRows({ block: "competitions", sheet, range: "A:ZZ" });
+  const competitionSheet = (sheet: string, fresh = false) =>
+    deps.readRows({ block: "competitions", sheet, range: "A:ZZ", fresh });
   const structureSheet = (sheet: string) =>
     deps.readRows({ block: "structure", sheet, range: "A:ZZ" });
   const referenceSheet = (sheet: string) =>
@@ -59,8 +59,8 @@ async function loadRows(deps: Dependencies) {
       competitionSheet("COMPETITIONS_EPREUVES"),
       competitionSheet("COMPETITIONS_PARTICIPANTS"),
       competitionSheet("COMPETITIONS_UNITES"),
-      competitionSheet("COMPETITIONS_PHASES"),
-      competitionSheet("COMPETITIONS_GROUPES"),
+      competitionSheet("COMPETITIONS_PHASES", true),
+      competitionSheet("COMPETITIONS_GROUPES", true),
       competitionSheet("COMPETITIONS_GROUPES_UNITES"),
       competitionSheet("COMPETITIONS_PHASES_UNITES"),
       structureSheet("CLUBS"),

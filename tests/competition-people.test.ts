@@ -7,7 +7,7 @@ function fixture(overrides: Record<string, SheetRow[]> = {}) {
   const sheets: Record<string, SheetRow[]> = {
     COMPETITIONS: [{ id_competition: "COMP-1" }],
     COMPETITIONS_PARTICIPANTS: [{ id_participation: "P1", id_competition: "COMP-1", id_equipe: "E1" }],
-    COMPETITIONS_PARTICIPANTS_MEMBRES: [{ id_participation_membre: "PM1", id_participation: "P1", id_athlete: "ATH1", id_poste: "POS1", numero_maillot: "7" }, { id_participation_membre: "PM2", id_participation: "OTHER", id_athlete: "ATH2" }], COMPETITIONS_INTERVENANTS: [],
+    COMPETITIONS_INTERVENANTS: [],
     EQUIPES: [{ id_equipe: "E1", nom_equipe: "Matonge Senior", id_club: "C1" }], CLUBS: [{ id_club: "C1", nom_club: "Matonge" }],
     ATHLETES: [{ id_athlete: "ATH1", nom_complet: "Jean Test" }, { id_athlete: "ATH2", nom_complet: "Hors compétition" }],
     ARBITRES: [{ id_arbitre: "ARB1", nom_complet: "Arbitre non affecté", id_grade_arbitre: "G1" }], OFFICIELS: [{ id_officiel: "OFF1", nom_complet: "Officiel Club" }], MEDECINS: [{ id_medecin: "MED1", nom_complet: "Docteur Club", id_specialite: "S1" }], AUTRES: [],
@@ -22,9 +22,23 @@ function fixture(overrides: Record<string, SheetRow[]> = {}) {
 }
 
 test("liste uniquement les athlètes explicitement inscrits à la compétition", async () => {
-  const result = await getCompetitionPeople("COMP-1", fixture().deps);
+  const result = await getCompetitionPeople("COMP-1", fixture({ COMPETITIONS_INTERVENANTS: [{ id_intervenant_competition: "I1", id_competition: "COMP-1", type_participant: "ATHLETE", id_acteur: "ATH1", id_equipe: "E1", id_club: "C1", statut: "ACTIF" }] }).deps);
   assert.deepEqual(result.athletes.map((person) => person.id), ["ATH1"]);
-  assert.deepEqual({ club: result.athletes[0].club, equipe: result.athletes[0].equipe, detail: result.athletes[0].detail }, { club: "Matonge", equipe: "Matonge Senior", detail: "Maillot 7" });
+  assert.deepEqual({ club: result.athletes[0].club, equipe: result.athletes[0].equipe, detail: result.athletes[0].detail }, { club: "Matonge", equipe: "Matonge Senior", detail: "-" });
+});
+
+test("ne lit aucune feuille de membres absente du classeur compétitions", async () => {
+  const setup = fixture();
+  const base = setup.deps as unknown as { readRows: (params: { sheet: string }) => Promise<SheetRow[]> };
+  const sheets: string[] = [];
+  await getCompetitionPeople("COMP-1", {
+    ...base,
+    readRows: async (params: { sheet: string }) => {
+      sheets.push(params.sheet);
+      return base.readRows(params);
+    },
+  } as never);
+  assert.equal(sheets.includes("COMPETITIONS_PARTICIPANTS_MEMBRES"), false);
 });
 
 test("propose les athlètes affiliés et les rôles adaptés des autres registres", async () => {

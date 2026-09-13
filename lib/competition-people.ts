@@ -27,17 +27,17 @@ async function load(deps: Dependencies) {
   const affiliations = (sheet: string) => deps.readRows({ block: "affiliations", sheet, range: "A:ZZ" });
   const refs = (sheet: string) => deps.readRows({ block: "referentiel", sheet, range: "A:ZZ" });
   const structure = (sheet: string) => deps.readRows({ block: "structure", sheet, range: "A:ZZ" });
-  const [competitions, participations, units, members, intervenants, teams, clubs, athleteRows, refereeRows, officialRows, doctorRows, otherRows, athleteAffiliations, functions, actorTypes, grades, specialties, otherTypes] = await Promise.all([
-    comp("COMPETITIONS"), comp("COMPETITIONS_PARTICIPANTS"), comp("COMPETITIONS_UNITES"), comp("COMPETITIONS_PARTICIPANTS_MEMBRES"), comp("COMPETITIONS_INTERVENANTS"), structure("EQUIPES"), structure("CLUBS"),
+  const [competitions, participations, units, intervenants, teams, clubs, athleteRows, refereeRows, officialRows, doctorRows, otherRows, athleteAffiliations, functions, actorTypes, grades, specialties, otherTypes] = await Promise.all([
+    comp("COMPETITIONS"), comp("COMPETITIONS_PARTICIPANTS"), comp("COMPETITIONS_UNITES"), comp("COMPETITIONS_INTERVENANTS"), structure("EQUIPES"), structure("CLUBS"),
     actors("ATHLETES"), actors("ARBITRES"), actors("OFFICIELS"), actors("MEDECINS"), actors("AUTRES"), affiliations("ATHLETE_AFFILIATIONS"),
     refs("FONCTIONS"), refs("TYPES_ACTEURS"), refs("GRADES_ARBITRES"), refs("SPECIALITES_MEDECINS"), refs("TYPES_AUTRES_ACTEURS"),
   ]);
-  return { competitions, participations, units, members, intervenants, teams, clubs, athleteRows, refereeRows, officialRows, doctorRows, otherRows, athleteAffiliations, functions, actorTypes, grades, specialties, otherTypes };
+  return { competitions, participations, units, intervenants, teams, clubs, athleteRows, refereeRows, officialRows, doctorRows, otherRows, athleteAffiliations, functions, actorTypes, grades, specialties, otherTypes };
 }
 
 function resolve(competitionId: string, data: Awaited<ReturnType<typeof load>>, now: string) {
   if (!data.competitions.some((row) => clean(row.id_competition) === competitionId)) throw new CompetitionParticipationError("COMPETITION_INTROUVABLE", "La compétition n’existe pas.", 404);
-  const participationRows = data.participations.filter((row) => clean(row.id_competition) === competitionId), participationIds = new Set(participationRows.map((row) => clean(row.id_participation))), teamIds = new Set(participationRows.map((row) => clean(row.id_equipe)));
+  const participationRows = data.participations.filter((row) => clean(row.id_competition) === competitionId), teamIds = new Set(participationRows.map((row) => clean(row.id_equipe)));
   const teamMap = new Map(data.teams.map((row) => [clean(row.id_equipe), row])), clubMap = new Map(data.clubs.map((row) => [clean(row.id_club), clean(row.nom_club) || clean(row.id_club)]));
   const teamName = (id: string) => clean(teamMap.get(id)?.nom_equipe) || id || "-", clubIdFor = (teamId: string) => clean(teamMap.get(teamId)?.id_club), clubName = (teamId: string) => clubMap.get(clubIdFor(teamId)) || clubIdFor(teamId) || "-";
   const actorMaps = {
@@ -53,11 +53,6 @@ function resolve(competitionId: string, data: Awaited<ReturnType<typeof load>>, 
     const storedType = clean(row.type_participant).toUpperCase() as StoredType, category = typeCategory[storedType]; if (!category) continue;
     const id = clean(row.id_acteur), actor = actorMaps[category].get(id), teamId = clean(row.id_equipe);
     result[category].push({ id, nom: nameOf(actor) || "Acteur introuvable", role: clean(row.role_participant) || baseRole(category, actor), club: clubMap.get(clean(row.id_club)) || (teamId ? clubName(teamId) : "-"), equipe: teamId ? teamName(teamId) : "-", detail: baseDetail(category, actor) });
-  }
-  const explicitAthleteIds = new Set(result.athletes.map((person) => person.id)), athleteTeam = new Map(data.athleteAffiliations.filter((row) => activeAffiliation(row, now)).map((row) => [clean(row.id_athlete), clean(row.id_equipe)]));
-  for (const row of data.members.filter((item) => participationIds.has(clean(item.id_participation)) && !explicitAthleteIds.has(clean(item.id_athlete)))) {
-    const id = clean(row.id_athlete), actor = actorMaps.athletes.get(id), teamId = athleteTeam.get(id) || clean(participationRows.find((item) => clean(item.id_participation) === clean(row.id_participation))?.id_equipe);
-    result.athletes.push({ id, nom: nameOf(actor) || "Athlète introuvable", role: clean(row.id_poste) || "Athlète", club: clubName(teamId), equipe: teamName(teamId), detail: clean(row.numero_maillot) ? `Maillot ${clean(row.numero_maillot)}` : "-" });
   }
   const enrolledKeys = new Set(enrolled.map((row) => `${clean(row.type_participant).toUpperCase()}\u0000${clean(row.id_acteur)}`));
   const candidates: Record<ParticipantCategory, CompetitionCandidate[]> = { athletes: [], arbitres: [], officiels: [], medecins: [], autres: [] };

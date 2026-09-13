@@ -64,6 +64,21 @@ test("présente les matchs en résolvant phases, groupes et équipes par identif
   assert.deepEqual({ phase: data.matches[0].phase, groupe: data.matches[0].groupe, a: data.matches[0].uniteA, b: data.matches[0].uniteB }, { phase: "Poules", groupe: "Groupe A", a: "Aigles", b: "Lions" });
 });
 
+test("relit les phases et groupes sans cache pour proposer toutes les poules", async () => {
+  const setup = fixture();
+  const base = setup.deps as unknown as { readRows: (params: { sheet: string; fresh?: boolean }) => Promise<SheetRow[]> };
+  const calls: Array<{ sheet: string; fresh?: boolean }> = [];
+  await getCompetitionPlay("COMP-1", {
+    ...base,
+    readRows: async (params: { sheet: string; fresh?: boolean }) => {
+      calls.push(params);
+      return base.readRows(params);
+    },
+  } as never);
+  assert.equal(calls.find((call) => call.sheet === "COMPETITIONS_PHASES")?.fresh, true);
+  assert.equal(calls.find((call) => call.sheet === "COMPETITIONS_GROUPES")?.fresh, true);
+});
+
 test("présente le statut de qualification depuis l’affectation à une phase ultérieure", async () => {
   const setup = fixture({
     COMPETITIONS_PHASES: [
@@ -91,6 +106,13 @@ test("programme un match uniquement dans COMPETITIONS_MATCHS", async () => {
   assert.deepEqual(setup.appended.map((row) => row.sheet), ["COMPETITIONS_MATCHS"]);
   assert.equal(setup.appended[0].values.statut_match, "PROGRAMME");
   assert.match(setup.appended[0].values.id_match, /^BKB-MAT-COMP-1-\d{3}$/);
+});
+
+test("la programmation réussie ne dépend pas d'une relecture complète pouvant renvoyer 503", async () => {
+  const route = await import("node:fs/promises").then((fs) => fs.readFile("app/api/competitions/[id]/play/route.ts", "utf8"));
+  const panel = await import("node:fs/promises").then((fs) => fs.readFile("components/dashboard/competition-play-panel.tsx", "utf8"));
+  assert.match(route, /action === "match" \? \{ created \}/);
+  assert.match(panel, /setData\(current=>\(\{\.\.\.current,matches:\[\.\.\.current\.matches,/);
 });
 
 test("calcule le classement basket: victoire 2 points, défaite 1 point", () => {

@@ -17,11 +17,11 @@ type Dependencies = {
 const defaults: Dependencies = { readRows: readSheetRows, appendRows: appendSheetRowsAtomically, upsertRows: upsertSheetRowsAtomically };
 
 async function load(deps: Dependencies) {
-  const competitions = (sheet: string) => deps.readRows({ block: "competitions", sheet, range: "A:ZZ" });
+  const competitions = (sheet: string, fresh = false) => deps.readRows({ block: "competitions", sheet, range: "A:ZZ", fresh });
   const references = (sheet: string) => deps.readRows({ block: "referentiel", sheet, range: "A:ZZ" });
   const structure = (sheet: string) => deps.readRows({ block: "structure", sheet, range: "A:ZZ" });
   const [competitionRows, events, phases, groups, canonicalPhaseUnits, historicalAssignments, units, matches, results, standings, statuses, teams, phaseTypes, phaseModes, assignmentTypes] = await Promise.all([
-    competitions("COMPETITIONS"), competitions("COMPETITIONS_EPREUVES"), competitions("COMPETITIONS_PHASES"), competitions("COMPETITIONS_GROUPES"),
+    competitions("COMPETITIONS"), competitions("COMPETITIONS_EPREUVES"), competitions("COMPETITIONS_PHASES", true), competitions("COMPETITIONS_GROUPES", true),
     competitions("COMPETITIONS_PHASES_UNITES"), competitions("COMPETITIONS_GROUPES_UNITES"), competitions("COMPETITIONS_UNITES"), competitions("COMPETITIONS_MATCHS"),
     competitions("COMPETITIONS_RESULTATS"), competitions("COMPETITIONS_CLASSEMENT"), references("STATUTS_RESULTATS"), structure("EQUIPES"), references("TYPES_PHASES"), references("MODES_PHASES"), references("TYPES_AFFECTATIONS_PHASES"),
   ]);

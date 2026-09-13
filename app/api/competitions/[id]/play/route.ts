@@ -23,6 +23,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const action = body && typeof body === "object" ? String((body as Record<string, unknown>).action ?? "") : "";
     const created = action === "match" ? await createCompetitionMatch(competitionId, body) : action === "resultat" ? await createCompetitionResult(competitionId, body) : action === "phase-unit" ? await createCompetitionPhaseUnit(competitionId, body) : action === "qualifications" ? await createCompetitionQualifications(competitionId, body) : null;
     if (!created) return NextResponse.json({ error: { message: "Action invalide." } }, { status: 422 });
-    return NextResponse.json({ created, ...(await getCompetitionPlay(competitionId)) }, { status: 201 });
+    const payload = action === "match" ? { created } : { created, ...(await getCompetitionPlay(competitionId)) };
+    return NextResponse.json(payload, { status: 201 });
   } catch (error) { return fail(error); }
 }
