@@ -3,6 +3,7 @@ import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
 import { scopeFromSession } from "@/lib/auth-scope"
 import { handleTerritorialWrite } from "@/app/api/_territorial-write"
+import { getReferenceMap } from "@/lib/territorial"
 
 export const dynamic = "force-dynamic"
 
@@ -16,7 +17,11 @@ export async function GET() {
     }
 
     const scope = scopeFromSession(user)
-    const [rows, ligueRows] = await Promise.all([readSheetRows({ block: "structure", sheet: "ententes", range: "A:ZZ" }), readSheetRows({block:"structure",sheet:"LIGUES",range:"A:K"})])
+    const [rows, ligueRows, villeNames] = await Promise.all([
+      readSheetRows({ block: "structure", sheet: "ententes", range: "A:ZZ" }),
+      readSheetRows({ block: "structure", sheet: "LIGUES", range: "A:K" }),
+      getReferenceMap("VILLES"),
+    ])
     const ligueNames=new Map(ligueRows.map(row=>[row.id_ligue,row.nom_ligue]))
 
     const filteredRows =
@@ -35,6 +40,7 @@ export async function GET() {
       const id = pickFirst(row, ["id_entente"])
       const nom = pickFirst(row, ["nom_entente"])
       const ligueId = pickFirst(row, ["id_ligue", "ligue_id", "idligue"])
+      const villeId = pickFirst(row, ["id_ville"])
       const pseudo = pickFirst(row, ["sigle_entente", "pseudo_entente"])
       const ligue = pickFirst(row, ["pseudo_ligue", "nom_ligue"]) || ligueNames.get(ligueId) || ligueId
       const email = pickFirst(row, ["email", "email_entente"])
@@ -49,6 +55,8 @@ export async function GET() {
         id: id || fallbackId,
         nom: nom || "-",
         ligueId: ligueId || "",
+        villeId: villeId || "",
+        ville: pickFirst(row, ["nom_ville", "ville"]) || villeNames.get(villeId) || villeId || "-",
         pseudo: pseudo || "-",
         sigle: pseudo || "-",
         ligue: ligue || "-",

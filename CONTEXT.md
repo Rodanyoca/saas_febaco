@@ -2,7 +2,7 @@
 
 ## Structure territoriale
 
-- **Ligue** : premier niveau territorial de la FEBACO. Une ligue est rattachée à une province.
+- **Ligue** : premier niveau territorial de la FEBACO. Les villes affichées sur sa fiche sont calculées depuis ses ententes (`LIGUE → ENTENTES → VILLES`) ; aucun identifiant de ville n'est ajouté à la feuille `LIGUES`.
 - **Entente** : subdivision territoriale appartenant obligatoirement à une ligue.
 - **Club** : organisation sportive appartenant obligatoirement à une entente.
 - **Équipe** : unité sportive appartenant obligatoirement à un club.
@@ -21,6 +21,13 @@ La hiérarchie officielle et exhaustive est :
 Il n'existe ni niveau « Cercle » ni structure territoriale générique dans ce contexte.
 
 Les statuts d'une structure territoriale sont `ACTIF` et `INACTIF`.
+
+## Licences
+
+- **Licence d’athlète** : autorisation fédérale d’un athlète pour une saison complète, enregistrée dans `ATHLETE_LICENCES` et obligatoirement rattachée à une affiliation réelle. _Éviter_ : licence d’équipe, période de validité propre.
+- **Renouvellement individuel** : création de la licence d’une nouvelle saison depuis une affiliation admissible ; si la licence de la saison existe déjà, l’action devient une modification administrative.
+- **Renouvellement collectif** : création atomique de plusieurs licences d’athlètes affiliés à une même équipe. Il ne crée jamais une licence au nom de l’équipe.
+- **Numéro de licence** : référence administrative ou publique modifiable, distincte de l’identifiant technique immuable `id_licence`.
 
 ## Compétitions
 

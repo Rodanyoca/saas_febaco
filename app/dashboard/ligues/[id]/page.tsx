@@ -69,7 +69,7 @@ const ententeColumns: Column<Entente>[] = [
   { key: "id", header: "ID", className: "font-mono text-sm" },
   { key: "nom", header: "Nom", className: "font-medium" },
   { key: "pseudo", header: "Pseudo" },
-  { key: "province", header: "Province" },
+  { key: "ville", header: "Ville" },
   { key: "statut", header: "Statut", render: (item) => <StatusBadge status={item.statut} /> },
 ]
 
@@ -171,6 +171,14 @@ export default function LigueDetailPage() {
       return sameName(item.ligue, ligueNameCandidates)
     })
   }, [ententes, ligue, ligueNameCandidates])
+
+  const relatedCities = useMemo(() => {
+    const cities = relatedEntentes
+      .map((item) => String(item.ville ?? "").trim())
+      .filter((value) => value && value !== "-")
+
+    return [...new Set(cities)].join(", ") || "-"
+  }, [relatedEntentes])
 
   const relatedClubs = useMemo(() => {
     if (!ligue) return []
@@ -274,7 +282,7 @@ export default function LigueDetailPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title={`Fiche Ligue: ${ligue.nom}`} subtitle={ligue.province || "FEBACO"} />
+      <Header title={`Fiche Ligue: ${ligue.nom}`} subtitle={relatedCities !== "-" ? relatedCities : "FEBACO"} />
 
       <div className="flex-1 space-y-6 p-6">
         <div className="flex items-center justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
@@ -289,7 +297,7 @@ export default function LigueDetailPage() {
               { label: "ID Ligue", value: ligue.id },
               { label: "Nom", value: ligue.nom },
               { label: "Pseudo", value: ligue.pseudo },
-              { label: "Province", value: ligue.province },
+              { label: "Ville", value: relatedCities },
               { label: "Email", value: ligue.email },
               { label: "Statut", value: ligue.statut },
             ]}

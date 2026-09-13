@@ -20,6 +20,8 @@ export interface Ligue {
 export interface Entente {
   id: string
   ligueId?: string
+  villeId?: string
+  ville?: string
   nom: string
   pseudo: string
   ligue: string

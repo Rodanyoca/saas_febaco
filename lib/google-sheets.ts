@@ -12,6 +12,7 @@ export type SheetBlock =
   | "acteurs"
   | "affiliations"
   | "competitions"
+  | "licences"
   | "equipeNationale"
   | "importExport";
 
@@ -22,6 +23,7 @@ const spreadsheetEnvByBlock: Record<SheetBlock, string> = {
   acteurs: "GOOGLE_SHEETS_ACTEURS_ID",
   affiliations: "GOOGLE_SHEETS_AFFILIATIONS_ID",
   competitions: "GOOGLE_SHEETS_COMPETITIONS_ID",
+  licences: "GOOGLE_SHEETS_LICENCES_ID",
   equipeNationale: "GOOGLE_SHEETS_EQUIPE_NATIONALE_ID",
   importExport: "GOOGLE_SHEETS_IMPORT_EXPORT_ID",
 };
@@ -29,6 +31,7 @@ const spreadsheetEnvByBlock: Record<SheetBlock, string> = {
 const spreadsheetFallbackByBlock: Partial<Record<SheetBlock, string>> = {
   referentiel: "1hoW2S9NRzhhtBuXtkLnMqOSdhYyjKtDEVPHQr7pVQRg",
   competitions: "19pBbuaxnDlaCIjNQdJBce5NrNE6sxanqtLNBbWkrdY4",
+  licences: "1Jy35NhhvprjLj2k_Exu90yzkSaNXvr-JFdUd9RbrGBY",
 };
 
 const sheetBlockByName: Record<string, SheetBlock> = {
@@ -48,6 +51,8 @@ const sheetBlockByName: Record<string, SheetBlock> = {
   competitions_unites: "competitions",
   competitions_resultats: "competitions",
   competitions_classement: "competitions",
+  athlete_licences: "licences",
+  acteurs_licences: "licences",
   participants: "competitions",
   unites: "competitions",
   resultats: "competitions",

@@ -16,6 +16,7 @@ import {
   BadgeCheck,
   Stethoscope,
   ArrowRightLeft,
+  CreditCard,
   Trophy,
   ClipboardList,
   FileSpreadsheet,
@@ -48,7 +49,11 @@ const navigationActeurs: NavItem[] = [
 
 const navigationCompetition: NavItem[] = [
   { name: "Compétitions", href: "/dashboard/competitions", icon: Trophy },
+]
+
+const navigationMouvement: NavItem[] = [
   { name: "Transferts", href: "/dashboard/transferts", icon: ArrowRightLeft },
+  { name: "Licences", href: "/dashboard/licences", icon: CreditCard },
 ]
 
 const navigationEquipeNationale: NavItem[] = [
@@ -137,6 +142,7 @@ export function Sidebar() {
   const [openTerritoriale, setOpenTerritoriale] = useState(true)
   const [openActeurs, setOpenActeurs] = useState(true)
   const [openCompetition, setOpenCompetition] = useState(true)
+  const [openMouvement, setOpenMouvement] = useState(true)
   const [openEquipeNationale, setOpenEquipeNationale] = useState(true)
 
   return (
@@ -220,6 +226,15 @@ export function Sidebar() {
             items={navigationCompetition}
             open={openCompetition}
             setOpen={setOpenCompetition}
+            collapsed={collapsed}
+            pathname={pathname}
+          />
+
+          <NavGroup
+            title="Mouvement"
+            items={navigationMouvement}
+            open={openMouvement}
+            setOpen={setOpenMouvement}
             collapsed={collapsed}
             pathname={pathname}
           />
