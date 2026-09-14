@@ -25,7 +25,7 @@ import {
   ChevronUp,
 } from "lucide-react"
 
-type NavItem = { name: string; href: string; icon: React.ComponentType<{ className?: string }> }
+type NavItem = { name: string; href: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean; badge?: string }
 
 const navigationDashboard: NavItem[] = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
@@ -50,8 +50,9 @@ const navigationCompetition: NavItem[] = [
   { name: "Compétitions", href: "/dashboard/competitions", icon: Trophy },
 ]
 
-const navigationMouvement: NavItem[] = [
-  { name: "Licences", href: "/dashboard/licences", icon: CreditCard },
+const navigationLicences: NavItem[] = [
+  { name: "Athlètes", href: "/dashboard/licences", icon: CreditCard },
+  { name: "Entourage", href: "#", icon: UserCog, disabled: true, badge: "Bientôt" },
 ]
 
 const navigationEquipeNationale: NavItem[] = [
@@ -65,6 +66,16 @@ const navigationOutils: NavItem[] = [
 ]
 
 function NavLink({ item, collapsed, pathname }: { item: NavItem; collapsed: boolean; pathname: string }) {
+  if (item.disabled) return (
+    <div
+      aria-disabled="true"
+      title={collapsed ? `${item.name} — ${item.badge}` : undefined}
+      className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-muted opacity-60"
+    >
+      <item.icon className="h-5 w-5 flex-shrink-0" />
+      {!collapsed && <><span>{item.name}</span><span className="ml-auto text-[10px] uppercase tracking-wide">{item.badge}</span></>}
+    </div>
+  )
   const isDashboardRoot = item.href === "/dashboard"
   const isActive = isDashboardRoot
     ? pathname === "/dashboard"
@@ -140,7 +151,7 @@ export function Sidebar() {
   const [openTerritoriale, setOpenTerritoriale] = useState(true)
   const [openActeurs, setOpenActeurs] = useState(true)
   const [openCompetition, setOpenCompetition] = useState(true)
-  const [openMouvement, setOpenMouvement] = useState(true)
+  const [openLicences, setOpenLicences] = useState(true)
   const [openEquipeNationale, setOpenEquipeNationale] = useState(true)
 
   return (
@@ -229,10 +240,10 @@ export function Sidebar() {
           />
 
           <NavGroup
-            title="Mouvement"
-            items={navigationMouvement}
-            open={openMouvement}
-            setOpen={setOpenMouvement}
+            title="Licences"
+            items={navigationLicences}
+            open={openLicences}
+            setOpen={setOpenLicences}
             collapsed={collapsed}
             pathname={pathname}
           />
