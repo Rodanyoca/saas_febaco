@@ -14,6 +14,12 @@ const statusStyles: Record<string, string> = {
   suspended: "border border-yellow-300/25 bg-yellow-300/10 text-yellow-200",
   en_attente: "border border-sky-400/25 bg-sky-400/10 text-sky-300",
   pending: "border border-sky-400/25 bg-sky-400/10 text-sky-300",
+  valide: "border border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
+  a_venir: "border border-sky-400/25 bg-sky-400/10 text-sky-300",
+  expiree: "border border-red-400/25 bg-red-400/10 text-red-300",
+  suspendue: "border border-amber-400/25 bg-amber-400/10 text-amber-300",
+  cloturee: "border border-slate-400/25 bg-slate-400/10 text-slate-300",
+  annulee: "border border-red-500/30 bg-red-500/10 text-red-300",
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {

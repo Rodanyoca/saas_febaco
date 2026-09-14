@@ -52,7 +52,7 @@ const navigationCompetition: NavItem[] = [
 
 const navigationLicences: NavItem[] = [
   { name: "Athlètes", href: "/dashboard/licences", icon: CreditCard },
-  { name: "Entourage", href: "#", icon: UserCog, disabled: true, badge: "Bientôt" },
+  { name: "Entourage", href: "/dashboard/licences/entourage", icon: UserCog },
 ]
 
 const navigationEquipeNationale: NavItem[] = [

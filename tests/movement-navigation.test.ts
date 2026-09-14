@@ -2,15 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 
-test("la navigation regroupe les licences des Athlètes et annonce Entourage", async () => {
+test("la navigation regroupe les licences des Athlètes et de l'Entourage", async () => {
   const source = await readFile("components/dashboard/sidebar.tsx", "utf8");
   const licences = source.match(/const navigationLicences[\s\S]*?\n\]/)?.[0] || "";
   const competition = source.match(/const navigationCompetition[\s\S]*?\n\]/)?.[0] || "";
   assert.match(licences, /name: "Athlètes", href: "\/dashboard\/licences"/);
-  assert.match(licences, /name: "Entourage"[\s\S]*disabled: true[\s\S]*badge: "Bientôt"/);
+  assert.match(licences, /name: "Entourage", href: "\/dashboard\/licences\/entourage"/);
   assert.doesNotMatch(competition, /licences/);
   assert.match(source, /title="Licences"/);
-  assert.match(source, /aria-disabled="true"/);
 });
 
 test("la page Licences expose la consultation et le renouvellement", async () => {

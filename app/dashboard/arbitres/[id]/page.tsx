@@ -7,10 +7,12 @@ import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ActorEditor } from "@/components/dashboard/actor-editor"
+import { ActorLicensesPanel } from "@/components/dashboard/actor-licenses-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Arbitre } from "@/lib/models"
 
 function initials(prenom?: string, nom?: string): string {
@@ -120,7 +122,7 @@ export default function ArbitreDetailPage() {
                 </Avatar>
                 <div>
                   <h2 className="text-2xl font-bold">{nomComplet}</h2>
-                  <p className="text-muted-foreground">{arbitre.niveau || arbitre.idNational || arbitre.id}</p>
+                  <p className="text-muted-foreground">{arbitre.grade || arbitre.idNational || arbitre.id}</p>
                   <div className="mt-2">
                     <StatusBadge status={arbitre.statut} />
                   </div>
@@ -180,7 +182,13 @@ export default function ArbitreDetailPage() {
           }}
         />
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <Tabs defaultValue="general" className="gap-4">
+          <TabsList className="grid h-auto w-full grid-cols-2">
+            <TabsTrigger value="general">Général</TabsTrigger>
+            <TabsTrigger value="licences">Licences</TabsTrigger>
+          </TabsList>
+          <TabsContent value="general">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               <DetailCard
                 title="Identite"
                 icon={Flag}
@@ -199,7 +207,7 @@ export default function ArbitreDetailPage() {
                 fields={[
                   { label: "ID national", value: arbitre.idNational },
                   { label: "ID FIBA", value: arbitre.idFiba },
-                  { label: "Niveau", value: arbitre.niveau },
+                  { label: "Grade", value: arbitre.grade },
                   { label: "Statut", value: arbitre.statut },
                 ]}
               />
@@ -212,7 +220,12 @@ export default function ArbitreDetailPage() {
                   { label: "Email", value: arbitre.email },
                 ]}
               />
-        </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="licences">
+            <ActorLicensesPanel actorId={arbitre.id} typeId="TAC004" />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

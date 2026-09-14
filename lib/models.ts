@@ -425,6 +425,8 @@ export interface Arbitre {
   tailleCm?: number
   poidsKg?: number
   niveau: string
+  grade: string
+  id_grade_arbitre?: string
   province: string
   ligue: string
   entente: string

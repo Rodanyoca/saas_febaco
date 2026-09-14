@@ -28,6 +28,9 @@ Les statuts d'une structure territoriale sont `ACTIF` et `INACTIF`.
 - **Renouvellement individuel** : création de la licence d’une nouvelle saison depuis une affiliation admissible ; si la licence de la saison existe déjà, l’action devient une modification administrative.
 - **Renouvellement collectif** : création atomique de plusieurs licences d’athlètes affiliés à une même équipe. Il ne crée jamais une licence au nom de l’équipe.
 - **Numéro de licence** : référence administrative ou publique modifiable, distincte de l’identifiant technique immuable `id_licence`.
+- **Licence d’acteur** : autorisation fédérale individuelle d’un coach, officiel, arbitre ou médecin, rattachée directement au type et à l’acteur, sans saison, équipe ni affiliation.
+- **Renouvellement d’une licence d’acteur** : création d’une nouvelle ligne de licence et conservation de toutes les périodes précédentes dans l’historique de l’acteur. Les périodes de validité ne peuvent pas se chevaucher.
+- **Statut effectif d’une licence d’acteur** : état affiché calculé à la date du jour pour une licence `ACTIVE` (`À venir`, `Valide` ou `Expirée`) ; un état manuel `Suspendue`, `Clôturée` ou `Annulée` reste prioritaire.
 
 ## Compétitions
 

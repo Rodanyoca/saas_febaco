@@ -60,10 +60,10 @@ const columns: Column<Arbitre>[] = [
     },
   },
   {
-    key: "niveau",
-    header: "Niveau",
+    key: "grade",
+    header: "Grade",
     className: "w-[11%] whitespace-normal break-words",
-    render: (item) => item.niveau || "-",
+    render: (item) => item.grade || "-",
   },
   {
     key: "idNational",
@@ -132,9 +132,9 @@ export default function ArbitresPage() {
         ],
       },
       {
-        key: "niveau",
-        label: "Niveau",
-        options: getFilterOptions(arbitres, "niveau"),
+        key: "grade",
+        label: "Grade",
+        options: getFilterOptions(arbitres, "grade"),
       },
       {
         key: "statut",

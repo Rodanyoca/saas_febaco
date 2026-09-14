@@ -18,6 +18,7 @@ for(const kind of kinds)test(`crée et modifie un acteur ${kind} avec un seul wr
 
 test("normalise les valeurs historiques du sexe",()=>{assert.equal(normalizeSexId("MASCULINE"),"SEX001");assert.equal(normalizeSexId("F"),"SEX002");assert.equal(normalizeSexId("AUTRE"),"SEX099")})
 test("résout le niveau du coach depuis le référentiel",()=>{const coach=normalizeActor("coachs",{id_coach:"COA-1",nom_complet:"Coach Test",id_niveau:"NCO002"},{coachLevels:[{id_niveau_coach:"NCO002",nom_niveau_coach:"LEVEL 2"}]});assert.equal(coach.id_niveau,"NCO002");assert.equal(coach.niveau,"LEVEL 2")})
+test("résout le grade de l’arbitre depuis le référentiel",()=>{const arbitre=normalizeActor("arbitres",{id_arbitre:"ARB-1",nom_complet:"Arbitre Test",id_grade_arbitre:"GAR002"},{refereeGrades:[{id_grade_arbitre:"GAR002",nom_grade_arbitre:"International"}]});assert.equal(arbitre.id_grade_arbitre,"GAR002");assert.equal(arbitre.grade,"International")})
 test("refuse un sexe invalide",()=>assert.ok(validateActorInput("athletes",{nom_complet:"A",id_sexe:"X",statut:"ACTIF"}).errors.id_sexe))
 test("refuse une naissance future",()=>assert.ok(validateActorInput("athletes",{nom_complet:"A",id_sexe:"SEX001",statut:"ACTIF",date_de_naissance:"2999-01-01"}).errors.date_de_naissance))
 test("refuse des dates de passeport incohérentes",()=>assert.ok(validateActorInput("athletes",{nom_complet:"A",id_sexe:"SEX001",statut:"ACTIF",date_de_delivrance_passeport:"2026-02-01",date_expiration_passeport:"2026-01-01"}).errors.date_expiration_passeport))

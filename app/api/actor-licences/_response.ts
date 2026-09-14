@@ -1,0 +1,2 @@
+import {NextResponse}from"next/server";import{ActorLicenseError}from"@/lib/actor-licences"
+export function actorLicenseFailure(error:unknown){if(error instanceof ActorLicenseError)return NextResponse.json({error:{code:error.code,message:error.message,fields:error.fields}},{status:error.status});console.error("[api/actor-licences]",error);return NextResponse.json({error:{code:"SERVICE_INDISPONIBLE",message:"Le service des licences est temporairement indisponible."}},{status:503})}

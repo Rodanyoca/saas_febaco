@@ -13,7 +13,7 @@ export const actorConfig = {
   athletes: { sheet:"ATHLETES", id:"id_athlete", prefix:"ATH", extra:[] },
   coachs: { sheet:"COACHS", id:"id_coach", prefix:"COA", extra:[] },
   officiels: { sheet:"OFFICIELS", id:"id_officiel", prefix:"OFF", extra:[] },
-  arbitres: { sheet:"ARBITRES", id:"id_arbitre", prefix:"ARB", extra:[] },
+  arbitres: { sheet:"ARBITRES", id:"id_arbitre", prefix:"ARB", extra:["id_grade_arbitre"] },
   medecins: { sheet:"MEDECINS", id:"id_medecin", prefix:"MED", extra:["id_specialite_sante"] },
   autres: { sheet:"AUTRES", id:"id_autre_acteur", prefix:"AUT", extra:["id_type_autre_acteur"] },
 } as const
@@ -24,13 +24,14 @@ const physicalAliases: Record<string,string[]> = {
   lieu_de_naissance:["lieu_de_naissance","lieu_naissance"],
   id_specialite_sante:["id_specialite_sante","id_specialite"],
   id_type_autre_acteur:["id_type_autre_acteur","type_autre_acteur"],
+  id_grade_arbitre:["id_grade_arbitre","grade"],
   observations:["observations","observation"],
 }
 const physicalHeaders:Record<ActorKind,string[]>={
   athletes:["id_athlete","id_national","id_fiba","nom_complet","id_sexe","date_naissance","lieu_naissance","nationalite","telephone","email","adresse","numero_passeport","date_delivrance_passeport","date_expiration_passeport","statut","avatar_drive_id","avatar_drive_url","passeport_drive_id","passeport_drive_url"],
   coachs:["id_coach","id_national","id_fiba","nom_complet","id_sexe","date_naissance","lieu_naissance","nationalite","telephone","email","adresse","numero_passeport","date_delivrance_passeport","date_expiration_passeport","statut","avatar_drive_id","avatar_drive_url","passeport_drive_id","passeport_drive_url"],
   officiels:["id_officiel","id_national","id_fiba","nom_complet","id_sexe","date_naissance","lieu_naissance","nationalite","telephone","email","adresse","numero_passeport","date_delivrance_passeport","date_expiration_passeport","statut","avatar_drive_id","avatar_drive_url","passeport_drive_id","passeport_drive_url"],
-  arbitres:["id_arbitre","id_national","id_fifa","nom_complet","id_sexe","date_naissance","lieu_naissance","nationalite","telephone","email","adresse","numero_passeport","date_delivrance_passeport","date_expiration_passeport","statut","avatar_drive_id","avatar_drive_url","passeport_drive_id","passeport_drive_url"],
+  arbitres:["id_arbitre","id_national","id_fifa","nom_complet","id_sexe","date_naissance","lieu_naissance","nationalite","id_grade_arbitre","telephone","email","adresse","numero_passeport","date_delivrance_passeport","date_expiration_passeport","statut","avatar_drive_id","avatar_drive_url","passeport_drive_id","passeport_drive_url"],
   medecins:["id_medecin","id_national","id_bwf","nom_complet","id_sexe","date_naissance","lieu_naissance","nationalite","id_specialite","telephone","email","adresse","numero_passeport","date_delivrance_passeport","date_expiration_passeport","statut","avatar_drive_id","avatar_drive_url","passeport_drive_id","passeport_drive_url"],
   autres:["id_autre_acteur","nom_complet","id_sexe","date_naissance","nationalite","telephone","email","type_autre_acteur","statut"],
 }
@@ -74,7 +75,7 @@ export function generateActorId(kind:ActorKind, rows:SheetRow[]):string {
   return candidate
 }
 
-export function normalizeActor(kind:ActorKind,row:SheetRow,references:{coachLevels?:SheetRow[]}={}):Record<string,string>{
+export function normalizeActor(kind:ActorKind,row:SheetRow,references:{coachLevels?:SheetRow[];refereeGrades?:SheetRow[]}={}):Record<string,string>{
   const config=actorConfig[kind]
   const result:Record<string,string>={id:pickFirst(row,[config.id]),[config.id]:pickFirst(row,[config.id])}
   for(const field of fieldsFor(kind)) result[field]=pickFirst(row,physicalAliases[field]??[field])
@@ -89,7 +90,9 @@ export function normalizeActor(kind:ActorKind,row:SheetRow,references:{coachLeve
   result.id_niveau=pickFirst(row,["id_niveau_coach_historique","id_niveau","id_niveau_coach"])
   const coachLevel=references.coachLevels?.find(item=>pickFirst(item,["id_niveau_coach"])===result.id_niveau)
   result.niveau=pickFirst(coachLevel||{},["nom_niveau_coach"])||result.id_niveau
-  result.grade=pickFirst(row,["id_grade_arbitre_historique","id_grade_arbitre","grade"])
+  result.id_grade_arbitre=pickFirst(row,["id_grade_arbitre","grade"])
+  const refereeGrade=references.refereeGrades?.find(item=>pickFirst(item,["id_grade_arbitre"])===result.id_grade_arbitre)
+  result.grade=pickFirst(refereeGrade||{},["nom_grade_arbitre"])||result.id_grade_arbitre
   result.specialite=pickFirst(row,["id_specialite_sante","id_specialite","specialite"])
   result.fonction=pickFirst(row,["fonction"]);result.structure=pickFirst(row,["structure"]);result.structureMedicale=pickFirst(row,["structure_medicale"])
   return result
@@ -120,6 +123,7 @@ export async function mutateActor(kind:ActorKind,mode:"create"|"update",body:unk
   if(Object.keys(errors).length) throw new ActorError("VALIDATION","Veuillez corriger les champs indiqués.",422,errors)
   await requireReference(deps,"SEXES",values.id_sexe,"id_sexe")
   if(kind==="medecins") await requireReference(deps,"SPECIALITES_MEDECINS",values.id_specialite_sante,"id_specialite_sante",true)
+  if(kind==="arbitres") await requireReference(deps,"GRADES_ARBITRES",values.id_grade_arbitre,"id_grade_arbitre")
   if(kind==="autres") await requireReference(deps,"TYPES_AUTRES_ACTEURS",values.id_type_autre_acteur,"id_type_autre_acteur",true)
   const entityId=mode==="create"?generateActorId(kind,rows):clean(id)
   const duplicate=(field:string)=>values[field]&&rows.some(r=>clean(r[config.id])!==entityId&&pickFirst(r,physicalAliases[field]??[field])===values[field])
@@ -153,11 +157,12 @@ export function sortActorsAlphabetically<T extends Record<string,string>>(actors
 
 export async function listActors(kind:ActorKind){
   const config=actorConfig[kind]
-  const [rows,coachLevels]=await Promise.all([
+  const [rows,coachLevels,refereeGrades]=await Promise.all([
     readSheetRows({block:"acteurs",sheet:config.sheet,range:"A:ZZ"}),
     kind==="coachs"?readSheetRows({block:"referentiel",sheet:"NIVEAUX_COACH",range:"A:C"}).catch(()=>[]):Promise.resolve([]),
+    kind==="arbitres"?readSheetRows({block:"referentiel",sheet:"GRADES_ARBITRES",range:"A:C"}).catch(()=>[]):Promise.resolve([]),
   ])
   return sortActorsAlphabetically(rows
     .filter(r=>pickFirst(r,[config.id]))
-    .map(r=>normalizeActor(kind,r,{coachLevels})))
+    .map(r=>normalizeActor(kind,r,{coachLevels,refereeGrades})))
 }
