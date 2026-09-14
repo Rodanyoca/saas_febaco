@@ -61,6 +61,8 @@ test("la fiche expose huit onglets pleine largeur avec une URL stable", async ()
   assert.match(source, /CompetitionPlayPanel competitionId=\{id\} view="classement" readOnly=\{closed\}/);
   assert.match(source, /Équipes engagées/);
   assert.match(source, /CompetitionPeoplePanel/);
+  assert.ok(source.indexOf('id:"epreuves"') < source.indexOf('id:"phases"'));
+  assert.ok(source.indexOf('id:"phases"') < source.indexOf('id:"equipes"'));
 });
 
 test("refuse une période inversée", () => {
