@@ -1,10 +1,13 @@
-import { google } from "googleapis";
+import { getSheetsReadClient, getSheetsWriteClient } from "@/lib/google-clients";
+import { executeGoogleRequest, getGoogleRequestConfig, GoogleRequestError } from "@/lib/google-request";
 
-const SHEETS_REQUEST_TIMEOUT_MS = 10000;
-const SHEETS_CACHE_TTL_MS = 5 * 60_000;
+const SHEETS_REQUEST_TIMEOUT_MS = getGoogleRequestConfig().timeoutMs;
 const readCache = new Map<string, { expiresAt: number; value: unknown[][] }>();
 const pendingReads = new Map<string, Promise<unknown[][]>>();
 const pendingBatchReads = new Map<string, Promise<Record<string, unknown[][]>>>();
+const sheetCacheMetrics = { hits: 0, misses: 0, coalesced: 0, staleFallbacks: 0 };
+type QueuedRead = { block: SheetBlock; spreadsheetId: string; sheet: string; range: string; cacheKey: string; stale?: unknown[][]; resolve: (value: unknown[][]) => void; reject: (reason: unknown) => void };
+const queuedReads = new Map<string, QueuedRead[]>();
 
 export type SheetBlock =
   | "structure"
@@ -82,11 +85,6 @@ function getSpreadsheetId(block: SheetBlock): string {
   return value;
 }
 
-function getPrivateKey(): string {
-  const raw = requiredEnv("GOOGLE_PRIVATE_KEY");
-  return raw.includes("\\n") ? raw.replace(/\\n/g, "\n") : raw;
-}
-
 function normalizeHeader(input: string): string {
   return input
     .trim()
@@ -95,26 +93,6 @@ function normalizeHeader(input: string): string {
     .replace(/\p{Diacritic}/gu, "")
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
-}
-
-function createSheetsClient() {
-  const auth = new google.auth.JWT({
-    email: requiredEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL"),
-    key: getPrivateKey(),
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
-
-  return google.sheets({ version: "v4", auth });
-}
-
-function createSheetsClientReadWrite() {
-  const auth = new google.auth.JWT({
-    email: requiredEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL"),
-    key: getPrivateKey(),
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
-
-  return google.sheets({ version: "v4", auth });
 }
 
 function quoteSheetName(sheetName: string): string {
@@ -135,6 +113,9 @@ function withGoogleSheetsErrorContext(
   block: SheetBlock,
   sheetName: string,
 ): Error {
+  if (error instanceof GoogleRequestError) {
+    return new GoogleRequestError(error.code, `Lecture Google Sheets impossible pour '${block}/${sheetName}': ${error.message}`, error.status, error.retryable, error.cause);
+  }
   const message = error instanceof Error ? error.message : String(error);
   return new Error(
     `Lecture Google Sheets impossible pour '${block}/${sheetName}': ${message}`,
@@ -175,14 +156,69 @@ export function canonicalizeReadRange(
 function googleErrorStatus(error: unknown): number | undefined {
   const candidate = error as {
     code?: number;
+    status?: number;
     response?: { status?: number };
   };
-  return candidate?.response?.status ?? candidate?.code;
+  return candidate?.response?.status ?? candidate?.status ?? candidate?.code;
 }
 
 function isQuotaError(error: unknown): boolean {
+  if (error instanceof GoogleRequestError) return error.code === "QUOTA_EXCEEDED";
   const message = error instanceof Error ? error.message : String(error);
   return googleErrorStatus(error) === 429 || /quota exceeded|rate limit/i.test(message);
+}
+
+function cacheTtl(block: SheetBlock): number {
+  const env = block === "referentiel" ? "GOOGLE_REFERENTIAL_CACHE_TTL_MS" : "GOOGLE_OPERATIONAL_CACHE_TTL_MS";
+  const fallback = block === "referentiel" ? 15 * 60_000 : 2 * 60_000;
+  const value = Number(process.env[env]);
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
+function sheetRequest<T>(block: SheetBlock, sheet: string, operation: string, access: "read" | "write", run: () => Promise<T>, idempotent = access === "read") {
+  return executeGoogleRequest({ provider: "sheets", module: block, operation, access, idempotent, run });
+}
+
+function storeReadCache(key: string, block: SheetBlock, value: unknown[][]) {
+  if (readCache.size >= 100) {
+    const now = Date.now();
+    for (const [cacheKey, entry] of readCache) if (entry.expiresAt <= now) readCache.delete(cacheKey);
+    if (readCache.size >= 100) readCache.clear();
+  }
+  readCache.set(key, { expiresAt: Date.now() + cacheTtl(block), value });
+}
+
+async function flushQueuedReads(groupKey: string) {
+  const entries = queuedReads.get(groupKey) ?? [];
+  queuedReads.delete(groupKey);
+  if (!entries.length) return;
+  const first = entries[0];
+  try {
+    const response = await sheetRequest(first.block, entries.map((entry) => entry.sheet).join(","), "values.batchGet", "read", () => getSheetsReadClient().spreadsheets.values.batchGet({
+      spreadsheetId: first.spreadsheetId,
+      ranges: entries.map((entry) => `${quoteSheetName(entry.sheet)}!${entry.range}`),
+    }, { timeout: SHEETS_REQUEST_TIMEOUT_MS }));
+    entries.forEach((entry, index) => {
+      const values = response.data.valueRanges?.[index]?.values ?? [];
+      storeReadCache(entry.cacheKey, entry.block, values);
+      entry.resolve(values);
+    });
+  } catch (error) {
+    entries.forEach((entry) => {
+      if (isQuotaError(error) && entry.stale) { sheetCacheMetrics.staleFallbacks += 1; entry.resolve(entry.stale); }
+      else entry.reject(withGoogleSheetsErrorContext(error, entry.block, entry.sheet));
+    });
+  }
+}
+
+function enqueueSheetRead(entry: Omit<QueuedRead, "resolve" | "reject">): Promise<unknown[][]> {
+  const groupKey = `${entry.spreadsheetId}:${entry.block}`;
+  return new Promise((resolve, reject) => {
+    const queue = queuedReads.get(groupKey) ?? [];
+    queue.push({ ...entry, resolve, reject });
+    queuedReads.set(groupKey, queue);
+    if (queue.length === 1) queueMicrotask(() => { void flushQueuedReads(groupKey); });
+  });
 }
 
 export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
@@ -194,58 +230,15 @@ export async function readSheet(params: ReadSheetParams): Promise<unknown[][]> {
     params.range ?? "A:ZZ",
   );
   const cacheKey = `${spreadsheetId}:${params.sheet.toLowerCase()}:${range}`;
-  const cached = params.fresh ? undefined : readCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  const stale = readCache.get(cacheKey);
+  const cached = params.fresh ? undefined : stale;
+  if (cached && cached.expiresAt > Date.now()) { sheetCacheMetrics.hits += 1; return cached.value; }
+  sheetCacheMetrics.misses += 1;
 
   const pending = pendingReads.get(cacheKey);
-  if (pending) return pending;
+  if (pending) { sheetCacheMetrics.coalesced += 1; return pending; }
 
-  const request = (async () => {
-    const sheets = createSheetsClient();
-    const sheetNameVariants = Array.from(
-      new Set([
-        params.sheet,
-        params.sheet.toUpperCase(),
-        params.sheet.toLowerCase(),
-      ]),
-    );
-    let lastError: unknown;
-
-    for (const candidate of sheetNameVariants) {
-      try {
-        const res = await sheets.spreadsheets.values.get(
-          {
-            spreadsheetId,
-            range: `${quoteSheetName(candidate)}!${range}`,
-          },
-          {
-            timeout: SHEETS_REQUEST_TIMEOUT_MS,
-          },
-        );
-
-        const values = res.data.values ?? [];
-        if (readCache.size >= 100) {
-          const now = Date.now();
-          for (const [key, entry] of readCache)
-            if (entry.expiresAt <= now) readCache.delete(key);
-          if (readCache.size >= 100) readCache.clear();
-        }
-        readCache.set(cacheKey, {
-          expiresAt: Date.now() + SHEETS_CACHE_TTL_MS,
-          value: values,
-        });
-        return values;
-      } catch (error) {
-        lastError = error;
-        if (isQuotaError(error) && cached) return cached.value;
-        if (googleErrorStatus(error) !== 400) {
-          throw withGoogleSheetsErrorContext(error, block, params.sheet);
-        }
-      }
-    }
-
-    throw withGoogleSheetsErrorContext(lastError, block, params.sheet);
-  })();
+  const request = enqueueSheetRead({ block, spreadsheetId, sheet: params.sheet, range, cacheKey, stale: stale?.value });
 
   pendingReads.set(cacheKey, request);
   try {
@@ -295,6 +288,8 @@ export function sheetValuesToRows(values: unknown[][]): SheetRow[] {
     });
 }
 
+export function getSheetCacheMetrics() { return { ...sheetCacheMetrics, entries: readCache.size, pending: pendingReads.size }; }
+
 export async function readSheetRowsBatch({
   block,
   sheets,
@@ -318,15 +313,15 @@ export async function readSheetRowsBatch({
     if (!pending) {
       pending = (async () => {
         try {
-          const response = await createSheetsClient().spreadsheets.values.batchGet({
+          const response = await sheetRequest(block, missing.map((entry) => entry.sheet).join(","), "values.batchGet", "read", () => getSheetsReadClient().spreadsheets.values.batchGet({
             spreadsheetId,
             ranges: missing.map((entry) => `${quoteSheetName(entry.sheet)}!${entry.range}`),
-          }, { timeout: SHEETS_REQUEST_TIMEOUT_MS });
+          }, { timeout: SHEETS_REQUEST_TIMEOUT_MS }));
           const loaded: Record<string, unknown[][]> = {};
           missing.forEach((entry, index) => {
             const values = response.data.valueRanges?.[index]?.values ?? [];
             loaded[entry.sheet] = values;
-            readCache.set(entry.cacheKey, { expiresAt: Date.now() + SHEETS_CACHE_TTL_MS, value: values });
+            readCache.set(entry.cacheKey, { expiresAt: Date.now() + cacheTtl(block), value: values });
           });
           return loaded;
         } catch (error) {
@@ -383,14 +378,14 @@ export async function writeSheetRowByHeaders({
   mode: "create" | "update";
 }): Promise<SheetRow> {
   const spreadsheetId = getSpreadsheetId(block);
-  const client = createSheetsClientReadWrite();
-  const response = await client.spreadsheets.values.get(
+  const client = getSheetsWriteClient();
+  const response = await sheetRequest(block, sheet, "values.get", "read", () => client.spreadsheets.values.get(
     {
       spreadsheetId,
       range: `${quoteSheetName(sheet)}!A:ZZ`,
     },
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
-  );
+  ));
   const rows = response.data.values ?? [];
   if (!rows.length) throw new Error("SCHEMA_INDISPONIBLE");
 
@@ -424,7 +419,7 @@ export async function writeSheetRowByHeaders({
       : String(previous[index] ?? "");
   });
 
-  await client.spreadsheets.values.update(
+  await sheetRequest(block, sheet, "values.update", "write", () => client.spreadsheets.values.update(
     {
       spreadsheetId,
       range: `${quoteSheetName(sheet)}!A${rowNumber}:${columnIndexToA1(headers.length - 1)}${rowNumber}`,
@@ -432,7 +427,7 @@ export async function writeSheetRowByHeaders({
       requestBody: { values: [next] },
     },
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
-  );
+  ), true);
   clearSheetCache(spreadsheetId, sheet);
 
   return Object.fromEntries(
@@ -448,22 +443,20 @@ export async function appendSheetRowsAtomically({
   rows: Array<{ sheet: string; values: Record<string, string> }>;
 }): Promise<void> {
   const spreadsheetId = getSpreadsheetId(block);
-  const client = createSheetsClientReadWrite();
+  const client = getSheetsWriteClient();
   const sheetNames = [...new Set(rows.map(({ sheet }) => sheet))];
-  const schemaEntries = await Promise.all(
-    sheetNames.map(async (sheet) => {
-      const response = await client.spreadsheets.values.get(
-        { spreadsheetId, range: `${quoteSheetName(sheet)}!A:ZZ` },
-        { timeout: SHEETS_REQUEST_TIMEOUT_MS },
-      );
-      const existing = response.data.values ?? [];
+  const schemaResponse = await sheetRequest(block, sheetNames.join(","), "values.batchGet", "read", () => client.spreadsheets.values.batchGet(
+    { spreadsheetId, ranges: sheetNames.map((sheet) => `${quoteSheetName(sheet)}!A:ZZ`) },
+    { timeout: SHEETS_REQUEST_TIMEOUT_MS },
+  ));
+  const schemaEntries = sheetNames.map((sheet, index) => {
+      const existing = schemaResponse.data.valueRanges?.[index]?.values ?? [];
       if (!existing.length) throw new Error(`SCHEMA_INDISPONIBLE:${sheet}`);
       const headers = (existing[0] ?? []).map((value) =>
         normalizeHeader(String(value ?? "")),
       );
       return [sheet, { headers, nextRow: existing.length + 1 }] as const;
-    }),
-  );
+    });
   const schemaBySheet = new Map(schemaEntries);
   const offsets = new Map<string, number>();
   const schemas = rows.map(({ sheet, values }) => {
@@ -482,7 +475,7 @@ export async function appendSheetRowsAtomically({
       )],
     };
   });
-  await client.spreadsheets.values.batchUpdate(
+  await sheetRequest(block, sheetNames.join(","), "values.batchUpdate", "write", () => client.spreadsheets.values.batchUpdate(
     {
       spreadsheetId,
       requestBody: {
@@ -491,7 +484,7 @@ export async function appendSheetRowsAtomically({
       },
     },
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
-  );
+  ), true);
   for (const { sheet } of schemas) clearSheetCache(spreadsheetId, sheet);
 }
 
@@ -503,21 +496,21 @@ export async function upsertSheetRowsAtomically({
   rows: Array<{ sheet: string; idHeader: string; values: Record<string, string> }>;
 }): Promise<void> {
   const spreadsheetId = getSpreadsheetId(block);
-  const client = createSheetsClientReadWrite();
+  const client = getSheetsWriteClient();
   const sheetNames = [...new Set(rows.map((row) => row.sheet))];
-  const entries = await Promise.all(sheetNames.map(async (sheet) => {
-    const response = await client.spreadsheets.values.get(
-      { spreadsheetId, range: `${quoteSheetName(sheet)}!A:ZZ` },
-      { timeout: SHEETS_REQUEST_TIMEOUT_MS },
-    );
-    const existing = response.data.values ?? [];
+  const schemaResponse = await sheetRequest(block, sheetNames.join(","), "values.batchGet", "read", () => client.spreadsheets.values.batchGet(
+    { spreadsheetId, ranges: sheetNames.map((sheet) => `${quoteSheetName(sheet)}!A:ZZ`) },
+    { timeout: SHEETS_REQUEST_TIMEOUT_MS },
+  ));
+  const entries = sheetNames.map((sheet, index) => {
+    const existing = schemaResponse.data.valueRanges?.[index]?.values ?? [];
     if (!existing.length) throw new Error(`SCHEMA_INDISPONIBLE:${sheet}`);
     return [sheet, {
       headers: (existing[0] ?? []).map((value) => normalizeHeader(String(value ?? ""))),
       existing,
       nextRow: existing.length + 1,
     }] as const;
-  }));
+  });
   const bySheet = new Map(entries), offsets = new Map<string, number>();
   const data = rows.map(({ sheet, idHeader, values }) => {
     const schema = bySheet.get(sheet)!;
@@ -535,10 +528,10 @@ export async function upsertSheetRowsAtomically({
     const line = schema.headers.map((header, index) => Object.prototype.hasOwnProperty.call(values, header) ? values[header] : String(previous[index] ?? ""));
     return { sheet, range: `${quoteSheetName(sheet)}!A${rowNumber}:${columnIndexToA1(schema.headers.length - 1)}${rowNumber}`, values: [line] };
   });
-  await client.spreadsheets.values.batchUpdate({
+  await sheetRequest(block, sheetNames.join(","), "values.batchUpdate", "write", () => client.spreadsheets.values.batchUpdate({
     spreadsheetId,
     requestBody: { valueInputOption: "RAW", data: data.map(({ range, values }) => ({ range, values })) },
-  }, { timeout: SHEETS_REQUEST_TIMEOUT_MS });
+  }, { timeout: SHEETS_REQUEST_TIMEOUT_MS }), true);
   for (const sheet of sheetNames) clearSheetCache(spreadsheetId, sheet);
 }
 
@@ -554,14 +547,14 @@ export async function getAvatarTargetByEntityId({
   block?: SheetBlock;
 }): Promise<{ avatarDriveId: string; avatarDriveUrl: string }> {
   const spreadsheetId = getSpreadsheetId(block);
-  const sheets = createSheetsClientReadWrite();
-  const response = await sheets.spreadsheets.values.get(
+  const sheets = getSheetsWriteClient();
+  const response = await sheetRequest(block, sheetName, "values.get", "read", () => sheets.spreadsheets.values.get(
     {
       spreadsheetId,
       range: `${quoteSheetName(sheetName)}!A:ZZ`,
     },
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
-  );
+  ));
   const values = response.data.values ?? [];
   if (values.length === 0)
     throw new Error(`Feuille '${sheetName}' vide ou introuvable`);
@@ -615,9 +608,9 @@ export async function updateAvatarFieldsByEntityId({
 }): Promise<{ rowNumber: number }> {
   const resolvedBlock = block ?? inferBlockFromSheetName(sheetName);
   const spreadsheetId = getSpreadsheetId(resolvedBlock);
-  const sheets = createSheetsClientReadWrite();
+  const sheets = getSheetsWriteClient();
 
-  const res = await sheets.spreadsheets.values.get(
+  const res = await sheetRequest(resolvedBlock, sheetName, "values.get", "read", () => sheets.spreadsheets.values.get(
     {
       spreadsheetId,
       range: `${sheetName}!A:ZZ`,
@@ -625,7 +618,7 @@ export async function updateAvatarFieldsByEntityId({
     {
       timeout: SHEETS_REQUEST_TIMEOUT_MS,
     },
-  );
+  ));
 
   const values = res.data.values ?? [];
   if (values.length === 0) {
@@ -664,7 +657,7 @@ export async function updateAvatarFieldsByEntityId({
   const avatarIdA1 = `${sheetName}!${columnIndexToA1(avatarIdColIndex)}${rowNumber}`;
   const avatarUrlA1 = `${sheetName}!${columnIndexToA1(avatarUrlColIndex)}${rowNumber}`;
 
-  await sheets.spreadsheets.values.batchUpdate({
+  await sheetRequest(resolvedBlock, sheetName, "values.batchUpdate", "write", () => sheets.spreadsheets.values.batchUpdate({
     spreadsheetId,
     requestBody: {
       valueInputOption: "RAW",
@@ -679,7 +672,7 @@ export async function updateAvatarFieldsByEntityId({
         },
       ],
     },
-  });
+  }), true);
 
   const sheetCachePrefix = `${spreadsheetId}:${sheetName.toLowerCase()}:`;
   for (const key of readCache.keys()) {
@@ -693,11 +686,11 @@ export async function getClubLogoTarget(
   clubId: string,
 ): Promise<{ logoDriveId: string; logoDriveUrl: string }> {
   const spreadsheetId = getSpreadsheetId("structure");
-  const sheets = createSheetsClientReadWrite();
-  const response = await sheets.spreadsheets.values.get(
+  const sheets = getSheetsWriteClient();
+  const response = await sheetRequest("structure", "CLUBS", "values.get", "read", () => sheets.spreadsheets.values.get(
     { spreadsheetId, range: `${quoteSheetName("CLUBS")}!A:ZZ` },
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
-  );
+  ));
   const [headerRow, ...rows] = response.data.values ?? [];
   const headers = (headerRow ?? []).map((value) =>
     normalizeHeader(String(value ?? "")),
@@ -725,11 +718,11 @@ export async function updateClubLogoFields(
   logoDriveUrl: string,
 ): Promise<void> {
   const spreadsheetId = getSpreadsheetId("structure");
-  const sheets = createSheetsClientReadWrite();
-  const response = await sheets.spreadsheets.values.get(
+  const sheets = getSheetsWriteClient();
+  const response = await sheetRequest("structure", "CLUBS", "values.get", "read", () => sheets.spreadsheets.values.get(
     { spreadsheetId, range: `${quoteSheetName("CLUBS")}!A:ZZ` },
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
-  );
+  ));
   const [headerRow, ...rows] = response.data.values ?? [];
   const headers = (headerRow ?? []).map((value) =>
     normalizeHeader(String(value ?? "")),
@@ -746,7 +739,7 @@ export async function updateClubLogoFields(
     );
   if (rowIndex < 0) throw new Error("Club Google Sheets introuvable");
   const rowNumber = rowIndex + 2;
-  await sheets.spreadsheets.values.batchUpdate(
+  await sheetRequest("structure", "CLUBS", "values.batchUpdate", "write", () => sheets.spreadsheets.values.batchUpdate(
     {
       spreadsheetId,
       requestBody: {
@@ -764,6 +757,6 @@ export async function updateClubLogoFields(
       },
     },
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
-  );
+  ), true);
   clearSheetCache(spreadsheetId, "CLUBS");
 }

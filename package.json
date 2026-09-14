@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "npm run typecheck",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "tsx --test tests/**/*.test.ts",
+    "audit:google-requests": "tsx scripts/audit-google-requests.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

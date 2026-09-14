@@ -1,5 +1,5 @@
 import { getSessionUser } from "@/lib/auth-session"
-import { createDriveUserClient } from "@/lib/google-drive"
+import { readDriveMedia } from "@/lib/google-drive"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -16,28 +16,7 @@ export async function GET(req: Request) {
     }
 
     // Les médias appartiennent au Drive personnel du compte OAuth.
-    const drive = createDriveUserClient()
-
-    const meta = await drive.files.get({
-      fileId,
-      fields: "mimeType,name",
-      supportsAllDrives: true,
-    })
-
-    const mimeType = String(meta.data.mimeType || "application/octet-stream")
-
-    const media = await drive.files.get(
-      {
-        fileId,
-        alt: "media",
-        supportsAllDrives: true,
-      },
-      {
-        responseType: "stream",
-      }
-    )
-
-    const stream = media.data as unknown as ReadableStream | NodeJS.ReadableStream
+    const { mimeType, stream } = await readDriveMedia(fileId)
 
     return new Response(stream as any, {
       status: 200,

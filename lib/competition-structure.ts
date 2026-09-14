@@ -15,12 +15,7 @@ type Dependencies = {
 const defaults: Dependencies = { readRows: readSheetRows, appendRows: appendSheetRowsAtomically };
 
 async function resilientRead(deps: Dependencies, params: Parameters<Dependencies["readRows"]>[0]) {
-  try {
-    return await deps.readRows(params);
-  } catch {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return deps.readRows(params);
-  }
+  return deps.readRows(params);
 }
 
 async function load(competitionId: string, deps: Dependencies) {

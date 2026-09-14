@@ -37,7 +37,7 @@ test("la liste des équipes reste disponible si un libellé référentiel est so
 test("une lecture fraîche remplace aussi la valeur du cache partagé", async () => {
   const source = await import("node:fs/promises").then((fs) => fs.readFile("lib/google-sheets.ts", "utf8"));
   assert.doesNotMatch(source, /if \(!params\.fresh\)\s*readCache\.set/);
-  assert.match(source, /readCache\.set\(cacheKey/);
+  assert.match(source, /storeReadCache\(entry\.cacheKey/);
 });
 
 test("dispose aussi d'un classeur canonique pour les équipes nationales en production", async () => {
@@ -50,4 +50,17 @@ test("la liste globale des participants ne force pas les phases hors cache", asy
   assert.match(source, /async function loadRows\(deps: Dependencies, fresh = false\)/);
   assert.match(source, /createCompetitionParticipations[\s\S]*loadRows\(deps, true\)/);
   assert.match(source, /listAllCompetitionParticipants[\s\S]*loadRows\(deps\);/);
+});
+
+test("regroupe automatiquement les lectures simultanées d'un même classeur", async () => {
+  const source = await import("node:fs/promises").then((fs) => fs.readFile("lib/google-sheets.ts", "utf8"));
+  assert.match(source, /queuedReads/);
+  assert.match(source, /queueMicrotask/);
+  assert.match(source, /values\.batchGet/);
+});
+
+test("différencie le TTL des référentiels et des données opérationnelles", async () => {
+  const source = await import("node:fs/promises").then((fs) => fs.readFile("lib/google-sheets.ts", "utf8"));
+  assert.match(source, /GOOGLE_REFERENTIAL_CACHE_TTL_MS/);
+  assert.match(source, /GOOGLE_OPERATIONAL_CACHE_TTL_MS/);
 });

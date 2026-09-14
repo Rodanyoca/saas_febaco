@@ -1,7 +1,10 @@
-import { google } from "googleapis";
 import { Readable } from "node:stream";
 import { buildDrivePublicUrl } from "@/lib/google-drive-url";
 import { buildAvatarId, type ActorAvatarConfig } from "@/lib/avatar-config";
+import { getDriveServiceClient, getDriveUserClient } from "@/lib/google-clients";
+import { executeGoogleRequest, getGoogleRequestConfig } from "@/lib/google-request";
+
+const DRIVE_REQUEST_TIMEOUT_MS = getGoogleRequestConfig().timeoutMs;
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -11,25 +14,8 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-export function createDriveClient() {
-  const auth = new google.auth.JWT({
-    email: requiredEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL"),
-    key: requiredEnv("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n"),
-    scopes: ["https://www.googleapis.com/auth/drive"],
-  });
-  return google.drive({ version: "v3", auth });
-}
-
-export function createDriveUserClient() {
-  const auth = new google.auth.OAuth2({
-    clientId: requiredEnv("GOOGLE_OAUTH_CLIENT_ID"),
-    clientSecret: requiredEnv("GOOGLE_OAUTH_CLIENT_SECRET"),
-  });
-  auth.setCredentials({
-    refresh_token: requiredEnv("GOOGLE_DRIVE_REFRESH_TOKEN"),
-  });
-  return google.drive({ version: "v3", auth });
-}
+export const createDriveClient = getDriveServiceClient;
+export const createDriveUserClient = getDriveUserClient;
 
 export type DriveUploadResult = {
   fileId: string;
@@ -56,23 +42,23 @@ export async function uploadAvatarToDrive({
 }): Promise<DriveUploadResult> {
   // Ces dossiers appartiennent à un Drive personnel. Le Service Account peut
   // les lire, mais Google ne lui accorde aucun quota pour créer des fichiers.
-  const drive = createDriveUserClient();
+  const drive = getDriveUserClient();
 
   let res: any;
   try {
     const media = { mimeType, body: Readable.from(buffer) };
     res = existingFileId
-      ? await drive.files.update({
+      ? await executeGoogleRequest({ provider: "drive", module: "media", operation: "files.update", access: "write", idempotent: true, run: () => drive.files.update({
           fileId: existingFileId,
           requestBody: { name: fileName },
           media,
           fields: "id,name,webViewLink,webContentLink",
-        })
-      : await drive.files.create({
+        }, { timeout: DRIVE_REQUEST_TIMEOUT_MS }) })
+      : await executeGoogleRequest({ provider: "drive", module: "media", operation: "files.create", access: "write", idempotent: false, run: () => drive.files.create({
           requestBody: { name: fileName, parents: [folderId] },
           media,
           fields: "id,name,webViewLink,webContentLink",
-        });
+        }, { timeout: DRIVE_REQUEST_TIMEOUT_MS }) });
   } catch (error) {
     const err = error as {
       message?: string;
@@ -102,20 +88,20 @@ export async function uploadAvatarToDrive({
   }
 
   if (makePublic) {
-    const permissions = await drive.permissions.list({
+    const permissions = await executeGoogleRequest({ provider: "drive", module: "media", operation: "permissions.list", access: "read", run: () => drive.permissions.list({
       fileId,
       fields: "permissions(type,role)",
-    });
+    }, { timeout: DRIVE_REQUEST_TIMEOUT_MS }) });
     const isPublic = permissions.data.permissions?.some(
       (permission) =>
         permission.type === "anyone" &&
         (permission.role === "reader" || permission.role === "writer"),
     );
     if (!isPublic) {
-      await drive.permissions.create({
+      await executeGoogleRequest({ provider: "drive", module: "media", operation: "permissions.create", access: "write", idempotent: false, run: () => drive.permissions.create({
         fileId,
         requestBody: { type: "anyone", role: "reader" },
-      });
+      }, { timeout: DRIVE_REQUEST_TIMEOUT_MS }) });
     }
   }
 
@@ -142,6 +128,13 @@ export function getAvatarFolderId(config: ActorAvatarConfig): string {
 }
 
 export const uploadImageToDrive = uploadAvatarToDrive;
+
+export async function readDriveMedia(fileId: string) {
+  const drive = getDriveUserClient();
+  const meta = await executeGoogleRequest({ provider: "drive", module: "media", operation: "files.get.metadata", access: "read", run: () => drive.files.get({ fileId, fields: "mimeType,name", supportsAllDrives: true }, { timeout: DRIVE_REQUEST_TIMEOUT_MS }) });
+  const media = await executeGoogleRequest({ provider: "drive", module: "media", operation: "files.get.content", access: "read", run: () => drive.files.get({ fileId, alt: "media", supportsAllDrives: true }, { responseType: "stream", timeout: DRIVE_REQUEST_TIMEOUT_MS }) });
+  return { mimeType: String(meta.data.mimeType || "application/octet-stream"), stream: media.data as unknown as ReadableStream | NodeJS.ReadableStream };
+}
 
 export function getClubLogoFolderId(): string {
   const configured = requiredEnv("GOOGLE_DRIVE_CLUB_LOGO_FOLDER_ID").trim();
