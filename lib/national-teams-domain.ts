@@ -40,3 +40,9 @@ export function assertDates(start: string, end: string) {
 }
 
 export function sequenceFromId(id: string) { return id.split("-").at(-1) || "001" }
+
+export function resolveNationalYear(input: Record<string, unknown>, fallback = String(new Date().getFullYear())) {
+  const season = String(input.id_saison ?? "")
+  const startDate = String(input.date_debut ?? "")
+  return season.match(/\d{4}/)?.[0] || startDate.match(/^\d{4}/)?.[0] || fallback
+}

@@ -17,8 +17,6 @@ import {
   Stethoscope,
   CreditCard,
   Trophy,
-  ClipboardList,
-  FileSpreadsheet,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -57,10 +55,6 @@ const navigationLicences: NavItem[] = [
 
 const navigationEquipeNationale: NavItem[] = [
   { name: "Équipes nationales", href: "/equipes-nationales", icon: Flag },
-]
-
-const navigationOutils: NavItem[] = [
-  { name: "Import / Export", href: "/dashboard/import-export", icon: FileSpreadsheet },
 ]
 
 function NavLink({ item, collapsed, pathname }: { item: NavItem; collapsed: boolean; pathname: string }) {
@@ -255,11 +249,6 @@ export function Sidebar() {
             pathname={pathname}
           />
 
-          <div className="mt-3 border-t border-sidebar-border pt-3">
-            {navigationOutils.map((item) => (
-              <NavLink key={item.name} item={item} collapsed={collapsed} pathname={pathname} />
-            ))}
-          </div>
         </nav>
       </div>
     </aside>

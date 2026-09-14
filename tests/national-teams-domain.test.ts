@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { assertCampaignTransition, generateNationalId, normalizeEngagementRow } from "../lib/national-teams-domain"
+import { assertCampaignTransition, generateNationalId, normalizeEngagementRow, resolveNationalYear } from "../lib/national-teams-domain"
 
 test("les identifiants nationaux suivent les formats métier et la séquence réelle", () => {
   assert.equal(generateNationalId("team", "", ["BKB-EN-001", "BKB-EN-009"]), "BKB-EN-010")
@@ -16,4 +16,10 @@ test("une campagne ne peut suivre que les transitions autorisées", () => {
 test("l'ancien en-tête statut d'un engagement est normalisé à la couture Sheets", () => {
   assert.equal(normalizeEngagementRow({ statut: "SEG002" }).id_statut_engagement, "SEG002")
   assert.equal(normalizeEngagementRow({ statut: "SEG001", id_statut_engagement: "SEG004" }).id_statut_engagement, "SEG004")
+})
+
+test("une équipe permanente sans saison ni date utilise l'année courante sans planter", () => {
+  assert.equal(resolveNationalYear({}, "2026"), "2026")
+  assert.equal(resolveNationalYear({ id_saison: "SAI-2027" }, "2026"), "2027")
+  assert.equal(resolveNationalYear({ date_debut: "2028-03-10" }, "2026"), "2028")
 })

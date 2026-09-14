@@ -13,8 +13,7 @@ export type SheetBlock =
   | "affiliations"
   | "competitions"
   | "licences"
-  | "equipeNationale"
-  | "importExport";
+  | "equipeNationale";
 
 const spreadsheetEnvByBlock: Record<SheetBlock, string> = {
   structure: "GOOGLE_SHEETS_STRUCTURE_ID",
@@ -25,7 +24,6 @@ const spreadsheetEnvByBlock: Record<SheetBlock, string> = {
   competitions: "GOOGLE_SHEETS_COMPETITIONS_ID",
   licences: "GOOGLE_SHEETS_LICENCES_ID",
   equipeNationale: "GOOGLE_SHEETS_EQUIPE_NATIONALE_ID",
-  importExport: "GOOGLE_SHEETS_IMPORT_EXPORT_ID",
 };
 
 const spreadsheetFallbackByBlock: Partial<Record<SheetBlock, string>> = {
