@@ -74,7 +74,7 @@ export function generateActorId(kind:ActorKind, rows:SheetRow[]):string {
   return candidate
 }
 
-export function normalizeActor(kind:ActorKind,row:SheetRow):Record<string,string>{
+export function normalizeActor(kind:ActorKind,row:SheetRow,references:{coachLevels?:SheetRow[]}={}):Record<string,string>{
   const config=actorConfig[kind]
   const result:Record<string,string>={id:pickFirst(row,[config.id]),[config.id]:pickFirst(row,[config.id])}
   for(const field of fieldsFor(kind)) result[field]=pickFirst(row,physicalAliases[field]??[field])
@@ -86,7 +86,9 @@ export function normalizeActor(kind:ActorKind,row:SheetRow):Record<string,string
   result.sexe=result.id_sexe==="SEX001"?"M":result.id_sexe==="SEX002"?"F":"Autre"
   result.observation=result.observations
   // Valeurs historiques exposées en lecture seule pour les écrans existants.
-  result.niveau=pickFirst(row,["id_niveau_coach_historique","id_niveau","id_niveau_coach"])
+  result.id_niveau=pickFirst(row,["id_niveau_coach_historique","id_niveau","id_niveau_coach"])
+  const coachLevel=references.coachLevels?.find(item=>pickFirst(item,["id_niveau_coach"])===result.id_niveau)
+  result.niveau=pickFirst(coachLevel||{},["nom_niveau_coach"])||result.id_niveau
   result.grade=pickFirst(row,["id_grade_arbitre_historique","id_grade_arbitre","grade"])
   result.specialite=pickFirst(row,["id_specialite_sante","id_specialite","specialite"])
   result.fonction=pickFirst(row,["fonction"]);result.structure=pickFirst(row,["structure"]);result.structureMedicale=pickFirst(row,["structure_medicale"])
@@ -151,8 +153,11 @@ export function sortActorsAlphabetically<T extends Record<string,string>>(actors
 
 export async function listActors(kind:ActorKind){
   const config=actorConfig[kind]
-  const rows=await readSheetRows({block:"acteurs",sheet:config.sheet,range:"A:ZZ"})
+  const [rows,coachLevels]=await Promise.all([
+    readSheetRows({block:"acteurs",sheet:config.sheet,range:"A:ZZ"}),
+    kind==="coachs"?readSheetRows({block:"referentiel",sheet:"NIVEAUX_COACH",range:"A:C"}).catch(()=>[]):Promise.resolve([]),
+  ])
   return sortActorsAlphabetically(rows
     .filter(r=>pickFirst(r,[config.id]))
-    .map(r=>normalizeActor(kind,r)))
+    .map(r=>normalizeActor(kind,r,{coachLevels})))
 }

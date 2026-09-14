@@ -25,17 +25,19 @@ async function rows(sheet: string): Promise<SheetRow[]> {
 }
 
 export async function getEquipesNationales(): Promise<EquipeNationale[]> {
-  return (await rows("EQUIPE_NATIONALE")).flatMap((row, index) => {
+  const [equipes, saisons] = await Promise.all([rows("EQUIPES_NATIONALES"), rows("EQUIPES_NATIONALES_SAISONS")])
+  return equipes.flatMap((row, index) => {
     const id = value(row, "id_equipe_nationale")
     if (!id) return []
+    const saison = saisons.filter((item) => sameId(value(item, "id_equipe_nationale"), id)).sort((a, b) => value(b, "id_saison").localeCompare(value(a, "id_saison"), "fr", { numeric: true }))[0]
     return [{
       __key: key(id, index), id,
       nom: value(row, "nom_equipe_nationale"),
-      discipline: value(row, "discipline"),
-      categorie: value(row, "categorie"),
-      sexe: value(row, "sexe"),
-      saison: value(row, "saison"),
-      statut: value(row, "statut_equipe"),
+      discipline: value(row, "id_discipline"),
+      categorie: value(row, "id_categorie_age"),
+      sexe: value(row, "id_sexe"),
+      saison: value(saison || {}, "id_saison"),
+      statut: value(saison || {}, "statut"),
     }]
   })
 }
@@ -45,19 +47,22 @@ export async function getEquipeNationaleById(id: string) {
 }
 
 export async function getSelections(): Promise<SelectionEquipeNationale[]> {
-  return (await rows("SELECTION")).flatMap((row, index) => {
+  const [selections, campagnes, saisons, equipes] = await Promise.all([rows("SELECTIONS_ATHLETES"), rows("CAMPAGNES_EQUIPES_NATIONALES"), rows("EQUIPES_NATIONALES_SAISONS"), rows("EQUIPES_NATIONALES")])
+  const campagneById = new Map(campagnes.map((row) => [value(row, "id_campagne_equipe_nationale"), row])), saisonById = new Map(saisons.map((row) => [value(row, "id_equipe_nationale_saison"), row])), equipeById = new Map(equipes.map((row) => [value(row, "id_equipe_nationale"), row]))
+  return selections.flatMap((row, index) => {
     const id = value(row, "id_selection")
     if (!id) return []
+    const campagne = campagneById.get(value(row, "id_campagne_equipe_nationale")) || {}, saison = saisonById.get(value(campagne, "id_equipe_nationale_saison")) || {}, equipeId = value(saison, "id_equipe_nationale"), equipe = equipeById.get(equipeId) || {}
     return [{
       __key: key(id, index), id,
-      equipeNationaleId: value(row, "id_equipe_nationale"),
-      equipeNationaleNom: value(row, "nom_equipe_nationale"),
-      saison: value(row, "saison"), athleteId: value(row, "id_athlete"),
+      equipeNationaleId: equipeId,
+      equipeNationaleNom: value(equipe, "nom_equipe_nationale"),
+      saison: value(saison, "id_saison"), athleteId: value(row, "id_athlete"),
       athleteNom: value(row, "nom_athlete"), sexe: value(row, "sexe"),
       posteId: value(row, "id_poste"), posteNom: value(row, "nom_poste"),
       equipeId: value(row, "id_equipe"), equipeNom: value(row, "nom_equipe"),
       clubId: value(row, "id_club"), clubNom: value(row, "nom_club"),
-      statutSelection: value(row, "statut_selection"), observation: value(row, "observation"),
+      statutSelection: value(row, "id_statut_selection"), observation: value(row, "observations"),
     }]
   })
 }
@@ -67,17 +72,20 @@ export async function getSelectionsByEquipeId(id: string) {
 }
 
 export async function getCompetitionsEquipeNationale(): Promise<CompetitionEquipeNationale[]> {
-  return (await rows("COMPETITIONS_EQUIPE_NATIONALE")).flatMap((row, index) => {
-    const id = value(row, "id_participation_en")
+  const [engagements, campagnes, saisons, equipes] = await Promise.all([rows("ENGAGEMENTS_EQUIPE_NATIONALE"), rows("CAMPAGNES_EQUIPES_NATIONALES"), rows("EQUIPES_NATIONALES_SAISONS"), rows("EQUIPES_NATIONALES")])
+  const campagneById = new Map(campagnes.map((row) => [value(row, "id_campagne_equipe_nationale"), row])), saisonById = new Map(saisons.map((row) => [value(row, "id_equipe_nationale_saison"), row])), equipeById = new Map(equipes.map((row) => [value(row, "id_equipe_nationale"), row]))
+  return engagements.flatMap((row, index) => {
+    const id = value(row, "id_engagement_equipe_nationale")
     if (!id) return []
+    const campagne = campagneById.get(value(row, "id_campagne_equipe_nationale")) || {}, saison = saisonById.get(value(campagne, "id_equipe_nationale_saison")) || {}, equipeId = value(saison, "id_equipe_nationale"), equipe = equipeById.get(equipeId) || {}, epreuveId = value(row, "id_epreuve_competition")
     return [{
       __key: key(id, index), id,
-      equipeNationaleId: value(row, "id_equipe_nationale"), equipeNationaleNom: value(row, "nom_equipe_nationale"),
-      discipline: value(row, "discipline"), categorie: value(row, "categorie"), sexe: value(row, "sexe"),
-      competitionId: value(row, "id_competition"), competitionNom: value(row, "nom_competition"),
-      typeCompetition: value(row, "type_competition"), disciplineId: value(row, "id_discipline"),
-      saison: value(row, "saison"), dateDebut: value(row, "date_debut"), dateFin: value(row, "date_fin"),
-      statutParticipation: value(row, "statut_participation"),
+      equipeNationaleId: equipeId, equipeNationaleNom: value(equipe, "nom_equipe_nationale"),
+      discipline: value(equipe, "id_discipline"), categorie: value(equipe, "id_categorie_age"), sexe: value(equipe, "id_sexe"),
+      competitionId: epreuveId, competitionNom: epreuveId,
+      typeCompetition: "", disciplineId: value(equipe, "id_discipline"),
+      saison: value(saison, "id_saison"), dateDebut: value(campagne, "date_debut"), dateFin: value(campagne, "date_fin"),
+      statutParticipation: value(row, "statut"),
     }]
   })
 }
@@ -91,23 +99,9 @@ export async function getCompetitionEquipeNationaleById(id: string) {
 }
 
 export async function getResultatsEquipeNationale(): Promise<ResultatEquipeNationale[]> {
-  return (await rows("EQUIPE_NATIONALE_RESULTATS")).flatMap((row, index) => {
-    const id = value(row, "id_resultat_en")
-    if (!id) return []
-    return [{
-      __key: key(id, index), id, participationId: value(row, "id_participation_en"),
-      equipeNationaleId: value(row, "id_equipe_nationale"), equipeNationaleNom: value(row, "nom_equipe_nationale"),
-      discipline: value(row, "discipline"), categorie: value(row, "categorie"), sexe: value(row, "sexe"),
-      competitionId: value(row, "id_competition"), competitionNom: value(row, "nom_competition"),
-      dateMatch: value(row, "date_match"), phase: value(row, "phase"), nomAdversaire: value(row, "nom_adversaire"),
-      paysAdversaire: value(row, "pays_adversaire"), qt1A: value(row, "qt1_a"), qt1B: value(row, "qt1_b"),
-      qt2A: value(row, "qt2_a"), qt2B: value(row, "qt2_b"), qt3A: value(row, "qt3_a"), qt3B: value(row, "qt3_b"),
-      qt4A: value(row, "qt4_a"), qt4B: value(row, "qt4_b"), prolongationA: value(row, "prolongation_a"),
-      prolongationB: value(row, "prolongation_b"), scoreTotalA: value(row, "score_total_a"), scoreTotalB: value(row, "score_total_b"),
-      uniteVainqueurId: value(row, "id_unite_vainqueur"), uniteVainqueurNom: value(row, "nom_unite_vainqueur"),
-      statutMatch: value(row, "statut_match"),
-    }]
-  })
+  // Le classeur canonique ne contient pas de feuille de résultats dédiée.
+  // Les résultats seront résolus depuis les compétitions lorsque cette relation sera définie.
+  return []
 }
 
 export async function getResultatsByEquipeId(id: string) {
