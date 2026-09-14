@@ -39,6 +39,22 @@ export function completionSummary(rows: DataRow[], requiredFields: string[]): Co
   return { total: rows.length, complete, incomplete: rows.length - complete, rate: percent(complete, rows.length) }
 }
 
+export const ACTOR_COMPLETION_FIELDS = [
+  { key: "nomComplet", label: "Nom" },
+  { key: "dateNaissance", label: "Date de naissance" },
+  { key: "sexe", label: "Sexe" },
+  { key: "email", label: "Adresse e-mail" },
+  { key: "telephone", label: "Téléphone" },
+] as const
+
+export function actorCompletionSummary(rows: DataRow[]): CompletionSummary {
+  return completionSummary(rows, ACTOR_COMPLETION_FIELDS.map((field) => field.key))
+}
+
+export function actorMissingFields(rows: DataRow[], block: string) {
+  return missingFields(rows, block, [...ACTOR_COMPLETION_FIELDS])
+}
+
 export function groupCount(rows: DataRow[], field: string) {
   const counts = new Map<string, number>()
   for (const row of rows) {

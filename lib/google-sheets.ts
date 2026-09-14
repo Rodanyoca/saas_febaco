@@ -4,6 +4,7 @@ const SHEETS_REQUEST_TIMEOUT_MS = 10000;
 const SHEETS_CACHE_TTL_MS = 5 * 60_000;
 const readCache = new Map<string, { expiresAt: number; value: unknown[][] }>();
 const pendingReads = new Map<string, Promise<unknown[][]>>();
+const pendingBatchReads = new Map<string, Promise<Record<string, unknown[][]>>>();
 
 export type SheetBlock =
   | "structure"
@@ -264,6 +265,10 @@ export async function readSheetRows(
       : params,
   );
 
+  return sheetValuesToRows(values);
+}
+
+export function sheetValuesToRows(values: unknown[][]): SheetRow[] {
   if (values.length === 0) return [];
 
   const [headerRow, ...dataRows] = values;
@@ -288,6 +293,53 @@ export async function readSheetRows(
       }
       return obj;
     });
+}
+
+export async function readSheetRowsBatch({
+  block,
+  sheets,
+  fresh = false,
+}: {
+  block: SheetBlock;
+  sheets: readonly string[];
+  fresh?: boolean;
+}): Promise<Record<string, SheetRow[]>> {
+  const spreadsheetId = getSpreadsheetId(block);
+  const uniqueSheets = [...new Set(sheets)];
+  const ranges = uniqueSheets.map((sheet) => canonicalizeReadRange(block, sheet, "A:ZZ"));
+  const entries = uniqueSheets.map((sheet, index) => {
+    const cacheKey = `${spreadsheetId}:${sheet.toLowerCase()}:${ranges[index]}`;
+    return { sheet, range: ranges[index], cacheKey, cached: fresh ? undefined : readCache.get(cacheKey) };
+  });
+  const missing = entries.filter((entry) => !entry.cached || entry.cached.expiresAt <= Date.now());
+  if (missing.length) {
+    const batchKey = `${spreadsheetId}:${missing.map((entry) => entry.sheet.toLowerCase()).sort().join(",")}`;
+    let pending = pendingBatchReads.get(batchKey);
+    if (!pending) {
+      pending = (async () => {
+        try {
+          const response = await createSheetsClient().spreadsheets.values.batchGet({
+            spreadsheetId,
+            ranges: missing.map((entry) => `${quoteSheetName(entry.sheet)}!${entry.range}`),
+          }, { timeout: SHEETS_REQUEST_TIMEOUT_MS });
+          const loaded: Record<string, unknown[][]> = {};
+          missing.forEach((entry, index) => {
+            const values = response.data.valueRanges?.[index]?.values ?? [];
+            loaded[entry.sheet] = values;
+            readCache.set(entry.cacheKey, { expiresAt: Date.now() + SHEETS_CACHE_TTL_MS, value: values });
+          });
+          return loaded;
+        } catch (error) {
+          if (isQuotaError(error) && missing.every((entry) => entry.cached))
+            return Object.fromEntries(missing.map((entry) => [entry.sheet, entry.cached!.value]));
+          throw withGoogleSheetsErrorContext(error, block, missing.map((entry) => entry.sheet).join(","));
+        }
+      })();
+      pendingBatchReads.set(batchKey, pending);
+    }
+    try { await pending; } finally { pendingBatchReads.delete(batchKey); }
+  }
+  return Object.fromEntries(entries.map((entry) => [entry.sheet, sheetValuesToRows(readCache.get(entry.cacheKey)?.value ?? entry.cached?.value ?? [])]));
 }
 
 export function pickFirst(row: SheetRow, keys: string[]): string {

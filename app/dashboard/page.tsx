@@ -4,29 +4,21 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { AnalyticsTable, DashboardSection, EmptyAnalyticsState, StatGrid, StatValue, StatusText } from "@/components/dashboard/analytics"
 import { Button } from "@/components/ui/button"
-import { clean, completionSummary, countActors, groupCount, groupStatuses, missingFields, percent, sexSummary, statusSummary, type DataRow } from "@/lib/dashboard/calculations"
+import { actorCompletionSummary, actorMissingFields, clean, countActors, groupCount, groupStatuses, missingFields, percent, sexSummary, statusSummary, type DataRow } from "@/lib/dashboard/calculations"
 import { mapWithConcurrency } from "@/lib/dashboard/source-loader"
 
-type DatasetKey = "ligues" | "ententes" | "clubs" | "equipes" | "athletes" | "coachs" | "arbitres" | "officiels" | "medecins" | "affiliations" | "competitions" | "participants" | "competitionResults" | "nationalTeams" | "selections" | "nationalCompetitions" | "nationalResults"
+type DatasetKey = "ligues" | "ententes" | "clubs" | "equipes" | "athletes" | "coachs" | "arbitres" | "officiels" | "medecins" | "autres" | "affiliations" | "competitions" | "participants" | "competitionResults" | "nationalTeams" | "selections" | "nationalCompetitions" | "nationalResults"
 type Datasets = Record<DatasetKey, DataRow[]>
-const emptyDatasets = (): Datasets => ({ ligues: [], ententes: [], clubs: [], equipes: [], athletes: [], coachs: [], arbitres: [], officiels: [], medecins: [], affiliations: [], competitions: [], participants: [], competitionResults: [], nationalTeams: [], selections: [], nationalCompetitions: [], nationalResults: [] })
+const emptyDatasets = (): Datasets => ({ ligues: [], ententes: [], clubs: [], equipes: [], athletes: [], coachs: [], arbitres: [], officiels: [], medecins: [], autres: [], affiliations: [], competitions: [], participants: [], competitionResults: [], nationalTeams: [], selections: [], nationalCompetitions: [], nationalResults: [] })
 const sources: { key: DatasetKey; url: string; responseKey: string }[] = [
   { key: "ligues", url: "/api/ligues", responseKey: "ligues" }, { key: "ententes", url: "/api/ententes", responseKey: "ententes" },
   { key: "clubs", url: "/api/clubs", responseKey: "clubs" }, { key: "equipes", url: "/api/equipes", responseKey: "equipes" },
   { key: "athletes", url: "/api/athletes", responseKey: "athletes" }, { key: "coachs", url: "/api/coachs", responseKey: "coachs" },
   { key: "arbitres", url: "/api/arbitres", responseKey: "arbitres" }, { key: "officiels", url: "/api/officiels", responseKey: "officiels" },
-  { key: "medecins", url: "/api/medecins", responseKey: "medecins" }, { key: "affiliations", url: "/api/athlete-affiliations?pageSize=100", responseKey: "affiliations" },
+  { key: "medecins", url: "/api/medecins", responseKey: "medecins" }, { key: "autres", url: "/api/autres", responseKey: "autres" }, { key: "affiliations", url: "/api/athlete-affiliations?pageSize=100", responseKey: "affiliations" },
   { key: "competitions", url: "/api/competitions", responseKey: "competitions" }, { key: "participants", url: "/api/competitions-participants", responseKey: "participants" },
-  { key: "competitionResults", url: "/api/competitions-resultats", responseKey: "resultats" }, { key: "nationalTeams", url: "/api/equipes-nationales", responseKey: "teams" },
-  { key: "selections", url: "/api/equipes-nationales", responseKey: "selections" }, { key: "nationalCompetitions", url: "/api/equipes-nationales", responseKey: "engagements" },
-  { key: "nationalResults", url: "/api/equipes-nationales", responseKey: "results" },
+  { key: "competitionResults", url: "/api/competitions-resultats", responseKey: "resultats" },
 ]
-
-const required: Record<string, string[]> = {
-  Ligues: ["id", "nom", "province", "statut"], Ententes: ["id", "nom", "ligue", "statut"], Clubs: ["id", "nom", "ligue", "statut"], Équipes: ["id", "nom", "club", "categorie", "genre", "statut"],
-  Athlètes: ["id", "nom", "prenom", "sexe", "dateNaissance", "nationalite", "statut"], Entraîneurs: ["id", "nom", "prenom", "sexe", "niveau", "statut"],
-  Arbitres: ["id", "nom", "sexe", "niveau", "statut"], Officiels: ["id", "nom", "sexe", "fonction", "statut"], Médecins: ["id", "nom", "sexe", "specialite", "statut"],
-}
 
 export default function DashboardPage() {
   const [data, setData] = useState<Datasets>(emptyDatasets)
@@ -36,18 +28,18 @@ export default function DashboardPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const results = await mapWithConcurrency(sources, async (source) => {
+    const [results, national] = await Promise.all([mapWithConcurrency(sources, async (source) => {
       try { const response = await fetch(source.url, { cache: "no-store" }); const json = await response.json(); if (!response.ok) throw new Error(json?.error || "Lecture impossible"); return { source, rows: Array.isArray(json?.[source.responseKey]) ? json[source.responseKey] as DataRow[] : [], error: "" } }
       catch (error) { return { source, rows: [] as DataRow[], error: `${source.key}: ${error instanceof Error ? error.message : "Lecture impossible"}` } }
-    }, 3)
-    setData((previous) => { const next = { ...previous }; for (const result of results) next[result.source.key] = result.error ? previous[result.source.key] : result.rows; return next })
-    setErrors(results.flatMap((result) => result.error ? [result.error] : []))
+    }, 3), fetch("/api/equipes-nationales", { cache: "no-store" }).then(async response => { const json=await response.json();if(!response.ok)throw new Error(json?.error||"Lecture impossible");return json }).catch(error=>({error:error instanceof Error?error.message:"Lecture impossible"}))])
+    setData((previous) => { const next = { ...previous }; for (const result of results) next[result.source.key] = result.error ? previous[result.source.key] : result.rows; if(!national.error){next.nationalTeams=national.teams||[];next.selections=national.selections||[];next.nationalCompetitions=national.engagements||[];next.nationalResults=national.results||[]} return next })
+    setErrors([...results.flatMap((result) => result.error ? [result.error] : []),...(national.error?[`nationalTeams: ${national.error}`]:[])])
     setUpdatedAt(new Date()); setLoading(false)
   }, [])
 
   useEffect(() => { void load() }, [load])
 
-  const actorBlocks = useMemo(() => [data.athletes, data.coachs, data.arbitres, data.officiels, data.medecins], [data])
+  const actorBlocks = useMemo(() => [data.athletes, data.coachs, data.arbitres, data.officiels, data.medecins, data.autres], [data])
   const totalActors = countActors(actorBlocks)
   const totalStructures = data.ligues.length + data.ententes.length + data.clubs.length + data.equipes.length
 
@@ -56,8 +48,8 @@ export default function DashboardPage() {
   ] as [string, DataRow[]][]).map(([label, rows]) => { const stats = statusSummary(rows); return { label, total: stats.total, active: stats.active, inactive: stats.inactive, unknown: stats.unknown, share: `${percent(stats.total, totalStructures)} %` } }), [data, totalStructures])
 
   const actorRows = useMemo(() => ([
-    ["Athlètes", data.athletes], ["Entraîneurs", data.coachs], ["Arbitres", data.arbitres], ["Officiels", data.officiels], ["Médecins", data.medecins],
-  ] as [string, DataRow[]][]).map(([label, rows]) => { const sex = sexSummary(rows); const status = statusSummary(rows); const completion = completionSummary(rows, required[label]); return { label, total: rows.length, men: sex.men, women: sex.women, active: status.active, inactive: status.inactive, complete: completion.complete, rate: `${completion.rate} %` } }), [data])
+    ["Athlètes", data.athletes], ["Entraîneurs", data.coachs], ["Arbitres", data.arbitres], ["Officiels", data.officiels], ["Médecins", data.medecins], ["Autres acteurs", data.autres],
+  ] as [string, DataRow[]][]).map(([label, rows]) => { const sex = sexSummary(rows); const status = statusSummary(rows); const completion = actorCompletionSummary(rows); return { label, total: rows.length, men: sex.men, women: sex.women, active: status.active, inactive: status.inactive, complete: completion.complete, rate: `${completion.rate} %` } }), [data])
 
   const completionRows = useMemo(() => actorRows.map((row) => ({ label: row.label, total: row.total, complete: row.complete, incomplete: row.total - row.complete, rate: row.rate })), [actorRows])
   const globalComplete = completionRows.reduce((sum, row) => sum + row.complete, 0)
@@ -68,8 +60,9 @@ export default function DashboardPage() {
   const nationalRows = useMemo(() => data.nationalTeams.map((team) => { const id = clean(team.id); return { id, name: clean(team.nom) || "Non renseigné", discipline: clean(team.discipline) || "Non renseigné", categorie: clean(team.categorie) || "Non renseigné", sexe: clean(team.sexe) || "Non renseigné", saison: clean(team.saison) || "Non renseigné", members: data.selections.filter((row) => clean(row.equipeNationaleId) === id).length, competitions: data.nationalCompetitions.filter((row) => clean(row.equipeNationaleId) === id).length, results: data.nationalResults.filter((row) => clean(row.equipeNationaleId) === id).length, statut: clean(team.statut) || "Non renseigné" } }).sort((a, b) => b.members - a.members), [data])
 
   const missingRows = useMemo(() => [
-    ...missingFields(data.athletes, "Athlètes", [{key:"sexe",label:"Sexe"},{key:"dateNaissance",label:"Date de naissance"},{key:"nationalite",label:"Nationalité"},{key:"statut",label:"Statut"}]),
-    ...missingFields(data.coachs, "Entraîneurs", [{key:"sexe",label:"Sexe"},{key:"niveau",label:"Niveau"},{key:"statut",label:"Statut"}]),
+    ...actorMissingFields(data.athletes, "Athlètes"), ...actorMissingFields(data.coachs, "Entraîneurs"),
+    ...actorMissingFields(data.arbitres, "Arbitres"), ...actorMissingFields(data.officiels, "Officiels"),
+    ...actorMissingFields(data.medecins, "Médecins"), ...actorMissingFields(data.autres, "Autres acteurs"),
     ...missingFields(data.clubs, "Clubs", [{key:"ligue",label:"Ligue"},{key:"statut",label:"Statut"}]),
     ...missingFields(data.equipes, "Équipes", [{key:"club",label:"Club"},{key:"categorie",label:"Catégorie"},{key:"statut",label:"Statut"}]),
   ].slice(0, 12), [data])
