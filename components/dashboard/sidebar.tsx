@@ -25,7 +25,7 @@ import {
   ChevronUp,
 } from "lucide-react"
 
-type NavItem = { name: string; href: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean; badge?: string }
+type NavItem = { name: string; href: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean; badge?: string; exact?: boolean }
 
 const navigationDashboard: NavItem[] = [
   { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
@@ -51,7 +51,7 @@ const navigationCompetition: NavItem[] = [
 ]
 
 const navigationLicences: NavItem[] = [
-  { name: "Athlètes", href: "/dashboard/licences", icon: CreditCard },
+  { name: "Athlètes", href: "/dashboard/licences", icon: CreditCard, exact: true },
   { name: "Entourage", href: "/dashboard/licences/entourage", icon: UserCog },
 ]
 
@@ -79,7 +79,7 @@ function NavLink({ item, collapsed, pathname }: { item: NavItem; collapsed: bool
   const isDashboardRoot = item.href === "/dashboard"
   const isActive = isDashboardRoot
     ? pathname === "/dashboard"
-    : pathname === item.href || pathname.startsWith(item.href + "/")
+    : pathname === item.href || (!item.exact && pathname.startsWith(item.href + "/"))
 
   return (
     <Link

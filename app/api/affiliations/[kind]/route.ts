@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth-session"
 import { listAffiliations, type AffiliationKind } from "@/lib/affiliations"
 import { handleAffiliationWrite } from "@/app/api/_affiliation-write"
 
-const kinds = new Set(["athlete", "coach", "medecin", "officiel", "autre"])
+const kinds = new Set(["athlete", "coach", "medecin", "officiel"])
 export async function GET(request: Request, { params }: { params: Promise<{ kind: string }> }) {
   if (!await getSessionUser()) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
   const kind = (await params).kind

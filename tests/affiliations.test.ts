@@ -36,12 +36,10 @@ test("génère les identifiants d'affiliation attendus", () => {
   assert.equal(generateAffiliationId("coach", []), "AFC-000001")
   assert.equal(generateAffiliationId("medecin", []), "AFM-000001")
   assert.equal(generateAffiliationId("officiel", []), "AFO-000001")
-  assert.equal(generateAffiliationId("autre", []), "AFAUT-000001")
 })
 
 test("valide la période et les champs propres à chaque type", () => {
   assert.ok(validateAffiliationInput("athlete", { id_equipe: "EQ-001", date_debut: "2026-02", id_statut_affiliation: "SAF001" }).errors.date_debut)
-  assert.ok(validateAffiliationInput("autre", { date_debut: "2026-01-01", id_statut_affiliation: "SAF001" }).errors.entite)
   assert.ok(validateAffiliationInput("officiel", { id_fonction: "FON001", id_type_entite: "PROVINCE", id_entite: "P1", date_debut: "2026-01-01", id_statut_affiliation: "SAF001" }).errors.id_type_entite)
 })
 
@@ -65,6 +63,10 @@ test("interdit de réaffecter une affiliation à un autre acteur", async () => {
 
 test("ne définit aucune affiliation pour les arbitres", () => {
   assert.equal(Object.prototype.hasOwnProperty.call(affiliationConfig, "arbitre"), false)
+})
+
+test("ne définit aucune affiliation pour les autres acteurs", () => {
+  assert.equal(Object.prototype.hasOwnProperty.call(affiliationConfig, "autre"), false)
 })
 
 test("résout le club exclusivement via l'équipe", async () => {

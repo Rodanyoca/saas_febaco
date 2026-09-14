@@ -1,7 +1,7 @@
 import { pickFirst, readSheetRows, writeSheetRowByHeaders, type SheetRow } from "@/lib/google-sheets"
 import { resolveAthleteAgeCategory } from "@/lib/athlete-age-category"
 
-export type AffiliationKind = "athlete" | "coach" | "medecin" | "officiel" | "autre"
+export type AffiliationKind = "athlete" | "coach" | "medecin" | "officiel"
 export type AffiliationFields = Record<string, string>
 export type AffiliationFilters = { actorId?: string; equipeId?: string; clubId?: string; ligueId?: string; typeEntiteId?: string; entiteId?: string }
 export class AffiliationError extends Error { constructor(public code: string, message: string, public status = 400, public fields?: AffiliationFields) { super(message) } }
@@ -11,10 +11,9 @@ export const affiliationConfig = {
   coach: { sheet: "COACH_AFFILIATIONS", id: "id_affiliation_coach", actor: "id_coach", prefix: "AFC", fields: ["id_equipe", "id_fonction", "date_debut", "date_fin", "id_statut_affiliation", "observation"] },
   medecin: { sheet: "MEDECINS_AFFILIATIONS", id: "id_affiliation_medecin", actor: "id_medecin", prefix: "AFM", fields: ["id_equipe", "date_debut", "date_fin", "id_statut_affiliation", "observation"] },
   officiel: { sheet: "OFFICIELS_AFFILIATIONS", id: "id_affiliation_officiel", actor: "id_officiel", prefix: "AFO", fields: ["id_fonction", "id_type_entite", "id_entite", "date_debut", "date_fin", "id_statut_affiliation", "observation"] },
-  autre: { sheet: "AUTRES_AFFILIATIONS", id: "id_affiliation_autre", actor: "id_autre_acteur", prefix: "AFAUT", fields: ["entite", "date_debut", "date_fin", "id_statut_affiliation", "observation"] },
 } as const
-const actorSheets = { athlete: ["ATHLETES", "id_athlete"], coach: ["COACHS", "id_coach"], medecin: ["MEDECINS", "id_medecin"], officiel: ["OFFICIELS", "id_officiel"], autre: ["AUTRES", "id_autre_acteur"] } as const
-const actorLabels = { athlete: "athlete", coach: "coach", medecin: "medecin", officiel: "officiel", autre: "autreActeur" } as const
+const actorSheets = { athlete: ["ATHLETES", "id_athlete"], coach: ["COACHS", "id_coach"], medecin: ["MEDECINS", "id_medecin"], officiel: ["OFFICIELS", "id_officiel"] } as const
+const actorLabels = { athlete: "athlete", coach: "coach", medecin: "medecin", officiel: "officiel" } as const
 const coachFunctions = new Set(["FON005", "FON006", "FON099"])
 const entityTypes: Record<string, { sheet: string; block: "referentiel" | "structure"; id: string; label: string }> = {
   STR000: { sheet: "FEDERATION", block: "referentiel", id: "id_federation", label: "nom_officiel" }, STR001: { sheet: "LIGUES", block: "structure", id: "id_ligue", label: "nom_ligue" },
@@ -34,7 +33,7 @@ export function generateAffiliationId(kind: AffiliationKind, rows: SheetRow[]): 
 export function validateAffiliationInput(kind: AffiliationKind, body: unknown) {
   const source = body && typeof body === "object" ? body as Record<string, unknown> : {}, config = affiliationConfig[kind]
   const values = Object.fromEntries(config.fields.map((field) => [field, clean(source[field])])), errors: AffiliationFields = {}
-  const required = kind === "officiel" ? ["id_fonction", "id_type_entite", "id_entite", "date_debut", "id_statut_affiliation"] : kind === "autre" ? ["entite", "date_debut", "id_statut_affiliation"] : kind === "coach" ? ["id_equipe", "id_fonction", "date_debut", "id_statut_affiliation"] : ["id_equipe", "date_debut", "id_statut_affiliation"]
+  const required = kind === "officiel" ? ["id_fonction", "id_type_entite", "id_entite", "date_debut", "id_statut_affiliation"] : kind === "coach" ? ["id_equipe", "id_fonction", "date_debut", "id_statut_affiliation"] : ["id_equipe", "date_debut", "id_statut_affiliation"]
   for (const field of required) if (!values[field]) errors[field] = "Ce champ est obligatoire."
   if (values.date_debut && !/^\d{4}-\d{2}-\d{2}$/.test(values.date_debut)) errors.date_debut = "Date invalide."
   if (values.date_fin && !/^\d{4}-\d{2}-\d{2}$/.test(values.date_fin)) errors.date_fin = "Date invalide."
@@ -86,7 +85,7 @@ export async function mutateAffiliation(kind: AffiliationKind, mode: "create" | 
   if (kind === "officiel") { await requireRow(deps, "referentiel", "FONCTIONS", "id_fonction", values.id_fonction, "id_fonction"); const target = entityTypes[values.id_type_entite]; if (target) await requireRow(deps, target.block, target.sheet, target.id, values.id_entite, "id_entite") }
   const exact = rows.find((r) => clean(r[config.actor]) === actorId && clean(r[config.id]) !== clean(id) && config.fields.every((f) => clean(r[f]) === values[f]))
   if (mode === "create" && exact) return (await listAffiliations(kind, { actorId }, deps)).find((item) => item.id === clean(exact[config.id]))!
-  const targets = kind === "officiel" ? ["id_type_entite", "id_entite"] : kind === "autre" ? ["entite"] : ["id_equipe"]
+  const targets = kind === "officiel" ? ["id_type_entite", "id_entite"] : ["id_equipe"]
   if (rows.some((r) => clean(r[config.actor]) === actorId && clean(r[config.id]) !== clean(id) && targets.every((f) => clean(r[f]) === values[f]) && overlaps(clean(r.date_debut), clean(r.date_fin), values.date_debut, values.date_fin))) throw new AffiliationError("CHEVAUCHEMENT", "Cette période chevauche une affiliation existante pour la même affectation.", 409, { date_debut: "Période en conflit.", date_fin: "Période en conflit." })
   const affiliationId = mode === "create" ? generateAffiliationId(kind, rows) : clean(id); await deps.writeRow({ block: "affiliations", sheet: config.sheet, idHeader: config.id, id: affiliationId, values: { [config.actor]: actorId, ...values }, mode })
   const confirmed = (await listAffiliations(kind, { actorId }, deps)).find((i) => i.id === affiliationId); if (!confirmed) throw new AffiliationError("ECRITURE_NON_CONFIRMEE", "L’écriture n’a pas pu être confirmée.", 503); return confirmed

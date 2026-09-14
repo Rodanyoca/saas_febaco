@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDisplayDate } from "@/lib/date-format"
 import type { ActorLicenseView } from "@/lib/actor-licences"
 
-export function ActorLicensesPanel({ actorId, typeId }: { actorId: string; typeId: "TAC002" | "TAC004" }) {
+export function ActorLicensesPanel({ actorId, typeId }: { actorId: string; typeId: "TAC002" | "TAC003" | "TAC004" | "TAC005" }) {
   const [items, setItems] = useState<ActorLicenseView[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")

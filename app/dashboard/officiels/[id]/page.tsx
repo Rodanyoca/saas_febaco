@@ -7,6 +7,7 @@ import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ActorEditor } from "@/components/dashboard/actor-editor"
 import { AffiliationsPanel } from "@/components/dashboard/affiliations-panel"
+import { ActorLicensesPanel } from "@/components/dashboard/actor-licenses-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Officiel, OfficielMandat } from "@/lib/models"
@@ -231,9 +232,10 @@ export default function OfficielDetailPage() {
         />
 
         <Tabs defaultValue="general" className="gap-4">
-          <TabsList className="grid h-auto w-full grid-cols-2">
+          <TabsList className="grid h-auto w-full grid-cols-3">
             <TabsTrigger value="general" className="w-full">Général</TabsTrigger>
             <TabsTrigger value="affiliation" className="w-full">Affiliations</TabsTrigger>
+            <TabsTrigger value="licences" className="w-full">Licences</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -318,6 +320,9 @@ export default function OfficielDetailPage() {
                 </div>
               </CardContent>
             </Card>}
+          </TabsContent>
+          <TabsContent value="licences">
+            <ActorLicensesPanel actorId={officiel.id} typeId="TAC003" />
           </TabsContent>
         </Tabs>
       </div>
