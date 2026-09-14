@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation"
-export default function Page() { redirect("/dashboard/equipe-nationale/competitions") }
+export default function Page() { redirect("/equipes-nationales") }

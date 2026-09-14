@@ -17,9 +17,9 @@ const sources: { key: DatasetKey; url: string; responseKey: string }[] = [
   { key: "arbitres", url: "/api/arbitres", responseKey: "arbitres" }, { key: "officiels", url: "/api/officiels", responseKey: "officiels" },
   { key: "medecins", url: "/api/medecins", responseKey: "medecins" }, { key: "affiliations", url: "/api/athlete-affiliations?pageSize=100", responseKey: "affiliations" },
   { key: "competitions", url: "/api/competitions", responseKey: "competitions" }, { key: "participants", url: "/api/competitions-participants", responseKey: "participants" },
-  { key: "competitionResults", url: "/api/competitions-resultats", responseKey: "resultats" }, { key: "nationalTeams", url: "/api/equipe-nationale", responseKey: "equipesNationales" },
-  { key: "selections", url: "/api/equipe-nationale-selections", responseKey: "selections" }, { key: "nationalCompetitions", url: "/api/equipe-nationale-competitions", responseKey: "competitions" },
-  { key: "nationalResults", url: "/api/equipe-nationale-resultats", responseKey: "resultats" },
+  { key: "competitionResults", url: "/api/competitions-resultats", responseKey: "resultats" }, { key: "nationalTeams", url: "/api/equipes-nationales", responseKey: "teams" },
+  { key: "selections", url: "/api/equipes-nationales", responseKey: "selections" }, { key: "nationalCompetitions", url: "/api/equipes-nationales", responseKey: "engagements" },
+  { key: "nationalResults", url: "/api/equipes-nationales", responseKey: "results" },
 ]
 
 const required: Record<string, string[]> = {

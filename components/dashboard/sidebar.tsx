@@ -56,9 +56,7 @@ const navigationLicences: NavItem[] = [
 ]
 
 const navigationEquipeNationale: NavItem[] = [
-  { name: "Équipes nationales", href: "/dashboard/equipe-nationale", icon: Flag },
-  { name: "Compétitions", href: "/dashboard/equipe-nationale/competitions", icon: Trophy },
-  { name: "Résultats", href: "/dashboard/equipe-nationale/resultats", icon: ClipboardList },
+  { name: "Équipes nationales", href: "/equipes-nationales", icon: Flag },
 ]
 
 const navigationOutils: NavItem[] = [

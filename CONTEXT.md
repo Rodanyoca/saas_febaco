@@ -47,3 +47,14 @@ Les statuts d'une structure territoriale sont `ACTIF` et `INACTIF`.
 - **Affectation phase-unité** : relation canonique indiquant qu’une unité active participe à une phase, avec un groupe facultatif selon le mode.
 - **Groupe** : subdivision obligatoire en mode `GROUPES`, interdite en mode `ELIMINATION_DIRECTE` et facultative en mode `AUTRE`.
 - **Qualification** : affectation manuelle, explicite et traçable d’une unité à une phase ultérieure de la même épreuve ; elle n’est jamais déduite automatiquement d’un classement ou d’un résultat.
+
+## Équipes nationales
+
+- **Équipe nationale permanente** : identité sportive stable définie par une discipline, une catégorie d’âge et un sexe. Elle ne porte ni saison, ni campagne, ni résultat.
+- **Activation saisonnière** : présence d’une équipe nationale permanente pendant une saison donnée, conservée dans l’historique même lorsqu’elle devient inactive.
+- **Campagne d’équipe nationale** : période opérationnelle appartenant à une activation saisonnière et portant les sélections et engagements.
+- **Sélection nationale** : choix historique d’un athlète pour une campagne, avec l’affiliation réellement utilisée à cette date. Elle ne rend jamais l’athlète membre permanent de l’équipe nationale.
+- **Affectation de staff national** : relation historique d’un coach, officiel, arbitre ou médecin avec une activation saisonnière entière ou une campagne précise.
+- **Engagement national** : inscription d’une campagne à une épreuve et à une unité du bloc Compétitions. Il est distinct d’une sélection d’athlète.
+
+Le cycle canonique est : `équipe permanente → activation saisonnière → campagne → sélections / staff / engagements → résultats du bloc Compétitions`.

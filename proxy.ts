@@ -79,7 +79,7 @@ export async function proxy(req: NextRequest) {
   const cookie = req.cookies.get(AUTH_COOKIE_NAME)?.value
   const hasSession = cookie ? await verifySessionCookieValueEdge(cookie) : false
 
-  const isDashboard = pathname === "/dashboard" || pathname.startsWith("/dashboard/")
+  const isDashboard = pathname === "/dashboard" || pathname.startsWith("/dashboard/") || pathname === "/equipes-nationales" || pathname.startsWith("/equipes-nationales/")
   const isLogin = pathname === "/login"
 
   if (isDashboard && !hasSession) {
@@ -100,5 +100,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/equipes-nationales/:path*", "/login"],
 }
