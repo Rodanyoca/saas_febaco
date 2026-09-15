@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
 import { listAthleteAffiliations } from "@/lib/affiliations"
+import { summarizeDashboardAffiliations } from "@/lib/dashboard/affiliation-summary"
 
 export const dynamic = "force-dynamic"
 
@@ -39,10 +40,11 @@ export async function GET(request: Request) {
     }
     const page = Math.max(1, Number(params.get("page")) || 1)
     const pageSize = Math.min(100, Math.max(1, Number(params.get("pageSize")) || 25))
-    const total = affiliations.length
+    const summary = summarizeDashboardAffiliations(affiliations)
+    const total = summary.total
     const pageItems = affiliations.slice((page - 1) * pageSize, page * pageSize)
     const athletes = pageItems.map((item) => ({ ...item, __key: item.id, id: item.id_athlete, nom: item.athlete, prenom: "", equipeId: item.equipeId, equipe: item.equipe, clubId: item.clubId, club: item.club, statut: item.statut }))
-    return NextResponse.json({ affiliations: pageItems, athletes, pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) } })
+    return NextResponse.json({ affiliations: pageItems, athletes, summary, pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) } })
   } catch (error) {
     return NextResponse.json({ affiliations: [], error: error instanceof Error ? error.message : "Lecture impossible." }, { status: 503 })
   }

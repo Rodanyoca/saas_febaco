@@ -18,5 +18,6 @@ test("les anciennes pages redirigent vers la page canonique", async()=>{
 test("le tableau de bord ne charge plus les anciennes routes nationales", async()=>{
  const source=await readFile("app/dashboard/page.tsx","utf8")
  assert.doesNotMatch(source,/\/api\/equipe-nationale(?:-|\")/)
- assert.match(source,/\/api\/equipes-nationales/)
+ assert.doesNotMatch(source,/\/api\/equipes-nationales/)
+ assert.match(source,/\/api\/dashboard/)
 })
