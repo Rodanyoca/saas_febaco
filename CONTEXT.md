@@ -41,6 +41,7 @@ Les statuts d'une structure territoriale sont `ACTIF` et `INACTIF`.
 - **Équipe engagée** : équipe de club inscrite administrativement à une compétition. Une même équipe ne peut être engagée qu’une fois dans cette compétition.
 - **Unité de compétition** : représentation sportive d’une équipe engagée utilisée pour les affectations, matchs, résultats et classements.
 - **Participant de compétition** : personne physique explicitement inscrite comme athlète, arbitre, officiel, médecin ou autre acteur. À ne pas confondre avec une équipe engagée.
+- **Validité de participation** : appréciation informative et calculée indiquant si la licence d’un intervenant couvre une compétition. Elle est distincte du statut administratif de l’inscription et ne bloque jamais l’ajout de l’intervenant.
 
 - **Type de phase** : ce que représente sportivement une phase (`QUALIFICATION`, `QUART_FINALE`, `FINALE`, etc.). Il ne détermine jamais son fonctionnement.
 - **Mode de phase** : règle de fonctionnement indépendante du type. `GROUPES` exige des groupes et produit un classement ; `ELIMINATION_DIRECTE` n’utilise aucun groupe et détermine un vainqueur ; `AUTRE` reste manuel.
