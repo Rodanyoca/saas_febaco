@@ -55,6 +55,8 @@ test("les participants utilisent le cache Sheets de secours en cas de quota", as
     },
   } as never);
   assert.equal(calls.filter((call) => call.sheet.startsWith("COMPETITIONS_") || call.sheet === "COMPETITIONS").some((call) => call.fresh), false);
+  assert.equal(calls.find((call) => call.sheet === "ATHLETE_LICENCES")?.fresh, true);
+  assert.equal(calls.find((call) => call.sheet === "ACTEURS_LICENCES")?.fresh, true);
 });
 
 test("propose les athlètes affiliés et enrichit les autres registres", async () => {
@@ -114,4 +116,5 @@ test("l'interface adapte colonnes, aperçu et filtre sans bloquer une licence in
   assert.match(source, /L’intervenant peut néanmoins être ajouté/);
   assert.doesNotMatch(source, /disabled=\{[^}]*statutParticipation/);
   assert.match(source, /validityFilter/);
+  assert.doesNotMatch(source, />Actions</);
 });

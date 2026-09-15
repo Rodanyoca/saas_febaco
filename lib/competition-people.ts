@@ -20,11 +20,11 @@ const actorTypeByCategory: Record<ParticipantCategory, string> = { athletes: "TA
 const categoryByActorType = Object.fromEntries(Object.entries(actorTypeByCategory).map(([category, type]) => [type, category])) as Record<string, ParticipantCategory>;
 
 async function load(deps: Dependencies) {
-  const read = (block: "competitions" | "structure" | "acteurs" | "affiliations" | "referentiel" | "licences", sheet: string) => deps.readRows({ block, sheet, range: "A:ZZ" });
+  const read = (block: "competitions" | "structure" | "acteurs" | "affiliations" | "referentiel" | "licences", sheet: string, fresh = false) => deps.readRows({ block, sheet, range: "A:ZZ", fresh });
   const [competitions, participations, units, intervenants, teams, clubs, athleteRows, refereeRows, officialRows, doctorRows, otherRows, athleteAffiliations, athleteLicenses, actorLicenses, grades, specialties, otherTypes] = await Promise.all([
     read("competitions", "COMPETITIONS"), read("competitions", "COMPETITIONS_PARTICIPANTS"), read("competitions", "COMPETITIONS_UNITES"), read("competitions", "COMPETITIONS_INTERVENANTS"), read("structure", "EQUIPES"), read("structure", "CLUBS"),
     read("acteurs", "ATHLETES"), read("acteurs", "ARBITRES"), read("acteurs", "OFFICIELS"), read("acteurs", "MEDECINS"), read("acteurs", "AUTRES"), read("affiliations", "ATHLETE_AFFILIATIONS"),
-    read("licences", "ATHLETE_LICENCES"), read("licences", "ACTEURS_LICENCES"), read("referentiel", "GRADES_ARBITRES"), read("referentiel", "SPECIALITES_MEDECINS"), read("referentiel", "TYPES_AUTRES_ACTEURS"),
+    read("licences", "ATHLETE_LICENCES", true), read("licences", "ACTEURS_LICENCES", true), read("referentiel", "GRADES_ARBITRES"), read("referentiel", "SPECIALITES_MEDECINS"), read("referentiel", "TYPES_AUTRES_ACTEURS"),
   ]);
   return { competitions, participations, units, intervenants, teams, clubs, athleteRows, refereeRows, officialRows, doctorRows, otherRows, athleteAffiliations, athleteLicenses, actorLicenses, grades, specialties, otherTypes };
 }
