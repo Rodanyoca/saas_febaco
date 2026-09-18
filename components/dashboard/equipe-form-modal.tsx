@@ -25,10 +25,28 @@ import {
 type Option = { id: string; label: string };
 type Values = Record<string, string>;
 
+const equipeReferenceFields = {
+  id_categorie_age: "CATEGORIES_AGE",
+  id_sexe: "SEXES",
+} as const;
+
+export function validateEquipeReferenceValues(
+  values: Values,
+  refs: Record<string, Option[]>,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const [field, sheet] of Object.entries(equipeReferenceFields)) {
+    const value = values[field]?.trim();
+    if (!value) errors[field] = "Ce champ est obligatoire.";
+    else if (!(refs[sheet] || []).some((option) => option.id === value))
+      errors[field] = "Sélectionnez une valeur du référentiel.";
+  }
+  return errors;
+}
+
 const emptyValues = (clubId: string): Values => ({
   nom_equipe: "",
   id_club: clubId,
-  id_discipline: "",
   id_categorie_age: "",
   id_sexe: "",
   id_equipe_coc: "",
@@ -53,6 +71,7 @@ export function EquipeFormModal({
   const [refs, setRefs] = useState<Record<string, Option[]>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [referencesLoading, setReferencesLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -60,7 +79,6 @@ export function EquipeFormModal({
     setValues({
       nom_equipe: String(source.nom_equipe ?? source.nom ?? ""),
       id_club: clubId,
-      id_discipline: String(source.id_discipline ?? ""),
       id_categorie_age: String(source.id_categorie_age ?? ""),
       id_sexe: String(source.id_sexe ?? ""),
       id_equipe_coc: String(source.id_equipe_coc ?? ""),
@@ -68,6 +86,8 @@ export function EquipeFormModal({
       observations: String(source.observations ?? source.observation ?? ""),
     });
     setErrors({});
+    setRefs({});
+    setReferencesLoading(true);
     void fetch("/api/structure-territoriale/referentiels", {
       cache: "no-store",
     })
@@ -77,12 +97,6 @@ export function EquipeFormModal({
           throw new Error(payload.error || "Référentiels indisponibles.");
         const nextRefs = payload.referentiels || {};
         setRefs(nextRefs);
-        if (!equipe) {
-          const basketball = (nextRefs.DISCIPLINES || []).find((option: Option) =>
-            option.label.toLocaleLowerCase("fr").includes("basket"),
-          );
-          if (basketball) setValues((current) => ({ ...current, id_discipline: current.id_discipline || basketball.id }));
-        }
       })
       .catch((error) =>
         setErrors({
@@ -91,14 +105,23 @@ export function EquipeFormModal({
               ? error.message
               : "Référentiels indisponibles.",
         }),
-      );
+      )
+      .finally(() => setReferencesLoading(false));
   }, [clubId, equipe, open]);
 
   const set = (key: string, value: string) =>
     setValues((current) => ({ ...current, [key]: value }));
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (saving) return;
+    if (saving || referencesLoading) return;
+    const referenceErrors = validateEquipeReferenceValues(values, refs);
+    if (Object.keys(referenceErrors).length) {
+      setErrors({
+        ...referenceErrors,
+        _form: "Sélectionnez uniquement des valeurs proposées par les référentiels.",
+      });
+      return;
+    }
     setSaving(true);
     setErrors({});
     try {
@@ -236,7 +259,10 @@ export function EquipeFormModal({
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button
+              type="submit"
+              disabled={saving || referencesLoading}
+            >
               {saving ? "Enregistrement…" : "Enregistrer"}
             </Button>
           </DialogFooter>

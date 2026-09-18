@@ -20,6 +20,16 @@ test("génère une équipe depuis son club", () => {
   assert.equal(generateTerritorialId("equipes", [{ id_equipe: "101" }, { id_equipe: "102" }], { id_club: "1" }), "103")
 })
 
+test("génère 01 puis le prochain suffixe XX sans mélanger les préfixes de clubs", () => {
+  assert.equal(generateTerritorialId("equipes", [], { id_club: "12" }), "1201")
+  assert.equal(generateTerritorialId("equipes", [
+    { id_equipe: "1201" },
+    { id_equipe: "1202" },
+    { id_equipe: "12301" },
+    { id_equipe: "12003" },
+  ], { id_club: "12" }), "1203")
+})
+
 test("valide une création de ligue", () => {
   assert.deepEqual(validateTerritorialInput("ligues", { nom_ligue: "Kinshasa", id_province: "PROV001", statut: "ACTIF" }).errors, {})
 })
@@ -37,7 +47,7 @@ test("refuse une date de reconnaissance d'entente antérieure", () => {
 
 test("refuse une équipe sans parent ni référentiels", () => {
   const { errors } = validateTerritorialInput("equipes", { nom_equipe: "A", statut: "ACTIF" })
-  assert.deepEqual(Object.keys(errors).sort(), ["id_categorie_age", "id_club", "id_discipline", "id_sexe"].sort())
+  assert.deepEqual(Object.keys(errors).sort(), ["id_categorie_age", "id_club", "id_sexe"].sort())
 })
 
 test("résout immédiatement la province d'une ligue créée", () => {

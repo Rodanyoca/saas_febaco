@@ -11,14 +11,14 @@ export const territorialConfig = {
   ligues: { sheet: "LIGUES", id: "id_ligue", required: ["nom_ligue", "id_province", "statut"], refs: { id_province: "PROVINCES" } },
   ententes: { sheet: "ENTENTES", id: "id_entente", required: ["nom_entente", "id_ligue", "statut"], refs: {} },
   clubs: { sheet: "CLUBS", id: "id_club", required: ["nom_club", "id_entente", "id_categorie_club", "statut"], refs: { id_categorie_club: "CATEGORIES_CLUB", id_niveau_competitif_club: "NIVEAUX_COMPETITIFS_CLUB", id_sexe: "SEXES", id_ville: "VILLES" } },
-  equipes: { sheet: "EQUIPES", id: "id_equipe", required: ["nom_equipe", "id_club", "id_discipline", "id_categorie_age", "id_sexe", "statut"], refs: { id_discipline: "DISCIPLINES", id_categorie_age: "CATEGORIES_AGE", id_sexe: "SEXES" } },
+  equipes: { sheet: "EQUIPES", id: "id_equipe", required: ["nom_equipe", "id_club", "id_categorie_age", "id_sexe", "statut"], refs: { id_categorie_age: "CATEGORIES_AGE", id_sexe: "SEXES" } },
 } as const
 
 const allowedFields: Record<TerritorialKind, string[]> = {
   ligues: ["nom_ligue","sigle_ligue","telephone","email","id_province","statut","observations","id_ligue_coc","année_creation","date_affiliation_ligue"],
   ententes: ["code_entente","nom_entente","sigle_entente","id_ligue","id_ville","email","statut","observations","id_entente_coc","date_creation","date_reconnaissance","telephone"],
   clubs: ["nom_club","id_categorie_club","id_sexe","date_affiliation","id_ville","id_entente","telephone","statut","observations","id_club_coc","sigle_club","id_niveau_competitif_club","date_creation","email"],
-  equipes: ["nom_equipe","id_categorie_age","id_club","id_sexe","statut","observations","id_equipe_coc","id_discipline"],
+  equipes: ["nom_equipe","id_categorie_age","id_club","id_sexe","statut","observations","id_equipe_coc"],
 }
 
 const clean = (value: unknown) => String(value ?? "").trim()
@@ -53,8 +53,15 @@ export function generateTerritorialId(kind: TerritorialKind, rows: SheetRow[], v
   }
   if (kind === "clubs") return String(Math.max(0, ...ids.map(Number).filter(Number.isFinite)) + 1)
   const parent = values.id_club
-  const local = ids.filter((id) => id.startsWith(parent)).map((id) => Number(id.slice(parent.length))).filter(Number.isFinite)
-  return `${parent}${String(Math.max(0, ...local) + 1).padStart(2, "0")}`
+  const escapedParent = parent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const pattern = new RegExp(`^${escapedParent}(\\d{2})$`)
+  const local = ids.flatMap((id) => {
+    const match = pattern.exec(id)
+    return match ? [Number(match[1])] : []
+  })
+  const next = Math.max(0, ...local) + 1
+  if (next > 99) throw new TerritorialError("SEQUENCE_EPUISEE", "Ce club possède déjà 99 équipes.", 409)
+  return `${parent}${String(next).padStart(2, "0")}`
 }
 
 async function requireExisting(sheet: string, idHeader: string, id: string, field: string) {

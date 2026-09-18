@@ -26,7 +26,7 @@ Classeur configuré : `01_FEBACO_STRUCTURE_TERRITORIALE`.
 | `LIGUES` | `id_ligue`, `nom_ligue`, `sigle_ligue`, `telephone`, `email`, `id_province`, `statut`, `observations`, `id_ligue_coc`, `date_creation`, `date_reconnaissance` |
 | `ENTENTES` | `id_entente`, `code_entente`, `nom_entente`, `sigle_entente`, `id_ligue`, `id_ville`, `email`, `statut`, `observations`, `id_entente_coc`, `date_creation`, `date_reconnaissance`, `telephone` |
 | `CLUBS` | `id_club`, `nom_club`, `id_categorie_club`, `id_sexe`, `date_affiliation`, `id_ville`, `id_entente`, `id_ligue_historique`, `telephone`, `statut`, `observations`, `id_club_coc`, `sigle_club`, `id_niveau_competitif_club`, `date_creation`, `email` |
-| `EQUIPES` | `id_equipe`, `nom_equipe`, `id_categorie_age`, `id_club`, `id_sexe`, `statut`, `observations`, `id_equipe_coc`, `id_discipline` |
+| `EQUIPES` | `id_equipe`, `nom_equipe`, `id_categorie_age`, `id_club`, `id_sexe`, `statut`, `observations`, `id_equipe_coc` |
 
 ### Référentiels
 
@@ -36,7 +36,6 @@ Classeur configuré : `01_FEBACO_STRUCTURE_TERRITORIALE`.
 | `id_ville` | `VILLES` | Identifiant uniquement |
 | `id_categorie_club` | `CATEGORIES_CLUB` | Identifiant uniquement |
 | `id_niveau_competitif_club` | `NIVEAUX_COMPETITIFS_CLUB` | Identifiant uniquement |
-| `id_discipline` | `DISCIPLINES` | Identifiant uniquement |
 | `id_categorie_age` | `CATEGORIES_AGE` | Identifiant uniquement |
 | `id_sexe` | `SEXES` | Identifiant uniquement |
 

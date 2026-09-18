@@ -93,7 +93,6 @@ const equipeColumns: Column<Equipe>[] = [
   { key: "nom", header: "Équipe", className: "font-medium" },
   { key: "categorie", header: "Catégorie" },
   { key: "genre", header: "Genre" },
-  { key: "saison", header: "Saison", render: (item) => item.saison || "-" },
   { key: "statut", header: "Statut", render: (item) => <StatusBadge status={item.statut} /> },
 ]
 

@@ -225,12 +225,6 @@ const definitions: Record<
       { key: "nom_equipe", label: "Nom de l’équipe", required: true },
       { key: "id_club", label: "Club", required: true, parent: "clubs" },
       {
-        key: "id_discipline",
-        label: "Discipline",
-        required: true,
-        ref: "DISCIPLINES",
-      },
-      {
         key: "id_categorie_age",
         label: "Catégorie d’âge",
         required: true,

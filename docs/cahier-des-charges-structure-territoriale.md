@@ -314,7 +314,6 @@ Le rattachement d’un acteur au club passe en priorité par son affiliation à 
 | --- | --- | --- |
 | Nom de l’équipe | oui | texte non vide |
 | Club | oui | club existant |
-| Discipline | oui | `DISCIPLINES` |
 | Catégorie d’âge | oui | `CATEGORIES_AGE` |
 | Sexe | oui | `SEXES` |
 | Identifiant COC | non | correspondance externe |
@@ -369,7 +368,6 @@ La route `/api/structure-territoriale/referentiels` expose :
 - `VILLES` ;
 - `CATEGORIES_CLUB` ;
 - `NIVEAUX_COMPETITIFS_CLUB` ;
-- `DISCIPLINES` ;
 - `CATEGORIES_AGE` ;
 - `SEXES`.
 
@@ -409,7 +407,7 @@ Les colonnes média présentes dans le classeur sont conservées et gérées par
 
 ### 14.4 Feuille EQUIPES
 
-`id_equipe`, `nom_equipe`, `id_categorie_age`, `id_club`, `id_sexe`, `statut`, `observations`, `id_equipe_coc`, `id_discipline`.
+`id_equipe`, `nom_equipe`, `id_categorie_age`, `id_club`, `id_sexe`, `statut`, `observations`, `id_equipe_coc`.
 
 ### 14.5 Règles d’écriture
 
