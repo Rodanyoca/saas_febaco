@@ -36,7 +36,7 @@ test("charge uniquement les groupes de la compétition et les équipes de chaque
   assert.equal(result.teams.some((team) => team.clubId === "C2"), false);
 });
 
-test("relit les phases et groupes sans cache avant d'afficher les poules", async () => {
+test("relit les phases, groupes, clubs et équipes sans cache avant d'afficher le formulaire", async () => {
   const setup = fixture();
   const base = setup.deps as unknown as { readRows: (params: { sheet: string; fresh?: boolean }) => Promise<SheetRow[]>; appendRows: (input: unknown) => Promise<void> };
   const calls: Array<{ sheet: string; fresh?: boolean }> = [];
@@ -50,6 +50,8 @@ test("relit les phases et groupes sans cache avant d'afficher les poules", async
 
   assert.equal(calls.find((call) => call.sheet === "COMPETITIONS_PHASES")?.fresh, true);
   assert.equal(calls.find((call) => call.sheet === "COMPETITIONS_GROUPES")?.fresh, true);
+  assert.equal(calls.find((call) => call.sheet === "CLUBS")?.fresh, true);
+  assert.equal(calls.find((call) => call.sheet === "EQUIPES")?.fresh, true);
 });
 
 test("conserve un club sans équipe dans la liste", async () => {

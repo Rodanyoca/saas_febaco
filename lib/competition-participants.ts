@@ -50,7 +50,7 @@ async function loadRows(deps: Dependencies, fresh = false) {
   const competitionSheet = (sheet: string) =>
     deps.readRows({ block: "competitions", sheet, range: "A:ZZ", fresh });
   const structureSheet = (sheet: string) =>
-    deps.readRows({ block: "structure", sheet, range: "A:ZZ" });
+    deps.readRows({ block: "structure", sheet, range: "A:ZZ", fresh });
   const referenceSheet = (sheet: string) =>
     deps.readRows({ block: "referentiel", sheet, range: "A:F" });
   const [competitions, events, participants, units, phases, groups, historicalAssignments, canonicalPhaseUnits, clubs, teams, categories, sexes, modes] =
