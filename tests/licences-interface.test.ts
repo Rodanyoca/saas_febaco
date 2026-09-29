@@ -21,6 +21,9 @@ test("l'éditeur couvre l'enregistrement individuel, le renouvellement collectif
   assert.match(source, /Renouveler les licences d’une équipe/);
   assert.match(source, /Consulter la licence/);
   assert.match(source, /Tout sélectionner/);
+  assert.match(source, /id:x\.affiliationId/);
+  assert.match(source, /candidate=candidates\.find\(x=>x\.affiliationId===athleteId\)/);
+  assert.match(source, /id_equipe:teamId,id_athlete:candidate\?\.athleteId,id_affiliation_athlete:candidate\?\.affiliationId/);
   assert.match(source, /x\.situation/);
   assert.match(source, /Première licence à enregistrer individuellement/);
   assert.match(source, /if\(saving\|\|readOnly\)return/);

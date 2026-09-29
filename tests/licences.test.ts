@@ -48,6 +48,24 @@ test("l'éligibilité équipe garde visibles les athlètes déjà licenciés", a
   assert.equal(result.candidates.find((item) => item.athleteId === "ATH-2")?.alreadyLicensed, false);
 });
 
+test("ATH19240 reste éligible dans chacune de ses deux équipes et conserve l'affiliation choisie", async () => {
+  const setup = fixture({
+    ATHLETE_AFFILIATIONS: [
+      { id_affiliation_athlete: "AFA-009231", id_athlete: "ATH19240", id_equipe: "EQ-1", date_debut: "2024-01-01", date_fin: "", id_statut_affiliation: "SAF001" },
+      { id_affiliation_athlete: "AFA-012277", id_athlete: "ATH19240", id_equipe: "EQ-2", date_debut: "2025-01-01", date_fin: "2025-12-31", id_statut_affiliation: "SAF002" },
+    ],
+    ATHLETES: [{ id_athlete: "ATH19240", nom_complet: "Athlète 19240", id_sexe: "SEX001" }],
+  });
+  const first = await getAthleteLicenceEligibility({ mode: "EQUIPE", seasonId: "SAI006", teamId: "EQ-1" }, { role: "federal" }, setup.deps);
+  const second = await getAthleteLicenceEligibility({ mode: "EQUIPE", seasonId: "SAI006", teamId: "EQ-2" }, { role: "federal" }, setup.deps);
+  assert.deepEqual(first.candidates.map((item) => item.affiliationId), ["AFA-009231"]);
+  assert.deepEqual(second.candidates.map((item) => item.affiliationId), ["AFA-012277"]);
+
+  const created = await renewAthleteLicences({ mode: "ATHLETE", id_saison: "SAI006", id_equipe: "EQ-2", id_affiliation_athlete: "AFA-012277", numero_licence: "19240", date_delivrance: "2026-09-13", id_statut_licence: "STL001" }, setup.deps, () => "BKB-LIC-2026-019240");
+  assert.equal(created[0].id_affiliation_athlete, "AFA-012277");
+  assert.deepEqual(setup.batches[0][0].values.id_affiliation_athlete, "AFA-012277");
+});
+
 test("renouvelle individuellement depuis une affiliation réelle", async () => {
   const setup = fixture();
   const created = await renewAthleteLicences({ mode: "ATHLETE", id_saison: "SAI006", id_affiliation_athlete: "AFA-1", numero_licence: "100", date_delivrance: "2026-09-13", id_statut_licence: "STL001", observations: "" }, setup.deps, () => "BKB-LIC-2026-000001");
@@ -61,16 +79,46 @@ test("refuse le doublon athlète et saison sans écriture", async () => {
   assert.equal(setup.batches.length, 0);
 });
 
-test("refuse une affiliation inactive, future ou clôturée", async () => {
+test("accepte une affiliation existante indépendamment de son statut et de ses dates", async () => {
   for (const affiliation of [
     { ...base.ATHLETE_AFFILIATIONS[0], id_statut_affiliation: "SAF002" },
     { ...base.ATHLETE_AFFILIATIONS[0], date_debut: "2099-01-01" },
     { ...base.ATHLETE_AFFILIATIONS[0], date_fin: "2025-12-31" },
   ]) {
     const setup = fixture({ ATHLETE_AFFILIATIONS: [affiliation] });
-    await assert.rejects(renewAthleteLicences({ mode: "ATHLETE", id_saison: "SAI006", id_affiliation_athlete: "AFA-1", date_delivrance: "2026-09-13", id_statut_licence: "STL001" }, setup.deps, () => "X"), /admissible/i);
-    assert.equal(setup.batches.length, 0);
+    const eligible = await getAthleteLicenceEligibility({ mode: "EQUIPE", seasonId: "SAI006", teamId: "EQ-1" }, { role: "federal" }, setup.deps);
+    assert.deepEqual(eligible.candidates.map((item) => item.affiliationId), ["AFA-1"]);
+    const created = await renewAthleteLicences({ mode: "ATHLETE", id_saison: "SAI006", id_equipe: "EQ-1", id_athlete: "ATH-1", id_affiliation_athlete: "AFA-1", numero_licence: "100", date_delivrance: "2026-09-13", id_statut_licence: "STL001" }, setup.deps, () => "X");
+    assert.equal(created[0].id_affiliation_athlete, "AFA-1");
+    assert.equal(setup.batches.length, 1);
   }
+});
+
+test("distingue deux affiliations du même athlète dans la même équipe et refuse leur double sélection", async () => {
+  const setup = fixture({ ATHLETE_AFFILIATIONS: [
+    { ...base.ATHLETE_AFFILIATIONS[0], id_affiliation_athlete: "AFA-OLD", date_fin: "2025-12-31", id_statut_affiliation: "SAF002" },
+    { ...base.ATHLETE_AFFILIATIONS[0], id_affiliation_athlete: "AFA-NEW", date_debut: "2026-01-01" },
+  ] });
+  const eligible = await getAthleteLicenceEligibility({ mode: "EQUIPE", seasonId: "SAI006", teamId: "EQ-1" }, { role: "federal" }, setup.deps);
+  assert.deepEqual(eligible.candidates.map((item) => item.affiliationId), ["AFA-OLD", "AFA-NEW"]);
+  await assert.rejects(renewAthleteLicences({ mode: "EQUIPE", id_saison: "SAI006", id_equipe: "EQ-1", id_affiliations_athletes: ["AFA-OLD", "AFA-NEW"], date_delivrance: "2026-09-13" }, setup.deps), (error: unknown) => error instanceof LicenceError && error.code === "ATHLETE_DUPLIQUE");
+  assert.equal(setup.batches.length, 0);
+});
+
+test("exclut les affiliations dont l'athlète ou l'équipe n'existe pas", async () => {
+  const setup = fixture({ ATHLETE_AFFILIATIONS: [
+    { id_affiliation_athlete: "AFA-NO-ATHLETE", id_athlete: "ATH-404", id_equipe: "EQ-1" },
+    { id_affiliation_athlete: "AFA-NO-TEAM", id_athlete: "ATH-1", id_equipe: "EQ-404" },
+  ] });
+  const result = await getAthleteLicenceEligibility({ mode: "ATHLETE", seasonId: "SAI006", athleteId: "ATH-1" }, { role: "federal" }, setup.deps);
+  assert.deepEqual(result.candidates, []);
+});
+
+test("refuse une affiliation incohérente avec l'équipe ou l'athlète annoncés", async () => {
+  const setup = fixture();
+  await assert.rejects(renewAthleteLicences({ mode: "ATHLETE", id_saison: "SAI006", id_equipe: "EQ-2", id_athlete: "ATH-1", id_affiliation_athlete: "AFA-1", numero_licence: "100", date_delivrance: "2026-09-13" }, setup.deps), (error: unknown) => error instanceof LicenceError && error.code === "EQUIPE_INCOHERENTE");
+  await assert.rejects(renewAthleteLicences({ mode: "ATHLETE", id_saison: "SAI006", id_equipe: "EQ-1", id_athlete: "ATH-2", id_affiliation_athlete: "AFA-1", numero_licence: "100", date_delivrance: "2026-09-13" }, setup.deps), (error: unknown) => error instanceof LicenceError && error.code === "ATHLETE_INCOHERENT");
+  assert.equal(setup.batches.length, 0);
 });
 
 test("exige une observation pour le statut AUTRE", async () => {

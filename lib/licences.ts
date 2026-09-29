@@ -48,10 +48,6 @@ function allowed(scope: AccessScope, item: { ententeId: string; ligueId: string 
   return scope.role === "federal" || (scope.role === "ligue" ? item.ligueId === scope.ligueId : item.ententeId === scope.ententeId);
 }
 
-function activeAffiliation(row: SheetRow, onDate = new Date().toISOString().slice(0, 10)) {
-  return clean(row.id_statut_affiliation) === "SAF001" && (!clean(row.date_debut) || clean(row.date_debut) <= onDate) && (!clean(row.date_fin) || clean(row.date_fin) >= onDate);
-}
-
 function view(row: SheetRow, maps: ReturnType<typeof indexes>) {
   const affiliation = maps.affiliations.get(clean(row.id_affiliation_athlete)) || {}, athlete = maps.athletes.get(clean(row.id_athlete)), place = territory(affiliation, maps);
   const sexId = clean(athlete?.id_sexe), ligue = maps.ligues.get(place.ligueId);
@@ -72,10 +68,10 @@ export async function listAthleteLicences(filters: Filters, scope: AccessScope, 
 export async function getAthleteLicenceEligibility(query: EligibilityQuery, scope: AccessScope, deps: Dependencies = defaults) {
   const data = await load(deps), maps = indexes(data);
   if (!maps.seasons.has(query.seasonId)) throw new LicenceError("SAISON_INTROUVABLE", "La saison sélectionnée n’existe pas.", 404, { id_saison: "Saison inconnue." });
-  const candidates = data.affiliations.filter((row) => activeAffiliation(row)).filter((row) => query.mode === "ATHLETE" ? clean(row.id_athlete) === query.athleteId : clean(row.id_equipe) === query.teamId).map((affiliation) => {
+  const candidates = data.affiliations.filter((row) => query.mode === "ATHLETE" ? clean(row.id_athlete) === query.athleteId : clean(row.id_equipe) === query.teamId).map((affiliation) => {
     const athleteId = clean(affiliation.id_athlete), athlete = maps.athletes.get(athleteId), place = territory(affiliation, maps), existing = data.licences.find((row) => clean(row.id_athlete) === athleteId && clean(row.id_saison) === query.seasonId), previous = data.licences.filter((row) => clean(row.id_athlete) === athleteId && clean(row.numero_licence)).sort((a, b) => clean(b.date_delivrance).localeCompare(clean(a.date_delivrance)))[0];
     return { affiliationId: clean(affiliation.id_affiliation_athlete), athleteId, athleteNom: clean(athlete?.nom_complet) || athleteId, sexId: clean(athlete?.id_sexe), sexe: maps.sexes.get(clean(athlete?.id_sexe)) || clean(athlete?.id_sexe), teamId: place.teamId, teamName: clean(place.team?.nom_equipe) || place.teamId, clubName: clean(place.club?.nom_club) || place.clubId, affiliationStatusId: clean(affiliation.id_statut_affiliation), alreadyLicensed: !!existing, existingLicence: existing ? view(existing, maps) : null, previousNumber: clean(previous?.numero_licence), previousSeason: maps.seasons.get(clean(previous?.id_saison)) || clean(previous?.id_saison), situation: existing ? "Déjà renouvelée" : previous ? "Renouvelable" : "Première licence requise", ententeId: place.ententeId, ligueId: place.ligueId };
-  }).filter((item) => maps.athletes.has(item.athleteId) && allowed(scope, item));
+  }).filter((item) => maps.athletes.has(item.athleteId) && maps.teams.has(item.teamId) && allowed(scope, item));
   return { candidates };
 }
 
@@ -101,15 +97,18 @@ export async function renewAthleteLicences(body: unknown, deps: Dependencies = d
   validateAdmin(input, data);
   const affiliationIds = mode === "ATHLETE" ? [clean(input.id_affiliation_athlete)] : Array.isArray(input.id_affiliations_athletes) ? [...new Set(input.id_affiliations_athletes.map(clean).filter(Boolean))] : [];
   if (!affiliationIds.length || !["ATHLETE", "EQUIPE"].includes(mode)) throw new LicenceError("COMMANDE_INVALIDE", "Sélectionnez au moins une affiliation admissible.", 400);
-  const expectedTeamId = clean(input.id_equipe), selected: SheetRow[] = [];
+  const expectedTeamId = clean(input.id_equipe), expectedAthleteId = clean(input.id_athlete), selected: SheetRow[] = [], selectedAthletes = new Set<string>();
   for (const id of affiliationIds) {
     const affiliation = maps.affiliations.get(id);
-    if (!affiliation || !activeAffiliation(affiliation) || !maps.athletes.has(clean(affiliation.id_athlete))) throw new LicenceError("AFFILIATION_INADMISSIBLE", `L’affiliation ${id} n’est pas admissible.`, 404);
-    if (mode === "EQUIPE" && clean(affiliation.id_equipe) !== expectedTeamId) throw new LicenceError("EQUIPE_INCOHERENTE", "Une affiliation sélectionnée appartient à une autre équipe.", 409);
+    if (!affiliation || !maps.athletes.has(clean(affiliation.id_athlete)) || !maps.teams.has(clean(affiliation.id_equipe))) throw new LicenceError("AFFILIATION_INADMISSIBLE", `L’affiliation ${id} n’est pas admissible.`, 404);
+    if (expectedTeamId && clean(affiliation.id_equipe) !== expectedTeamId) throw new LicenceError("EQUIPE_INCOHERENTE", "Une affiliation sélectionnée appartient à une autre équipe.", 409);
     const athleteId = clean(affiliation.id_athlete);
+    if (mode === "ATHLETE" && expectedAthleteId && athleteId !== expectedAthleteId) throw new LicenceError("ATHLETE_INCOHERENT", "L’affiliation sélectionnée appartient à un autre athlète.", 409);
+    if (selectedAthletes.has(athleteId)) throw new LicenceError("ATHLETE_DUPLIQUE", "Un athlète ne peut être sélectionné qu’une seule fois dans le même lot.", 409);
     if (data.licences.some((row) => clean(row.id_athlete) === athleteId && clean(row.id_saison) === seasonId)) {
       throw new LicenceError("LICENCE_EXISTANTE", "Cet athlète possède déjà une licence pour cette saison.", 409);
     }
+    selectedAthletes.add(athleteId);
     selected.push(affiliation);
   }
   if (mode === "ATHLETE" && !clean(input.numero_licence)) throw new LicenceError("NUMERO_REQUIS", "Le numéro officiel est obligatoire pour une première licence.", 400, { numero_licence: "Saisissez le numéro officiel." });

@@ -27,8 +27,8 @@ La page `/dashboard/licences` utilise un seul `LicenceEditor` adaptatif. Les lis
 
 ## Règles appliquées
 
-- affiliation `SAF001`, athlète et équipe résolus uniquement par identifiants ;
-- affiliation non clôturée à la date courante ;
+- affiliation existante, athlète et équipe résolus uniquement par identifiants, sans filtrage sur le statut ou les dates de l’affiliation ;
+- affiliation utilisable même si elle est future, inactive ou clôturée ;
 - unicité `id_athlete + id_saison` ;
 - validation complète avant l’unique écriture batch ;
 - champs relationnels et `id_licence` immuables au PUT ;

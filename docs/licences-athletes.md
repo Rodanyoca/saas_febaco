@@ -12,7 +12,7 @@ La page `/dashboard/licences` lit `ATHLETE_LICENCES` et enrichit chaque ligne pa
 
 - mutations réservées au rôle fédéral ; lecture limitée au périmètre territorial de la session ;
 - une seule licence par athlète et par saison ;
-- affiliation existante, active et cohérente avec l’athlète et l’équipe ;
+- affiliation existante et cohérente avec l’athlète et l’équipe, indépendamment de son statut et de ses dates ;
 - validation complète du renouvellement collectif avant l’écriture atomique ;
 - identifiant `BKB-LIC-AAAA-NNNNNN` généré selon la saison ;
 - écritures limitées aux huit colonnes réelles de `ATHLETE_LICENCES`.
