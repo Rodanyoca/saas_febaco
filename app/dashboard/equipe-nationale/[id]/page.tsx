@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation"
-export default function Page(){redirect("/equipes-nationales")}
+export default async function Page({params}:{params:Promise<{id:string}>}){const{id}=await params;redirect(`/equipes-nationales/${encodeURIComponent(id)}`)}

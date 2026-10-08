@@ -1,5 +1,6 @@
 import { getSheetsReadClient, getSheetsWriteClient } from "@/lib/google-clients";
 import { executeGoogleRequest, getGoogleRequestConfig, GoogleRequestError } from "@/lib/google-request";
+import { invalidateDataQualityRevision } from "@/lib/data-quality/cache-version";
 
 const SHEETS_REQUEST_TIMEOUT_MS = getGoogleRequestConfig().timeoutMs;
 const readCache = new Map<string, { expiresAt: number; value: unknown[][] }>();
@@ -17,6 +18,8 @@ export type SheetBlock =
   | "affiliations"
   | "competitions"
   | "licences"
+  | "activities"
+  | "documents"
   | "equipeNationale";
 
 const spreadsheetEnvByBlock: Record<SheetBlock, string> = {
@@ -27,6 +30,8 @@ const spreadsheetEnvByBlock: Record<SheetBlock, string> = {
   affiliations: "GOOGLE_SHEETS_AFFILIATIONS_ID",
   competitions: "GOOGLE_SHEETS_COMPETITIONS_ID",
   licences: "GOOGLE_SHEETS_LICENCES_ID",
+  activities: "GOOGLE_SHEETS_ACTIVITES_ID",
+  documents: "GOOGLE_SHEETS_DOCUMENTS_ID",
   equipeNationale: "GOOGLE_SHEETS_EQUIPE_NATIONALE_ID",
 };
 
@@ -64,6 +69,13 @@ const sheetBlockByName: Record<string, SheetBlock> = {
   competitions_nationales: "equipeNationale",
   resultats_nationaux: "equipeNationale",
   users: "users",
+  activites: "activities",
+  activites_entites: "activities",
+  activites_participants: "activities",
+  activites_qualifications: "activities",
+  documents: "documents",
+  documents_fichiers: "documents",
+  documents_relations: "documents",
 };
 
 function requiredEnv(name: string): string {
@@ -429,6 +441,7 @@ export async function writeSheetRowByHeaders({
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
   ), true);
   clearSheetCache(spreadsheetId, sheet);
+  invalidateDataQualityRevision();
 
   return Object.fromEntries(
     headers.map((header, index) => [header, String(next[index] ?? "").trim()]),
@@ -486,6 +499,7 @@ export async function appendSheetRowsAtomically({
     { timeout: SHEETS_REQUEST_TIMEOUT_MS },
   ), true);
   for (const { sheet } of schemas) clearSheetCache(spreadsheetId, sheet);
+  invalidateDataQualityRevision();
 }
 
 export async function upsertSheetRowsAtomically({
@@ -533,6 +547,7 @@ export async function upsertSheetRowsAtomically({
     requestBody: { valueInputOption: "RAW", data: data.map(({ range, values }) => ({ range, values })) },
   }, { timeout: SHEETS_REQUEST_TIMEOUT_MS }), true);
   for (const sheet of sheetNames) clearSheetCache(spreadsheetId, sheet);
+  invalidateDataQualityRevision();
 }
 
 export async function getAvatarTargetByEntityId({

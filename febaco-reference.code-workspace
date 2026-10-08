@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../coc-cible"
+		},
+		{
+			"path": "../fevoco-cible"
+		},
+		{
+			"path": "../cnac-cible"
+		},
+		{
+			"path": "../fehand-cible"
+		},
+		{
+			"path": "../feaco-cible"
+		},
+		{
+			"path": "../fekaco-cible"
+		},
+		{
+			"path": "../fecot-cible"
+		}
+	]
+}

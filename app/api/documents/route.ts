@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server"
+import { getSessionUser } from "@/lib/auth-session"
+import { loadDocuments, saveDocument } from "@/lib/documents"
+export async function GET(){if(!await getSessionUser())return NextResponse.json({error:"Authentification requise."},{status:401});try{return NextResponse.json(await loadDocuments())}catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Lecture impossible."},{status:503})}}
+export async function POST(request:Request){const user=await getSessionUser();if(!user)return NextResponse.json({error:"Authentification requise."},{status:401});if(user.role!=="federal")return NextResponse.json({error:"Action réservée au niveau fédéral."},{status:403});try{const result=await saveDocument(await request.json());return !("id" in result)?NextResponse.json({error:"Veuillez corriger les champs indiqués.",fields:result.errors},{status:422}):NextResponse.json({id:result.id},{status:201})}catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Création impossible."},{status:503})}}

@@ -17,6 +17,9 @@ import {
   Stethoscope,
   CreditCard,
   Trophy,
+  Activity,
+  FileText,
+  Settings,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -55,6 +58,12 @@ const navigationLicences: NavItem[] = [
 
 const navigationEquipeNationale: NavItem[] = [
   { name: "Équipes nationales", href: "/equipes-nationales", icon: Flag },
+]
+
+const navigationAdministration: NavItem[] = [
+  { name: "Activités", href: "/dashboard/activites", icon: Activity },
+  { name: "Documents", href: "/dashboard/documents", icon: FileText },
+  { name: "Paramètres", href: "/dashboard/parametres", icon: Settings, disabled: true, badge: "Bientôt" },
 ]
 
 function NavLink({ item, collapsed, pathname }: { item: NavItem; collapsed: boolean; pathname: string }) {
@@ -145,6 +154,7 @@ export function Sidebar() {
   const [openCompetition, setOpenCompetition] = useState(true)
   const [openLicences, setOpenLicences] = useState(true)
   const [openEquipeNationale, setOpenEquipeNationale] = useState(true)
+  const [openAdministration, setOpenAdministration] = useState(true)
 
   return (
     <aside
@@ -245,6 +255,15 @@ export function Sidebar() {
             items={navigationEquipeNationale}
             open={openEquipeNationale}
             setOpen={setOpenEquipeNationale}
+            collapsed={collapsed}
+            pathname={pathname}
+          />
+
+          <NavGroup
+            title="Administration"
+            items={navigationAdministration}
+            open={openAdministration}
+            setOpen={setOpenAdministration}
             collapsed={collapsed}
             pathname={pathname}
           />

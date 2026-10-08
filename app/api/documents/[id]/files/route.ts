@@ -1,0 +1,4 @@
+import { NextResponse } from "next/server"
+import { getSessionUser } from "@/lib/auth-session"
+import { addDocumentFile } from "@/lib/documents"
+export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){const user=await getSessionUser();if(!user)return NextResponse.json({error:"Authentification requise."},{status:401});if(user.role!=="federal")return NextResponse.json({error:"Action réservée au niveau fédéral."},{status:403});try{const form=await request.formData(),file=form.get("file");if(!(file instanceof File))return NextResponse.json({error:"Le fichier PDF est obligatoire."},{status:422});return NextResponse.json(await addDocumentFile(decodeURIComponent((await params).id),file,String(form.get("observations")||"")),{status:201})}catch(error){return NextResponse.json({error:error instanceof Error?error.message:"Upload impossible."},{status:503})}}
