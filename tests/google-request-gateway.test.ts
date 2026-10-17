@@ -103,3 +103,36 @@ test("borne la concurrence des lectures Google", async () => {
   release?.();
   assert.deepEqual(await Promise.all(jobs), [0, 1, 2, 3, 4, 5, 6, 7]);
 });
+
+function gaxiosTimeout() {
+  return Object.assign(new Error("The operation was aborted."), {
+    config: { timeout: 10000, signal: AbortSignal.abort(new DOMException("The operation was aborted due to timeout", "TimeoutError")) },
+    cause: Object.assign(new Error("The operation was aborted."), { name: "AbortError", type: "aborted" }),
+  });
+}
+
+test("réessaie une lecture interrompue par le timeout Gaxios", async () => {
+  let attempts = 0;
+  const value = await executeGoogleRequest({ provider: "sheets", module: "tests", operation: "values.batchGet", access: "read", maxRetries: 1, sleep: async () => {}, run: async () => {
+    if (++attempts === 1) throw gaxiosTimeout();
+    return "ok";
+  }});
+  assert.equal(value, "ok");
+  assert.equal(attempts, 2);
+});
+
+test("expose TIMEOUT après épuisement des tentatives Gaxios", async () => {
+  let attempts = 0;
+  await assert.rejects(executeGoogleRequest({ provider: "sheets", module: "tests", operation: "values.batchGet", access: "read", maxRetries: 1, sleep: async () => {}, run: async () => { attempts++; throw gaxiosTimeout(); } }),
+    (e: unknown) => e instanceof GoogleRequestError && e.code === "TIMEOUT" && e.status === 503);
+  assert.equal(attempts, 2);
+});
+
+test("ne réessaie ni une annulation volontaire ni une écriture non idempotente interrompue", async () => {
+  for (const access of ["read", "write"] as const) {
+    let attempts = 0;
+    const error = access === "write" ? gaxiosTimeout() : Object.assign(new Error("The operation was aborted."), { config: { timeout: 10000, signal: AbortSignal.abort() } });
+    await assert.rejects(executeGoogleRequest({ provider: "sheets", module: "tests", operation: "test", access, maxRetries: 1, sleep: async () => {}, run: async () => { attempts++; throw error; } }), GoogleRequestError);
+    assert.equal(attempts, 1);
+  }
+});

@@ -75,7 +75,9 @@ function normalizeError(error: unknown): GoogleRequestError {
   const status = statusOf(error);
   const raw = error instanceof Error ? error.message : JSON.stringify(error);
   const quota = status === 429 || /quota exceeded|rate.?limit|resource_exhausted/i.test(raw);
-  const timeout = /timeout|timed out|etimedout|econnreset/i.test(raw);
+  const signal = (error as { config?: { signal?: AbortSignal } })?.config?.signal;
+  const timeout = /timeout|timed out|etimedout|econnreset/i.test(raw) ||
+    (signal?.aborted === true && signal.reason?.name === "TimeoutError");
   const unavailable = status === 500 || status === 502 || status === 503 || status === 504;
   if (quota) return new GoogleRequestError("QUOTA_EXCEEDED", "Service Google temporairement saturé. Réessayez dans quelques instants.", 503, true, error);
   if (timeout) return new GoogleRequestError("TIMEOUT", "Le service Google met trop de temps à répondre.", 503, true, error);
