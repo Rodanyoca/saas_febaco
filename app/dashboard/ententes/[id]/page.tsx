@@ -10,10 +10,11 @@ import { Header } from "@/components/dashboard/header"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { Club, Entente } from "@/lib/models"
+import type { Club, Entente, Equipe } from "@/lib/models"
 
 type EntenteDetail = Entente & { sigle?: string; telephone?: string; id_ville?: string; id_entente_coc?: string; date_creation?: string; date_reconnaissance?: string; observations?: string; observation?: string }
 type EntenteClub = Club & { sigle?: string; equipeCount: number }
+type EntenteEquipe = Pick<Equipe, "id" | "nom" | "club" | "categorie" | "genre" | "statut">
 
 const clean = (value: unknown) => String(value ?? "").trim()
 const same = (left: unknown, right: unknown) => { const a=clean(left).toLocaleLowerCase("fr"),b=clean(right).toLocaleLowerCase("fr"); return Boolean(a&&b&&a===b) }
@@ -28,11 +29,21 @@ const clubColumns:Column<EntenteClub>[]=[
   {key:"statut",header:"Statut",render:club=><StatusBadge status={club.statut}/>},
 ]
 
+const equipeColumns: Column<EntenteEquipe>[] = [
+  { key: "id", header: "ID Équipe", className: "font-mono text-sm" },
+  { key: "nom", header: "Équipe", className: "font-medium" },
+  { key: "club", header: "Club" },
+  { key: "categorie", header: "Catégorie" },
+  { key: "genre", header: "Genre" },
+  { key: "statut", header: "Statut", render: equipe => <StatusBadge status={equipe.statut} /> },
+]
+
 export default function EntenteDetailPage(){
   const params=useParams<{id:string|string[]}>(),router=useRouter(),id=Array.isArray(params.id)?params.id[0]:params.id
   const [entente,setEntente]=useState<EntenteDetail|null>(null),[ententeClubs,setEntenteClubs]=useState<EntenteClub[]>([]),[canEdit,setCanEdit]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState("")
+  const [ententeEquipes, setEntenteEquipes] = useState<EntenteEquipe[]>([])
 
-  useEffect(()=>{let cancelled=false;void fetch(`/api/ententes/${encodeURIComponent(id)}`,{cache:"no-store"}).then(async response=>{const payload=await response.json();if(!response.ok)throw new Error(payload?.error||"Lecture impossible.");if(!cancelled){setEntente(payload.entente);setEntenteClubs(payload.clubs||[]);setCanEdit(Boolean(payload.canEdit))}}).catch(cause=>{if(!cancelled)setError(cause instanceof Error?cause.message:"Lecture impossible.")}).finally(()=>{if(!cancelled)setLoading(false)});return()=>{cancelled=true}},[id])
+  useEffect(()=>{let cancelled=false;void fetch(`/api/ententes/${encodeURIComponent(id)}`,{cache:"no-store"}).then(async response=>{const payload=await response.json();if(!response.ok)throw new Error(payload?.error||"Lecture impossible.");if(!cancelled){setEntente(payload.entente);setEntenteClubs(payload.clubs||[]);setEntenteEquipes(payload.equipes||[]);setCanEdit(Boolean(payload.canEdit))}}).catch(cause=>{if(!cancelled)setError(cause instanceof Error?cause.message:"Lecture impossible.")}).finally(()=>{if(!cancelled)setLoading(false)});return()=>{cancelled=true}},[id])
   const equipeCount=ententeClubs.reduce((total,club)=>total+club.equipeCount,0),activeClubCount=ententeClubs.filter(club=>same(club.statut,"ACTIF")).length,inactiveClubCount=ententeClubs.length-activeClubCount
 
   if(loading)return <div className="flex flex-col"><Header title="Chargement…"/><p className="p-6 text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin"/>Chargement de l’entente…</p></div>
@@ -46,6 +57,30 @@ export default function EntenteDetailPage(){
     </div>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatTile icon={Building2} label="Clubs" value={ententeClubs.length}/><StatTile icon={Layers3} label="Équipes" value={equipeCount}/><StatTile icon={ShieldCheck} label="Clubs actifs" value={activeClubCount}/><StatTile icon={CircleOff} label="Clubs inactifs" value={inactiveClubCount}/></div>
     <Card><CardHeader><CardTitle>Clubs de l’entente</CardTitle></CardHeader><CardContent><DataTable data={ententeClubs} columns={clubColumns} searchPlaceholder="Rechercher un club…" idKey="id" detailHref={club=>`/dashboard/clubs/${encodeURIComponent(club.id)}`} renderMobileCard={club=><div className="rounded-xl border bg-card p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{club.nom}</p><p className="mt-1 font-mono text-xs text-muted-foreground">{club.id}</p></div><StatusBadge status={club.statut}/></div><div className="mt-4 grid grid-cols-2 gap-3 text-sm"><div><p className="text-muted-foreground">Catégorie</p><p className="font-medium">{display(club.categorie)}</p></div><div><p className="text-muted-foreground">Équipes</p><p className="font-medium">{club.equipeCount}</p></div></div><Button asChild variant="outline" size="sm" className="mt-4 w-full"><Link href={`/dashboard/clubs/${encodeURIComponent(club.id)}`}>Voir le club</Link></Button></div>}/></CardContent></Card>
+    <Card>
+      <CardHeader><CardTitle>Équipes de l’entente</CardTitle></CardHeader>
+      <CardContent>
+        <DataTable
+          data={ententeEquipes}
+          columns={equipeColumns}
+          searchPlaceholder="Rechercher une équipe…"
+          idKey="id"
+          detailHref={equipe => `/dashboard/equipes/${encodeURIComponent(equipe.id)}`}
+          renderMobileCard={equipe => <div className="rounded-xl border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div><p className="font-semibold">{equipe.nom}</p><p className="mt-1 font-mono text-xs text-muted-foreground">{equipe.id}</p></div>
+              <StatusBadge status={equipe.statut} />
+            </div>
+            <p className="mt-4 text-sm"><span className="text-muted-foreground">Club : </span>{equipe.club}</p>
+            <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-muted-foreground">Catégorie</p><p>{equipe.categorie}</p></div>
+              <div><p className="text-muted-foreground">Genre</p><p>{equipe.genre}</p></div>
+            </div>
+            <Button asChild variant="outline" size="sm" className="mt-4 w-full"><Link href={`/dashboard/equipes/${encodeURIComponent(equipe.id)}`}>Voir l’équipe</Link></Button>
+          </div>}
+        />
+      </CardContent>
+    </Card>
   </main></div>
 }
 
