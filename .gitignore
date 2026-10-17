@@ -16,3 +16,5 @@ node_modules
 tsconfig.tsbuildinfo
 .DS_Store
 .vercel
+.auth-backups/
+.tmp/

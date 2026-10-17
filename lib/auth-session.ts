@@ -1,150 +1,31 @@
-import crypto from "crypto"
 import { cookies } from "next/headers"
-
-import { AUTH_COOKIE_NAME as COOKIE_NAME } from "@/lib/auth-constants"
-
+import { AUTH_COOKIE_NAME } from "./auth-constants"
+import { createSessionToken } from "./auth/session-token"
+import { sessionCookieOptions } from "./auth/session-cookie"
+import { resolveSession } from "./auth/session-resolution"
+import { sessionSecret } from "./auth/config"
+import { getUserById,getAuthorizationsForUser } from "./users/data"
+import { authorize } from "./auth/authorization"
+import { currentDataScope,currentAuthorizationSnapshot } from "./auth/data-context"
 export type UserRole = "federal" | "ligue" | "entente"
-
-export type UserScope =
-  | { role: "federal" }
-  | { role: "ligue"; ligueId: string }
-  | { role: "entente"; ententeId: string }
-
-export type SessionUser = {
-  email: string
-  nom?: string
-  role: UserRole
-  ligueId?: string
-  ententeId?: string
+export type SessionUser = { email:string;nom?:string;role:UserRole;ligueId?:string;ententeId?:string;idUser?:string;sessionVersion?:number;typeUser?:"ADMIN"|"VIEWER";estSuperAdmin?:boolean;doitChangerMotDePasse?:boolean;readBlocks?:string[] }
+export async function getResolvedSession() {
+ const token=(await cookies()).get(AUTH_COOKIE_NAME)?.value
+ if (!token) return null
+ const result=await resolveSession({token,secret:sessionSecret(),loadUser:getUserById})
+ if(!result.ok && result.reason==="SOURCE_UNAVAILABLE")throw new Error("Source de session indisponible.")
+ return result.ok ? result : null
 }
-
-type SessionPayload = {
-  v: 1
-  email: string
-  nom?: string
-  role: UserRole
-  ligueId?: string
-  ententeId?: string
-  exp: number
+export async function getSessionUser():Promise<SessionUser|null>{
+ const snapshot=currentAuthorizationSnapshot(),session=snapshot?{user:snapshot.user}:await getResolvedSession()
+ if(!session)return null
+ const u=session.user
+ const scope=currentDataScope()
+ const grants=snapshot?[]:await getAuthorizationsForUser(u.idUser),readBlocks=snapshot?snapshot.readBlocks:(["AUT-ADM","AUT-SPT","AUT-COM"] as const).filter(block=>authorize({user:u,authorizations:grants,requirement:{scope:"BUSINESS",blocks:[block]},action:"READ"}).allowed)
+ return {email:u.email,nom:u.nomComplet,role:u.idEntente?"entente":u.idLigue?"ligue":"federal",ligueId:scope?[...scope.ligues][0]:u.idLigue,ententeId:u.idEntente&&scope?[...scope.ententes][0]:u.idEntente,idUser:u.idUser,sessionVersion:u.sessionVersion,typeUser:u.typeUser,estSuperAdmin:u.estSuperAdmin,doitChangerMotDePasse:u.doitChangerMotDePasse,readBlocks}
 }
-
-const SESSION_TTL_SECONDS = 60 * 60 * 12
-
-function requiredEnv(name: string): string {
-  const v = process.env[name]
-  if (!v) throw new Error(`Missing environment variable: ${name}`)
-  return v
+export async function createSession(input:{idUser:string;sessionVersion:number}){
+ const value=await createSessionToken({...input,secret:sessionSecret()})
+ ;(await cookies()).set(AUTH_COOKIE_NAME,value,sessionCookieOptions(process.env.NODE_ENV==="production"))
 }
-
-function base64UrlEncode(input: Buffer | string): string {
-  const buf = Buffer.isBuffer(input) ? input : Buffer.from(input)
-  return buf
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "")
-}
-
-function base64UrlDecode(input: string): Buffer {
-  const padLength = (4 - (input.length % 4)) % 4
-  const padded = input.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat(padLength)
-  return Buffer.from(padded, "base64")
-}
-
-function sign(data: string): string {
-  const secret = requiredEnv("AUTH_SESSION_SECRET")
-  return base64UrlEncode(crypto.createHmac("sha256", secret).update(data).digest())
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  const aBuf = Buffer.from(a)
-  const bBuf = Buffer.from(b)
-  if (aBuf.length !== bBuf.length) return false
-  return crypto.timingSafeEqual(aBuf, bBuf)
-}
-
-export function createSessionCookieValue(user: SessionUser, now = Date.now()): string {
-  const exp = Math.floor(now / 1000) + SESSION_TTL_SECONDS
-  const payload: SessionPayload = {
-    v: 1,
-    email: user.email,
-    nom: user.nom,
-    role: user.role,
-    ligueId: user.ligueId,
-    ententeId: user.ententeId,
-    exp,
-  }
-
-  const data = base64UrlEncode(JSON.stringify(payload))
-  const sig = sign(data)
-  return `${data}.${sig}`
-}
-
-export function verifySessionCookieValue(value: string, now = Date.now()): SessionUser | null {
-  if (value.length > 4096) return null
-  const parts = value.split(".")
-  if (parts.length !== 2) return null
-  const [data, sig] = parts
-  if (!data || !sig) return null
-
-  const expected = sign(data)
-  if (!timingSafeEqual(expected, sig)) return null
-
-  let payload: SessionPayload
-  try {
-    payload = JSON.parse(base64UrlDecode(data).toString("utf8")) as SessionPayload
-  } catch {
-    return null
-  }
-
-  if (!payload || payload.v !== 1) return null
-  if (!payload.email || payload.email.length > 254 || !payload.role || !payload.exp) return null
-  if (!(["federal", "ligue", "entente"] as const).includes(payload.role)) return null
-  if (payload.role === "ligue" && !payload.ligueId) return null
-  if (payload.role === "entente" && !payload.ententeId) return null
-
-  const nowSeconds = Math.floor(now / 1000)
-  if (payload.exp <= nowSeconds) return null
-
-  return {
-    email: payload.email,
-    nom: payload.nom,
-    role: payload.role,
-    ligueId: payload.ligueId,
-    ententeId: payload.ententeId,
-  }
-}
-
-export async function getSessionUser(): Promise<SessionUser | null> {
-  const store = await cookies()
-  const c = store.get(COOKIE_NAME)?.value
-  if (!c) return null
-  return verifySessionCookieValue(c)
-}
-
-export async function setSessionCookie(user: SessionUser) {
-  const value = createSessionCookieValue(user)
-  const store = await cookies()
-  store.set({
-    name: COOKIE_NAME,
-    value,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_TTL_SECONDS,
-  })
-}
-
-export async function clearSessionCookie() {
-  const store = await cookies()
-  store.set({
-    name: COOKIE_NAME,
-    value: "",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  })
-}
+export async function clearSessionCookie(){(await cookies()).delete(AUTH_COOKIE_NAME)}

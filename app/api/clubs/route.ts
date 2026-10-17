@@ -1,3 +1,4 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
@@ -8,9 +9,9 @@ import { buildDrivePublicUrl } from "@/lib/google-drive-url"
 
 export const dynamic = "force-dynamic"
 
-export async function POST(request: Request) { return handleTerritorialWrite(request, "clubs", "create") }
+async function POSTHandler(request: Request) { return handleTerritorialWrite(request, "clubs", "create") }
 
-export async function GET() {
+async function GETHandler() {
   try {
     const user = await getSessionUser()
     if (!user) {
@@ -88,3 +89,6 @@ export async function GET() {
     return NextResponse.json({ clubs: [], error: message }, { status: 500 })
   }
 }
+
+export const POST = protectedRoute(POSTHandler)
+export const GET = protectedRoute(GETHandler)

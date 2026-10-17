@@ -1,10 +1,11 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth-session";
 import { scopeFromSession } from "@/lib/auth-scope";
 import { getAthleteLicenceEligibility } from "@/lib/licences";
 import { licenceFailure } from "@/app/api/licences/_response";
 
-export async function GET(request: Request) {
+async function GETHandler(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: { code: "NON_AUTHENTIFIE", message: "Authentification requise." } }, { status: 401 });
   const query = new URL(request.url).searchParams, mode = query.get("mode"), seasonId = query.get("id_saison") || "";
@@ -14,3 +15,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: { code: "MODE_INVALIDE", message: "Mode d’éligibilité invalide." } }, { status: 400 });
   } catch (error) { return licenceFailure(error); }
 }
+
+export const GET = protectedRoute(GETHandler)

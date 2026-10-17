@@ -1,3 +1,4 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
 import { buildAvatarFileName, getAvatarFolderId, uploadAvatarToDrive } from "@/lib/google-drive"
@@ -20,7 +21,7 @@ function badRequest(message: string, details?: unknown) {
   return NextResponse.json({ error: message, details }, { status: 400 })
 }
 
-export async function POST(req: Request) {
+async function POSTHandler(req: Request) {
   try {
     const user = await getSessionUser()
     if (!user) {
@@ -119,3 +120,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: message }, { status: 503 })
   }
 }
+
+export const POST = protectedRoute(POSTHandler)

@@ -1,3 +1,4 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth-session";
 import {
@@ -8,7 +9,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function GETHandler(req: Request) {
   try {
     const user = await getSessionUser();
     if (!user)
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(request: Request) {
+async function POSTHandler(request: Request) {
   const user = await getSessionUser();
   if (!user)
     return NextResponse.json(
@@ -78,3 +79,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const GET = protectedRoute(GETHandler)
+export const POST = protectedRoute(POSTHandler)

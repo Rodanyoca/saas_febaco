@@ -1,3 +1,4 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
@@ -7,7 +8,7 @@ import { scopeFromSession } from "@/lib/auth-scope"
 
 export const dynamic = "force-dynamic"
 
-export async function POST(request: Request) { return handleTerritorialWrite(request, "equipes", "create") }
+async function POSTHandler(request: Request) { return handleTerritorialWrite(request, "equipes", "create") }
 
 function normalize(value: unknown): string {
   return String(value ?? "").trim().toLowerCase()
@@ -21,7 +22,7 @@ async function optionalReferenceMap(sheet: string) {
   }
 }
 
-export async function GET(req: Request) {
+async function GETHandler(req: Request) {
   try {
     const user=await getSessionUser()
     if (!user) {
@@ -106,3 +107,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ equipes: [], error: "Lecture impossible." }, { status: 500 })
   }
 }
+
+export const POST = protectedRoute(POSTHandler)
+export const GET = protectedRoute(GETHandler)

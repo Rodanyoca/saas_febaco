@@ -1,104 +1,36 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 import { AUTH_COOKIE_NAME } from "@/lib/auth-constants"
-
-function requiredEnv(name: string): string {
-  const v = process.env[name]
-  if (!v) throw new Error(`Missing environment variable: ${name}`)
-  return v
+import { resolveSession } from "@/lib/auth/session-resolution"
+import { sessionSecret } from "@/lib/auth/config"
+import { getUserById, getAuthorizationsForUser } from "@/lib/users/data"
+import { authorize } from "@/lib/auth/authorization"
+import { routePolicy } from "@/lib/auth/route-policy"
+import { isMutationOriginAllowed,publicRequestOrigin } from "@/lib/auth/request-origin"
+const publicAssets=new Set(["/favicon.ico", "/apple-icon.png", "/icon-dark-32x32.png", "/icon-light-32x32.png", "/icon.svg", "/placeholder-logo.png", "/placeholder-logo.svg", "/placeholder-user.jpg", "/placeholder.jpg", "/placeholder.svg", "/images/equipe-nationale-rdc.jpg", "/images/logo-febaco.png", "/images/logo-febadco.jpg"])
+const accountPaths=new Set(["/activation","/mon-compte","/api/auth/me","/api/auth/session","/api/auth/activate","/api/auth/change-password"])
+function deny(request:NextRequest,status:number){
+ const response=request.nextUrl.pathname.startsWith("/api/")?NextResponse.json({error:"Acces refuse."},{status}):NextResponse.redirect(new URL(status===503?"/service-indisponible":status===401?"/login":"/acces-refuse",publicRequestOrigin(request)))
+ response.headers.set("Cache-Control","private, no-store");return response
 }
-
-function base64UrlDecode(input: string): Uint8Array {
-  const padLength = (4 - (input.length % 4)) % 4
-  const padded = input.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat(padLength)
-  const binary = atob(padded)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  return bytes
+export async function proxy(request:NextRequest){
+ const path=request.nextUrl.pathname
+ if((path.startsWith("/_next/")||publicAssets.has(path)||path==="/_vercel/insights/script.js")&&["GET","HEAD"].includes(request.method))return NextResponse.next()
+ if(!isMutationOriginAllowed(request))return deny(request,403)
+ if(["/login","/service-indisponible","/api/auth/login"].includes(path))return NextResponse.next()
+ if(path==="/api/auth/logout")return NextResponse.next()
+ const token=request.cookies.get(AUTH_COOKIE_NAME)?.value
+ if(!token)return deny(request,401)
+ try{
+  const result=await resolveSession({token,secret:sessionSecret(),loadUser:getUserById})
+  if(!result.ok)return deny(request,result.reason==="SOURCE_UNAVAILABLE"?503:401)
+  if(result.requiresActivation && !["/activation","/api/auth/activate","/api/auth/me","/api/auth/session"].includes(path))return path.startsWith("/api/")?deny(request,403):NextResponse.redirect(new URL("/activation",publicRequestOrigin(request)))
+  if(accountPaths.has(path)||path==="/acces-refuse")return NextResponse.next()
+  const requirement=routePolicy(path)
+  if(!requirement)return deny(request,403)
+  const writing=!["GET","HEAD","OPTIONS"].includes(request.method)
+  if(writing&&(result.user.idLigue||result.user.idEntente))return deny(request,403)
+  if(!authorize({user:result.user,authorizations:await getAuthorizationsForUser(result.user.idUser),requirement,action:writing?"WRITE":"READ"}).allowed)return deny(request,403)
+  const response=NextResponse.next();response.headers.set("Cache-Control","private, no-store");return response
+ }catch{return deny(request,503)}
 }
-
-function base64UrlEncode(bytes: ArrayBuffer): string {
-  const u8 = new Uint8Array(bytes)
-  let binary = ""
-  for (let i = 0; i < u8.length; i++) binary += String.fromCharCode(u8[i])
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")
-}
-
-async function hmacSha256Base64Url(secret: string, data: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  )
-
-  const sig = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(data)
-  )
-
-  return base64UrlEncode(sig)
-}
-
-async function verifySessionCookieValueEdge(value: string): Promise<boolean> {
-  if (value.length > 4096) return false
-  const parts = value.split(".")
-  if (parts.length !== 2) return false
-  const [data, sig] = parts
-  if (!data || !sig) return false
-
-  const expected = await hmacSha256Base64Url(requiredEnv("AUTH_SESSION_SECRET"), data)
-  const expectedBytes = new TextEncoder().encode(expected)
-  const actualBytes = new TextEncoder().encode(sig)
-  if (expectedBytes.length !== actualBytes.length) return false
-  let difference = 0
-  for (let index = 0; index < expectedBytes.length; index++) difference |= expectedBytes[index] ^ actualBytes[index]
-  if (difference !== 0) return false
-
-  try {
-    const payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(data))) as {
-      v?: number
-      exp?: number
-      role?: string
-      email?: string
-    }
-    if (payload?.v !== 1 || !payload.email || !["federal", "ligue", "entente"].includes(payload.role ?? "")) return false
-    const nowSeconds = Math.floor(Date.now() / 1000)
-    if (!payload?.exp || payload.exp <= nowSeconds) return false
-    return true
-  } catch {
-    return false
-  }
-}
-
-export async function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl
-
-  const cookie = req.cookies.get(AUTH_COOKIE_NAME)?.value
-  const hasSession = cookie ? await verifySessionCookieValueEdge(cookie) : false
-
-  const isDashboard = pathname === "/dashboard" || pathname.startsWith("/dashboard/") || pathname === "/equipes-nationales" || pathname.startsWith("/equipes-nationales/")
-  const isLogin = pathname === "/login"
-
-  if (isDashboard && !hasSession) {
-    const url = req.nextUrl.clone()
-    url.pathname = "/login"
-    url.searchParams.set("next", pathname)
-    return NextResponse.redirect(url)
-  }
-
-  if (isLogin && hasSession) {
-    const url = req.nextUrl.clone()
-    url.pathname = "/dashboard"
-    url.search = ""
-    return NextResponse.redirect(url)
-  }
-
-  return NextResponse.next()
-}
-
-export const config = {
-  matcher: ["/dashboard/:path*", "/equipes-nationales/:path*", "/login"],
-}
+export const config={matcher:["/:path*"]}

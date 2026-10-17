@@ -1,3 +1,4 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { handleTerritorialWrite } from "@/app/api/_territorial-write"
 import { getSessionUser } from "@/lib/auth-session"
@@ -5,7 +6,7 @@ import { scopeFromSession } from "@/lib/auth-scope"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getReferenceMap } from "@/lib/territorial"
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function GETHandler(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
 
@@ -33,4 +34,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 }
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) { return handleTerritorialWrite(request, "ententes", "update", decodeURIComponent((await params).id)) }
+async function PUTHandler(request: Request, { params }: { params: Promise<{ id: string }> }) { return handleTerritorialWrite(request, "ententes", "update", decodeURIComponent((await params).id)) }
+
+export const GET = protectedRoute(GETHandler)
+export const PUT = protectedRoute(PUTHandler)

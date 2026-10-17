@@ -2,7 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { buildClubLogoFileName } from "../lib/google-drive"
 import { buildDrivePublicUrl } from "../lib/google-drive-url"
-import { clubLogoErrorMessage } from "../app/api/upload/club-logo/route"
+import { clubLogoErrorMessage } from "../lib/club-logo-error"
 
 test("génère un nom de logo stable à partir de l'identifiant du club", () => {
   assert.equal(buildClubLogoFileName("21", "PNG"), "LOGO_CLUB_21.png")

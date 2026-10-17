@@ -9,7 +9,8 @@
     "lint": "npm run typecheck",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
-    "audit:google-requests": "tsx scripts/audit-google-requests.ts"
+    "audit:google-requests": "tsx scripts/audit-google-requests.ts",
+    "auth:migrate": "tsx scripts/migrate-auth.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -72,6 +73,7 @@
     "tailwindcss": "^4.2.0",
     "tsx": "^4.23.13",
     "tw-animate-css": "1.3.3",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "esbuild": "^0.28.2"
   }
 }

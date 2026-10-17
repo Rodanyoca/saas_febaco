@@ -1,133 +1,68 @@
+import { readAuthJson } from "@/lib/auth/request-body"
+import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
-import { pickFirst, readSheetRows } from "@/lib/google-sheets"
-import { setSessionCookie, type SessionUser } from "@/lib/auth-session"
-import { normalizeRole } from "@/lib/auth-scope"
-import crypto from "node:crypto"
+import { createSession } from "@/lib/auth-session"
+import { attemptState, recordAttempt, progressiveDelay, waitForDelay } from "@/lib/auth/attempts"
+import { isMutationOriginAllowed } from "@/lib/auth/request-origin"
+import { sessionSecret } from "@/lib/auth/config"
+import { hashPassword, verifyPassword } from "@/lib/auth/password"
+import { postLoginRoute } from "@/lib/auth/post-login-route"
+import { getTelemetryKey, pseudonymizeTelemetry } from "@/lib/auth/telemetry-hash"
+import { AUDIT_ACTIONS } from "@/lib/audit/actions"
+import { writeAudit } from "@/lib/audit/logger"
+import { getAuthenticationSnapshot } from "@/lib/users/data"
 
-export const dynamic = "force-dynamic"
+const denied = () => NextResponse.json({ error: "Les informations saisies ne permettent pas d’accéder au système." }, { status: 401 })
+const dummyHash = hashPassword(randomUUID())
 
-type LoginBody = {
-  email?: string
-  password?: string
+function clientAddress(request: Request) {
+  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "adresse-indisponible"
 }
 
-const attempts = new Map<string, { count: number; resetAt: number }>()
-const ATTEMPT_WINDOW_MS = 15 * 60 * 1000
-const MAX_ATTEMPTS = 8
+export async function POST(request: Request) {
+  if (!isMutationOriginAllowed(request)) return NextResponse.json({ error: "Origine refusee." }, { status: 403 })
+  let body: { email?: unknown; password?: unknown }
+  try { body = await readAuthJson(request) as { email?: unknown; password?: unknown } } catch { return NextResponse.json({ error: "Requête invalide." }, { status: 400 }) }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ error: "Requête invalide." }, { status: 400 })
+  const email = typeof body.email === "string" ? body.email.trim() : "", password = typeof body.password === "string" ? body.password : ""
+  if (!email || !password || email.length > 254 || password.length > 1024) return NextResponse.json({ error: "Requête invalide." }, { status: 400 })
 
-function requestKey(req: Request, email: string): string {
-  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-  return `${forwarded || "unknown"}:${email}`
-}
-
-function isRateLimited(key: string): boolean {
-  const now = Date.now()
-  if (attempts.size > 10_000) {
-    for (const [attemptKey, attempt] of attempts) if (attempt.resetAt <= now) attempts.delete(attemptKey)
-    if (attempts.size > 10_000) attempts.clear()
-  }
-  const current = attempts.get(key)
-  if (!current || current.resetAt <= now) {
-    attempts.set(key, { count: 0, resetAt: now + ATTEMPT_WINDOW_MS })
-    return false
-  }
-  return current.count >= MAX_ATTEMPTS
-}
-
-function recordFailure(key: string) {
-  const current = attempts.get(key)
-  attempts.set(key, { count: (current?.count ?? 0) + 1, resetAt: current?.resetAt ?? Date.now() + ATTEMPT_WINDOW_MS })
-}
-
-function safePasswordEqual(actual: string, expected: string): boolean {
-  const actualHash = crypto.createHash("sha256").update(actual).digest()
-  const expectedHash = crypto.createHash("sha256").update(expected).digest()
-  return crypto.timingSafeEqual(actualHash, expectedHash)
-}
-
-function normalizeEmail(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase()
-}
-
-function normalizeStatus(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase()
-}
-
-export async function POST(req: Request) {
+  const now = new Date(), requestId = randomUUID()
   try {
-    const contentLength = Number(req.headers.get("content-length") ?? "0")
-    if (contentLength > 10_000) {
-      return NextResponse.json({ error: "Requête trop volumineuse." }, { status: 413 })
-    }
-    const body = (await req.json()) as LoginBody
-    const email = normalizeEmail(body?.email)
-    const password = String(body?.password ?? "").trim()
-
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email et mot de passe requis." }, { status: 400 })
-    }
-    if (email.length > 254 || password.length > 256) {
-      return NextResponse.json({ error: "Identifiants invalides." }, { status: 401 })
-    }
-
-    const attemptKey = requestKey(req, email)
-    if (isRateLimited(attemptKey)) {
-      return NextResponse.json({ error: "Trop de tentatives. Réessayez plus tard." }, { status: 429, headers: { "Retry-After": "900" } })
+    sessionSecret()
+    const telemetryKey = getTelemetryKey()
+    const identifiantHash = pseudonymizeTelemetry(email, telemetryKey), ipHash = pseudonymizeTelemetry(clientAddress(request), telemetryKey)
+    const { attempts, user, authorizations, adapter } = await getAuthenticationSnapshot(email)
+    const state = attemptState(attempts, identifiantHash, ipHash, now)
+    if (state.blocked) {
+      await Promise.all([
+        recordAttempt({ adapter, identifiantHash, ipHash, result: "REFUS_BLOCAGE_TEMPORAIRE", requestId, now }),
+        writeAudit({ adapter, action: AUDIT_ACTIONS.LOGIN, typeObjet: "SESSION", result: "ECHEC", requestId, details: { motif: "REFUS_GENERIQUE" }, now }),
+      ])
+      await waitForDelay(state.delayMs)
+      return denied()
     }
 
-    const rows = await readSheetRows("users")
-
-    const row = rows.find((r) => {
-      const candidate = normalizeEmail(pickFirst(r, ["email", "mail", "username", "login"]))
-      return candidate === email
-    })
-
-    if (!row) {
-      recordFailure(attemptKey)
-      return NextResponse.json({ error: "Identifiants invalides." }, { status: 401 })
+    const passwordMatches = await verifyPassword(password, user?.passwordHash ?? await dummyHash)
+    const temporaryAccessValid = !user?.doitChangerMotDePasse || Boolean(user.dateExpirationAccesTemporaire && Date.parse(user.dateExpirationAccesTemporaire) > now.getTime())
+    const accepted = Boolean(user && user.statut === "ACTIF" && temporaryAccessValid && passwordMatches)
+    if (!accepted) {
+      await Promise.all([
+        recordAttempt({ adapter, identifiantHash, ipHash, result: "ECHEC", requestId, now }),
+        writeAudit({ adapter, actorId: user?.idUser, action: AUDIT_ACTIONS.LOGIN, typeObjet: "SESSION", objectId: user?.idUser, result: "ECHEC", requestId, details: { motif: "REFUS_GENERIQUE" }, now }),
+      ])
+      await waitForDelay(progressiveDelay(state.failures + 1))
+      return denied()
     }
+    if (!user) throw new Error("État de connexion incohérent.")
 
-    const statut = normalizeStatus(pickFirst(row, ["statut", "status", "etat"]))
-    if (statut && statut !== "actif") {
-      return NextResponse.json({ error: "Compte inactif." }, { status: 403 })
-    }
-
-    const expectedPassword = String(
-      pickFirst(row, ["mot_de_passe", "mot_de_passe", "password", "mdp", "pass"])
-    ).trim()
-
-    if (!expectedPassword || !safePasswordEqual(password, expectedPassword)) {
-      recordFailure(attemptKey)
-      return NextResponse.json({ error: "Identifiants invalides." }, { status: 401 })
-    }
-
-    const role = normalizeRole(pickFirst(row, ["role", "profil", "type"]))
-    const ligueId = pickFirst(row, ["id_ligue", "ligue_id", "ligue", "scope_ligue"])
-    const ententeId = pickFirst(row, ["id_entente", "entente_id", "entente", "scope_entente"])
-    const nom = pickFirst(row, ["nom", "nom_complet", "name", "utilisateur"]) || undefined
-
-    const user: SessionUser = {
-      email,
-      nom,
-      role,
-      ligueId: role === "ligue" ? ligueId : undefined,
-      ententeId: role === "entente" ? ententeId : undefined,
-    }
-
-    if (role === "ligue" && !user.ligueId) {
-      return NextResponse.json({ error: "Compte ligue: id_ligue manquant." }, { status: 500 })
-    }
-
-    if (role === "entente" && !user.ententeId) {
-      return NextResponse.json({ error: "Compte entente: id_entente manquant." }, { status: 500 })
-    }
-
-    await setSessionCookie(user)
-    attempts.delete(attemptKey)
-
-    return NextResponse.json({ user })
+    await recordAttempt({ adapter, identifiantHash, ipHash, result: "SUCCES", requestId, now })
+    await writeAudit({ adapter, actorId: user.idUser, action: AUDIT_ACTIONS.LOGIN, typeObjet: "SESSION", objectId: user.idUser, result: "SUCCES", requestId, now })
+    await adapter.updateRow!("USERS", "id_user", user.idUser, { derniere_connexion: now.toISOString() })
+    await createSession({ idUser: user.idUser, sessionVersion: user.sessionVersion })
+    return NextResponse.json({ ok: true, redirectTo: postLoginRoute(user, authorizations) })
   } catch (error) {
-    console.error("[api/auth/login] Connexion impossible", error)
-    return NextResponse.json({ error: "Connexion impossible." }, { status: 500 })
+    console.error("[auth/login] Service indisponible")
+    return NextResponse.json({ error: "Le service de connexion est momentanement indisponible." }, { status: 503 })
   }
 }

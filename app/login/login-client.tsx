@@ -37,8 +37,8 @@ export default function LoginClient() {
       const next = searchParams.get("next")
       const safeNext = next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\")
         ? next
-        : "/dashboard"
-      router.push(safeNext)
+        : (["/dashboard", "/dashboard/activites", "/mon-compte"].includes(json.redirectTo) ? json.redirectTo : "/dashboard")
+      router.push(json.redirectTo === "/activation" ? "/activation" : safeNext)
     } catch {
       setError("Connexion impossible.")
       setIsLoading(false)

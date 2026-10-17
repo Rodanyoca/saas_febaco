@@ -1,6 +1,7 @@
 import { getSheetsReadClient, getSheetsWriteClient } from "@/lib/google-clients";
 import { executeGoogleRequest, getGoogleRequestConfig, GoogleRequestError } from "@/lib/google-request";
 import { invalidateDataQualityRevision } from "@/lib/data-quality/cache-version";
+import { scopeReadRows } from "@/lib/auth/data-context";
 
 const SHEETS_REQUEST_TIMEOUT_MS = getGoogleRequestConfig().timeoutMs;
 const readCache = new Map<string, { expiresAt: number; value: unknown[][] }>();
@@ -270,7 +271,7 @@ export async function readSheetRows(
       : params,
   );
 
-  return sheetValuesToRows(values);
+  return scopeReadRows(typeof params === "string" ? params : params.sheet, sheetValuesToRows(values));
 }
 
 export function sheetValuesToRows(values: unknown[][]): SheetRow[] {
@@ -346,7 +347,7 @@ export async function readSheetRowsBatch({
     }
     try { await pending; } finally { pendingBatchReads.delete(batchKey); }
   }
-  return Object.fromEntries(entries.map((entry) => [entry.sheet, sheetValuesToRows(readCache.get(entry.cacheKey)?.value ?? entry.cached?.value ?? [])]));
+  return Object.fromEntries(entries.map((entry) => [entry.sheet, scopeReadRows(entry.sheet, sheetValuesToRows(readCache.get(entry.cacheKey)?.value ?? entry.cached?.value ?? []))]));
 }
 
 export function pickFirst(row: SheetRow, keys: string[]): string {

@@ -1,0 +1,1 @@
+export default function Page(){return <main className="p-8"><h1 className="text-2xl font-bold">Service indisponible</h1><p className="mt-4">La source des droits ne répond pas. Réessayez plus tard.</p><a className="mt-4 inline-block underline" href="/login">Connexion</a></main>}

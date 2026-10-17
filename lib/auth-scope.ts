@@ -19,7 +19,8 @@ export function normalizeRole(input: unknown): UserRole {
   const v = String(input ?? "").trim().toLowerCase()
   if (v === "ligue") return "ligue"
   if (v === "entente") return "entente"
-  return "federal"
+  if (v === "federal") return "federal"
+  throw new Error("Rôle inconnu.")
 }
 
 export function canAccessRow(

@@ -1,10 +1,11 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
 import { getSelections, getSelectionsByEquipeId } from "@/lib/equipe-nationale-data"
 
 export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+async function GETHandler(request: Request) {
   try {
     if (!(await getSessionUser())) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
     const equipeId = new URL(request.url).searchParams.get("equipeId")?.trim()
@@ -14,3 +15,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ selections: [], error: "Lecture impossible." }, { status: 500 })
   }
 }
+
+export const GET = protectedRoute(GETHandler)

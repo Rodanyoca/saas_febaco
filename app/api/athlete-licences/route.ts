@@ -1,3 +1,4 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth-session";
 import { scopeFromSession } from "@/lib/auth-scope";
@@ -5,7 +6,7 @@ import { listAthleteLicences } from "@/lib/licences";
 import { licenceFailure } from "@/app/api/licences/_response";
 
 export const dynamic = "force-dynamic";
-export async function GET(request: Request) {
+async function GETHandler(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   const athleteId = new URL(request.url).searchParams.get("athleteId")?.trim() || "";
@@ -15,3 +16,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ licences: data.licences });
   } catch (error) { return licenceFailure(error); }
 }
+
+export const GET = protectedRoute(GETHandler)

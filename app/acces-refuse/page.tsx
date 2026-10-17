@@ -1,0 +1,1 @@
+export default function Page(){return <main className="p-8"><h1 className="text-2xl font-bold">Accès refusé</h1><p className="mt-4">Votre compte ne dispose pas des droits requis.</p><a className="mt-4 inline-block underline" href="/login">Connexion</a></main>}

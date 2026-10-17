@@ -1,2 +1,5 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { handleTerritorialWrite } from "@/app/api/_territorial-write"
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) { return handleTerritorialWrite(request, "ligues", "update", decodeURIComponent((await params).id)) }
+async function PUTHandler(request: Request, { params }: { params: Promise<{ id: string }> }) { return handleTerritorialWrite(request, "ligues", "update", decodeURIComponent((await params).id)) }
+
+export const PUT = protectedRoute(PUTHandler)

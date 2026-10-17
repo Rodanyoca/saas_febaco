@@ -1,3 +1,4 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
 import { listAthleteAffiliations } from "@/lib/affiliations"
@@ -5,7 +6,7 @@ import { summarizeDashboardAffiliations } from "@/lib/dashboard/affiliation-summ
 
 export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+async function GETHandler(request: Request) {
   if (!await getSessionUser()) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
   try {
     const params = new URL(request.url).searchParams
@@ -49,3 +50,5 @@ export async function GET(request: Request) {
     return NextResponse.json({ affiliations: [], error: error instanceof Error ? error.message : "Lecture impossible." }, { status: 503 })
   }
 }
+
+export const GET = protectedRoute(GETHandler)

@@ -1,3 +1,4 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { pickFirst, readSheetRows } from "@/lib/google-sheets"
 import { getSessionUser } from "@/lib/auth-session"
@@ -7,9 +8,9 @@ import { getReferenceMap } from "@/lib/territorial"
 
 export const dynamic = "force-dynamic"
 
-export async function POST(request: Request) { return handleTerritorialWrite(request, "ligues", "create") }
+async function POSTHandler(request: Request) { return handleTerritorialWrite(request, "ligues", "create") }
 
-export async function GET() {
+async function GETHandler() {
   try {
     const user = await getSessionUser()
     if (!user) {
@@ -102,3 +103,6 @@ export async function GET() {
     return NextResponse.json({ ligues: [], error: message }, { status: 500 })
   }
 }
+
+export const POST = protectedRoute(POSTHandler)
+export const GET = protectedRoute(GETHandler)

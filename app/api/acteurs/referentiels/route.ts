@@ -1,8 +1,9 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
 import { readSheetRowsBatch } from "@/lib/google-sheets"
 
-export async function GET(){
+async function GETHandler(){
   if(!await getSessionUser())return NextResponse.json({error:"Non authentifié."},{status:401})
   try{
     const names=["SEXES","SPECIALITES_MEDECINS","TYPES_AUTRES_ACTEURS","GRADES_ARBITRES"]
@@ -11,3 +12,5 @@ export async function GET(){
     return NextResponse.json({referentiels:Object.fromEntries(entries)})
   }catch{return NextResponse.json({error:"Référentiels indisponibles."},{status:503})}
 }
+
+export const GET = protectedRoute(GETHandler)

@@ -1,10 +1,11 @@
+import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
 import { matchesId, pick, rawPick, readCompetitionRows, rowKey } from "../competitions/_helpers"
 
 export const dynamic = "force-dynamic"
 
-export async function GET(req: Request) {
+async function GETHandler(req: Request) {
   try {
     const user = await getSessionUser()
     if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
@@ -41,3 +42,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ unites: [], error: message }, { status: 500 })
   }
 }
+
+export const GET = protectedRoute(GETHandler)
