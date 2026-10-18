@@ -17,7 +17,7 @@ export function syntheticAthleteValues(count: number): string[][] {
   ])]
 }
 
-export async function createAthleteDetailFixture(before: boolean, values = syntheticAthleteValues(8), instrument = true) {
+export async function createAthleteDetailFixture(before: boolean, values = syntheticAthleteValues(8), instrument = true, routeOverride?: string) {
   const globalKey = `__athleteDetail_${randomUUID().replace(/-/g, "")}`
   const secret = "synthetic-fixture-signing-key-not-a-real-secret", now = 1800000000
   const user: User = { idUser: "U", nomComplet: "Synthetic", email: "u@example.invalid", passwordHash: "unused", typeUser: "ADMIN", estSuperAdmin: false, doitChangerMotDePasse: false, statut: "ACTIF", dateCreation: "2026-01-01T00:00:00Z", dateModificationMotDePasse: null, derniereConnexion: null, sessionVersion: 1, dateExpirationAccesTemporaire: null }
@@ -26,6 +26,7 @@ export async function createAthleteDetailFixture(before: boolean, values = synth
   const state = {
     user: user as User | null, token, secret, now, grants: [grant], authUnavailable: false,
     scope: null as ReturnType<typeof buildScopeIndex> | null, failSheet: "", values,
+    licenceValues: [] as string[][], currentSeasonId: "S1",
     normalizations: 0, categoryCalls: 0, comparisons: 0, sortCalls: 0, configurationReads: 0, convertedRows: 0,
     sheetReads: [] as string[], pickFirst, sheetValuesToRows,
   }
@@ -47,20 +48,20 @@ export async function createAthleteDetailFixture(before: boolean, values = synth
     "./scope-source": `export async function loadScopeIndex(){return ${fixture}.scope}`,
     "../audit/logger": "export async function writeAudit(){throw Error('No writes in GET fixture')}",
     "@/app/api/_actor-write": "export async function handleActorWrite(){throw Error('No writes in GET fixture')}",
-    "@/lib/current-season": `export async function loadSeasonSettings(){${fixture}.configurationReads++;return {currentSeasonId:'S1',currentSeason:{id:'S1',label:'Synthetic season',status:'ACTIVE',disabled:false}}}`,
+    "@/lib/current-season": `export async function loadSeasonSettings(){const s=${fixture};s.configurationReads++;return {currentSeasonId:s.currentSeasonId,currentSeason:s.currentSeasonId?{id:s.currentSeasonId,label:'Synthetic season',status:'ACTIVE',disabled:false}:null}}`,
     "@/lib/google-sheets": `
       import {scopeReadRows} from ${JSON.stringify(contextPath)};
       export function pickFirst(row,keys){return ${fixture}.pickFirst(row,keys)}
       export async function readSheetRows({sheet}){
         const s=${fixture};s.sheetReads.push(sheet);if(s.failSheet===sheet)throw Error('synthetic source failure');
-        const values=sheet==='ATHLETES'?s.values:sheet==='CATEGORIES_AGE'?[['id_categorie_age','nom_categorie_age','age_min','age_max'],['AGE1','Synthetic category','0','99']]:[];
+        const values=sheet==='ATHLETES'?s.values:sheet==='CATEGORIES_AGE'?[['id_categorie_age','nom_categorie_age','age_min','age_max'],['AGE1','Synthetic category','0','99']]:sheet==='ATHLETE_LICENCES'?s.licenceValues:[];
         const rows=s.sheetValuesToRows(values);if(sheet==='ATHLETES')s.convertedRows+=rows.length;
         return scopeReadRows(sheet,rows)
       }
       export async function writeSheetRowByHeaders(){throw Error('No writes in GET fixture')}
     `,
   }
-  const route = before ? "tests/fixtures/athlete-detail-before.ts" : "app/api/athletes/route.ts"
+  const route = routeOverride || (before ? "tests/fixtures/athlete-detail-before.ts" : "app/api/athletes/route.ts")
   try {
     const result = await build({ entryPoints: [route], bundle: true, write: false, platform: "node", format: "cjs", packages: "external", plugins: [{ name: "athlete-detail-fixture", setup(builder) {
       builder.onResolve({ filter: /.*/ }, args => args.path in virtual ? { path: args.path, namespace: "fixture" } : undefined)

@@ -7,6 +7,7 @@ import { readSheetRows } from "@/lib/google-sheets"
 import { resolveAthleteAgeCategory } from "@/lib/athlete-age-category"
 import { loadSeasonSettings } from "@/lib/current-season"
 import { compareLicenceNumbers, currentSeasonLicenceIndex, missingSeasonLicence } from "@/lib/current-season-domain"
+import { projectAthleteTableRow } from "@/lib/athlete-table"
 export const dynamic="force-dynamic"
 async function GETHandler(request: Request) {
   if (!await getSessionUser()) return NextResponse.json({ error: "Non authentifié." }, { status: 401 })
@@ -27,7 +28,8 @@ async function GETHandler(request: Request) {
     if (id) actors = actors.filter(actor => actor.id.toLowerCase() === id)
     if (search) actors = actors.filter(actor => [actor.licenceDisplay, actor.nomComplet, actor.sexe, actor.dateNaissance, actor.idNational, actor.idFiba, actor.statut].some(value => String(value ?? "").toLocaleLowerCase("fr").includes(search)))
     if (params.get("sort") === "licence") actors.sort((a, b) => compareLicenceNumbers({ ...a, id: a.id }, { ...b, id: b.id }, params.get("direction") === "desc" ? "desc" : "asc"))
-    return NextResponse.json({ athletes: actors, ...(!id ? { currentSeason: settings?.currentSeason || null } : {}) })
+    const athletes = !id && params.get("view") === "table" ? actors.map(projectAthleteTableRow) : actors
+    return NextResponse.json({ athletes, ...(!id ? { currentSeason: settings?.currentSeason || null } : {}) })
   } catch {
     return NextResponse.json({ athletes: [], error: "Impossible de charger les athlètes et leur saison courante. Vérifiez la configuration des paramètres ou réessayez." }, { status: 503 })
   }

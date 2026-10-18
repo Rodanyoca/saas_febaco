@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { Header } from "@/components/dashboard/header"
 import { DataTable, Column, Filter } from "@/components/dashboard/data-table"
-import { Athlete, getFilterOptions } from "@/lib/models"
+import { getFilterOptions } from "@/lib/models"
+import type { AthleteTableRow } from "@/lib/athlete-table"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ActorEditor } from "@/components/dashboard/actor-editor"
@@ -30,7 +31,7 @@ function calcAge(dateNaissance?: string): number | null {
   return age >= 0 ? age : null
 }
 
-const columns: Column<Athlete>[] = [
+const columns: Column<AthleteTableRow>[] = [
   {
     key: "licenceDisplay",
     header: "Licence",
@@ -96,7 +97,7 @@ const columns: Column<Athlete>[] = [
 ]
 
 export default function AthletesPage() {
-  const [athletes, setAthletes] = useState<Athlete[]>([])
+  const [athletes, setAthletes] = useState<AthleteTableRow[]>([])
   const [filterValues, setFilterValues] = useState<Record<string, string>>({})
   const [season, setSeason] = useState<SeasonOption | null>(null)
   const [loading, setLoading] = useState(true), [error, setError] = useState("")
@@ -109,7 +110,7 @@ export default function AthletesPage() {
     ;(async () => {
       try {
         setLoading(true); setError("")
-        const res = await fetch("/api/athletes", { cache: "no-store", signal: controller.signal })
+        const res = await fetch("/api/athletes?view=table", { cache: "no-store", signal: controller.signal })
         const json = await res.json()
         if (!res.ok) throw new Error(json.error || "Lecture impossible.")
 
@@ -121,11 +122,11 @@ export default function AthletesPage() {
             return "M"
           }
 
-          const raw = Array.isArray(json?.athletes) ? (json.athletes as Athlete[]) : []
+          const raw = Array.isArray(json?.athletes) ? (json.athletes as AthleteTableRow[]) : []
           const cleaned = raw.map((a) => {
-            const next = { ...a } as Athlete
+            const next = { ...a }
             next.sexe = normalizeSexe(a.sexe)
-            next.statut = normalize((a as unknown as { statut?: unknown }).statut)
+            next.statut = normalize(a.statut)
             return next
           })
 
