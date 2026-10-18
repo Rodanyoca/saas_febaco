@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -172,22 +172,22 @@ export function EquipeFormModal({
   );
 
   return (
-    <Dialog
+    <Sheet
       open={open}
       onOpenChange={(next) => {
         if (!saving) onOpenChange(next);
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader className="pr-10">
+          <SheetTitle>
             {equipe ? "Modifier l’équipe" : "Créer une équipe"}
-          </DialogTitle>
-          <DialogDescription>
+          </SheetTitle>
+          <SheetDescription>
             L’équipe sera rattachée au club de cette fiche.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
+          </SheetDescription>
+        </SheetHeader>
+        <form onSubmit={submit} className="flex-1 space-y-4 px-4 pb-4">
           {errors._form ? (
             <p
               role="alert"
@@ -250,7 +250,7 @@ export function EquipeFormModal({
               onChange={(e) => set("observations", e.target.value)}
             />
           </div>
-          <DialogFooter>
+          <SheetFooter className="px-0">
             <Button
               type="button"
               variant="outline"
@@ -265,9 +265,9 @@ export function EquipeFormModal({
             >
               {saving ? "Enregistrement…" : "Enregistrer"}
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

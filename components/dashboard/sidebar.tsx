@@ -63,7 +63,7 @@ const navigationEquipeNationale: NavItem[] = [
 const navigationAdministration: NavItem[] = [
   { name: "Activités", href: "/dashboard/activites", icon: Activity },
   { name: "Documents", href: "/dashboard/documents", icon: FileText },
-  { name: "Paramètres", href: "/dashboard/parametres", icon: Settings, disabled: true, badge: "Bientôt" },
+  { name: "Paramètres", href: "/dashboard/parametres", icon: Settings },
 ]
 
 function NavLink({ item, collapsed, pathname }: { item: NavItem; collapsed: boolean; pathname: string }) {

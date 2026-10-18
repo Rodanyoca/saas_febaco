@@ -303,6 +303,10 @@ export function sheetValuesToRows(values: unknown[][]): SheetRow[] {
 
 export function getSheetCacheMetrics() { return { ...sheetCacheMetrics, entries: readCache.size, pending: pendingReads.size }; }
 
+export function invalidateSheetReadCache(block: SheetBlock, sheet: string) {
+  clearSheetCache(getSpreadsheetId(block), sheet);
+}
+
 export async function readSheetRowsBatch({
   block,
   sheets,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useId, useState } from "react"
 import {
   Table,
   TableBody,
@@ -42,6 +42,9 @@ export interface Filter {
 }
 
 interface DataTableProps<T> {
+  showFilterLabels?: boolean
+  toolbarControls?: React.ReactNode
+  searchableKeys?: Array<keyof T | string>
   data: T[]
   columns: Column<T>[]
   filters?: Filter[]
@@ -67,6 +70,9 @@ export function getDataTableRowKey<T extends object>(item: T, idKey: keyof T | s
 }
 
 export function DataTable<T extends object>({
+  showFilterLabels = false,
+  toolbarControls,
+  searchableKeys,
   data,
   columns,
   filters = [],
@@ -82,6 +88,7 @@ export function DataTable<T extends object>({
   renderMobileCard,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("")
+  const toolbarId = useId()
   const [uncontrolledFilterValues, setUncontrolledFilterValues] = useState<Record<string, string>>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -101,7 +108,8 @@ export function DataTable<T extends object>({
   // Filter and search data
   const filteredData = data.filter((item) => {
     // Search filter
-    const searchMatch = Object.values(item as Record<string, unknown>).some((value) =>
+    const searchValues = searchableKeys ? searchableKeys.map(key => getValue(item, key)) : Object.values(item as Record<string, unknown>)
+    const searchMatch = searchValues.some((value) =>
       String(value).toLowerCase().includes(search.toLowerCase())
     )
     if (!searchMatch) return false
@@ -125,10 +133,13 @@ export function DataTable<T extends object>({
   return (
     <div className="space-y-4">
       {/* Search and Filters */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
+      <div className={cn("flex flex-wrap gap-4", showFilterLabels ? "items-end" : "items-center")}>
+        <div className="flex-1 min-w-[200px] max-w-md space-y-1.5">
+          {showFilterLabels ? <label htmlFor={`${toolbarId}-search`} className="text-sm font-medium">Recherche</label> : null}
+          <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            id={`${toolbarId}-search`}
             type="search"
             placeholder={searchPlaceholder}
             value={search}
@@ -138,18 +149,21 @@ export function DataTable<T extends object>({
             }}
             className="pl-9"
           />
+          </div>
         </div>
 
+        {toolbarControls}
         {filters.map((filter) => (
+          <div key={filter.key} className="space-y-1.5">
+          {showFilterLabels ? <label htmlFor={`${toolbarId}-${filter.key}`} className="text-sm font-medium">{filter.label}</label> : null}
           <Select
-            key={filter.key}
             value={filterValues[filter.key] || "all"}
             onValueChange={(value) => {
               setFilterValues((prev) => ({ ...prev, [filter.key]: value }))
               setCurrentPage(1)
             }}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger id={`${toolbarId}-${filter.key}`} aria-label={filter.label} className="w-[180px]">
               <SelectValue placeholder={filter.label} />
             </SelectTrigger>
             <SelectContent>
@@ -161,6 +175,7 @@ export function DataTable<T extends object>({
               ))}
             </SelectContent>
           </Select>
+          </div>
         ))}
 
         {onExportPDF && null}

@@ -85,6 +85,9 @@ export interface Equipe {
 }
 
 export interface Athlete {
+  licenceNumero?: string
+  licenceDisplay?: string
+  licenceState?: "ACTIVE" | "MISSING" | "INACTIVE" | "AMBIGUOUS"
   __key?: string
   id: string
   clubId?: string
