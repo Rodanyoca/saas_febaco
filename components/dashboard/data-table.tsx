@@ -38,6 +38,7 @@ export interface Column<T> {
 export interface Filter {
   key: string
   label: string
+  allLabel?: string
   options: { value: string; label: string }[]
 }
 
@@ -163,11 +164,11 @@ export function DataTable<T extends object>({
               setCurrentPage(1)
             }}
           >
-            <SelectTrigger id={`${toolbarId}-${filter.key}`} aria-label={filter.label} className="w-[180px]">
+            <SelectTrigger id={`${toolbarId}-${filter.key}`} aria-label={filter.label} className={filter.allLabel ? "w-[220px]" : "w-[180px]"}>
               <SelectValue placeholder={filter.label} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tous</SelectItem>
+              <SelectItem value="all">{filter.allLabel || "Tous"}</SelectItem>
               {filter.options.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}

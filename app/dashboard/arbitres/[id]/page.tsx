@@ -2,12 +2,12 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { ArrowLeft, Camera, Contact, Fingerprint, Flag } from "lucide-react"
+import { ArrowLeft, Camera, Contact, Fingerprint, Flag, Info } from "lucide-react"
 import { Header } from "@/components/dashboard/header"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ActorEditor } from "@/components/dashboard/actor-editor"
-import { ActorLicensesPanel } from "@/components/dashboard/actor-licenses-panel"
+import { ActorLicenseHistoryTable } from "@/components/dashboard/actor-license-history-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -188,15 +188,15 @@ export default function ArbitreDetailPage() {
             <TabsTrigger value="licences">Licences</TabsTrigger>
           </TabsList>
           <TabsContent value="general">
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
               <DetailCard
                 title="Identite"
                 icon={Flag}
                 fields={[
-                  { label: "ID", value: arbitre.id },
                   { label: "Nom complet", value: nomComplet },
                   { label: "Sexe", value: arbitre.sexe === "M" ? "Masculin" : "Feminin" },
                   { label: "Date de naissance", value: arbitre.dateNaissance },
+                  { label: "Lieu de naissance", value: arbitre.lieuNaissance },
                   { label: "Nationalite", value: arbitre.nationalite },
                 ]}
               />
@@ -205,6 +205,7 @@ export default function ArbitreDetailPage() {
                 title="Identifiants"
                 icon={Fingerprint}
                 fields={[
+                  { label: "ID", value: arbitre.id },
                   { label: "ID national", value: arbitre.idNational },
                   { label: "ID FIBA", value: arbitre.idFiba },
                   { label: "Grade", value: arbitre.grade },
@@ -218,12 +219,18 @@ export default function ArbitreDetailPage() {
                 fields={[
                   { label: "Telephone", value: arbitre.telephone },
                   { label: "Email", value: arbitre.email },
+                  { label: "Adresse", value: arbitre.adresse },
                 ]}
+              />
+              <DetailCard
+                title="Observations"
+                icon={Info}
+                fields={[{ label: "Remarques", value: arbitre.observations || "Aucune remarque enregistrée" }]}
               />
             </div>
           </TabsContent>
           <TabsContent value="licences">
-            <ActorLicensesPanel actorId={arbitre.id} typeId="TAC004" />
+            <ActorLicenseHistoryTable actorId={arbitre.id} typeId="TAC004" />
           </TabsContent>
         </Tabs>
       </div>

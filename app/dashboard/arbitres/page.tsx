@@ -30,18 +30,16 @@ function calcAge(dateNaissance?: string): number | null {
 
 const columns: Column<Arbitre>[] = [
   {
-    key: "id",
-    header: "ID",
+    key: "licenceDisplay",
+    header: "Licence",
     className: "w-[11%] whitespace-normal break-all font-mono text-sm",
-    render: (item) => <span className="block whitespace-normal break-all leading-snug">{item.id || "-"}</span>,
+    render: (item) => <span className="block whitespace-normal break-all leading-snug" title={item.licenceAmbiguous ? "Plusieurs licences valides : vérification administrative nécessaire." : undefined}>{item.licenceAmbiguous ? "À vérifier" : item.licenceDisplay || ""}</span>,
   },
   {
     key: "nomComplet",
     header: "Nom complet",
     className: "w-[26%] whitespace-normal font-medium",
-    render: (item) => {
-      const age = calcAge(item.dateNaissance)
-      return (
+    render: (item) => (
         <div className="flex items-center gap-3">
           <Avatar className="size-10 shrink-0">
             <AvatarImage src={item.avatarUrl || undefined} alt={item.nomComplet || `${item.prenom} ${item.nom}`} />
@@ -51,12 +49,20 @@ const columns: Column<Arbitre>[] = [
             <span className="block whitespace-normal break-words leading-snug">
               {item.nomComplet || `${item.prenom} ${item.nom}`}
             </span>
-            <span className="block text-xs text-muted-foreground">
-              {age !== null ? `${age} ans` : "-"} / {item.sexe || "-"}
-            </span>
           </div>
         </div>
-      )
+      ),
+  },
+  {
+    key: "sexe",
+    header: "Sexe / âge",
+    className: "w-[8%] text-center",
+    render: (item) => {
+      const age = calcAge(item.dateNaissance)
+      return <div className="flex flex-col items-center leading-tight">
+        <span className="text-sm font-semibold">{item.sexe || "-"}</span>
+        <span className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">{age !== null ? `${age} ans` : "-"}</span>
+      </div>
     },
   },
   {
@@ -87,13 +93,19 @@ const columns: Column<Arbitre>[] = [
 
 export default function ArbitresPage() {
   const [arbitres, setArbitres] = useState<Arbitre[]>([])
+  const [revision, setRevision] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     let canceled = false
+    const controller = new AbortController()
     ;(async () => {
       try {
-        const res = await fetch("/api/arbitres", { cache: "no-store" })
+        setLoading(true); setError("")
+        const res = await fetch("/api/arbitres", { cache: "no-store", signal: controller.signal })
         const json = await res.json()
+        if (!res.ok) throw new Error(json.error || "Lecture impossible.")
         if (!canceled) {
           const normalize = (value: unknown) => String(value ?? "").trim()
           const normalizeSexe = (value: unknown) => {
@@ -111,35 +123,39 @@ export default function ArbitresPage() {
             }))
           )
         }
-      } catch {
-        if (!canceled) setArbitres([])
-      }
+      } catch (cause) {
+        if (!canceled) { setArbitres([]); setError(cause instanceof Error ? cause.message : "Lecture impossible.") }
+      } finally { if (!canceled) setLoading(false) }
     })()
 
     return () => {
       canceled = true
+      controller.abort()
     }
-  }, [])
+  }, [revision])
 
   const filters: Filter[] = useMemo(() => {
     return [
       {
         key: "sexe",
         label: "Sexe",
+        allLabel: "Tous les sexes",
         options: [
-          { value: "M", label: "M" },
-          { value: "F", label: "F" },
+          { value: "M", label: "Masculin" },
+          { value: "F", label: "Féminin" },
         ],
       },
       {
         key: "grade",
         label: "Grade",
-        options: getFilterOptions(arbitres, "grade"),
+        allLabel: "Tous les grades",
+        options: getFilterOptions(arbitres, "grade").sort((a,b) => a.label.localeCompare(b.label, "fr")),
       },
       {
         key: "statut",
         label: "Statut",
-        options: getFilterOptions(arbitres, "statut"),
+        allLabel: "Tous les statuts",
+        options: getFilterOptions(arbitres, "statut").map(option => ({ ...option, label: option.value === "ACTIF" ? "Actif" : option.value === "INACTIF" ? "Inactif" : option.label })),
       },
     ]
   }, [arbitres])
@@ -149,14 +165,18 @@ export default function ArbitresPage() {
       <Header title="Arbitres" subtitle="Liste des arbitres affilies a la FEBACO" />
 
       <div className="flex-1 p-6">
-        <div className="mb-4 flex justify-end"><ActorEditor kind="arbitres" onSaved={(actor) => setArbitres(current => [actor as unknown as Arbitre, ...current].sort((a,b)=>String(a.nomComplet??"").localeCompare(String(b.nomComplet??""),"fr",{sensitivity:"base"})))} /></div>
+        {loading ? <p role="status" className="mb-4 text-sm text-muted-foreground">Chargement des arbitres et des licences…</p> : null}
+        {error ? <p role="alert" className="mb-4 text-sm text-destructive">{error}</p> : null}
+        <div className="mb-4 flex justify-end"><ActorEditor kind="arbitres" onSaved={() => setRevision(value => value + 1)} /></div>
         <DataTable
           data={arbitres}
+          showFilterLabels
           columns={columns}
           filters={filters}
           tableClassName="table-fixed"
-          actionsClassName="w-[14%]"
-          searchPlaceholder="Rechercher un arbitre..."
+          actionsClassName="w-[6%]"
+          searchPlaceholder="Rechercher par licence, nom…"
+          searchableKeys={["licenceDisplay", "nomComplet", "sexe", "grade", "idNational", "idFiba", "statut"]}
           detailHref={(item) => `/dashboard/arbitres/${encodeURIComponent(item.id || item.__key || "")}`}
           idKey="__key"
         />

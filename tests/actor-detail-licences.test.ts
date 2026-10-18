@@ -7,8 +7,8 @@ test("les fiches coach et arbitre exposent leur onglet Licences", async () => {
     readFile("app/dashboard/coachs/[id]/page.tsx", "utf8"),
     readFile("app/dashboard/arbitres/[id]/page.tsx", "utf8"),
   ])
-  assert.match(coach, /ActorLicensesPanel actorId=\{coach\.id\} typeId="TAC002"/)
-  assert.match(arbitre, /ActorLicensesPanel actorId=\{arbitre\.id\} typeId="TAC004"/)
+  assert.match(coach, /CoachLicensesPanel actorId=\{coach\.id\}/)
+  assert.match(arbitre, /ActorLicenseHistoryTable actorId=\{arbitre\.id\} typeId="TAC004"/)
 })
 
 test("les fiches médecin et officiel exposent leur onglet Licences", async () => {
@@ -16,8 +16,8 @@ test("les fiches médecin et officiel exposent leur onglet Licences", async () =
     readFile("app/dashboard/medecins/[id]/page.tsx", "utf8"),
     readFile("app/dashboard/officiels/[id]/page.tsx", "utf8"),
   ])
-  assert.match(medecin, /ActorLicensesPanel actorId=\{medecin\.id\} typeId="TAC005"/)
-  assert.match(officiel, /ActorLicensesPanel actorId=\{officiel\.id\} typeId="TAC003"/)
+  assert.match(medecin, /ActorLicenseHistoryTable actorId=\{medecin\.id\} typeId="TAC005"/)
+  assert.match(officiel, /ActorLicenseHistoryTable actorId=\{officiel\.id\} typeId="TAC003"/)
 })
 
 test("la fiche autre acteur ne propose aucune affiliation", async () => {

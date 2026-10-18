@@ -2,29 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Camera, Contact, Fingerprint, UserCog } from "lucide-react"
+import { ArrowLeft, Camera, Contact, Fingerprint, Info, UserCog } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { Header } from "@/components/dashboard/header"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ActorEditor } from "@/components/dashboard/actor-editor"
 import { AffiliationsPanel } from "@/components/dashboard/affiliations-panel"
-import { ActorLicensesPanel } from "@/components/dashboard/actor-licenses-panel"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { CoachLicensesPanel } from "@/components/dashboard/coach-licenses-panel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { Coach, CoachAffiliation } from "@/lib/models"
-import { formatDisplayDate } from "@/lib/date-format"
+import type { Coach } from "@/lib/models"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
@@ -33,11 +24,6 @@ function initials(prenom?: string, nom?: string): string {
   const b = n ? n[0] : ""
   const v = `${a}${b}`.toUpperCase()
   return v || "EN"
-}
-
-function display(value: unknown): string {
-  const raw = String(value ?? "").trim()
-  return raw && raw !== "-" ? raw : "-"
 }
 
 export default function CoachDetailPage() {
@@ -50,8 +36,6 @@ export default function CoachDetailPage() {
   }, [params])
 
   const [coachs, setCoachs] = useState<Coach[]>([])
-  const [affiliations, setAffiliations] = useState<CoachAffiliation[]>([])
-  const [affiliationsLoading, setAffiliationsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
@@ -97,33 +81,6 @@ export default function CoachDetailPage() {
 
   const avatarSrc = localAvatarUrl || (coach as unknown as { avatarUrl?: string })?.avatarUrl || null
 
-  useEffect(() => {
-    if (!coach) {
-      setAffiliations([])
-      return
-    }
-
-    let canceled = false
-    ;(async () => {
-      setAffiliationsLoading(true)
-      try {
-        const query = new URLSearchParams({ actorId: coach.id })
-        const res = await fetch(`/api/affiliations/coach?${query.toString()}`, { cache: "no-store" })
-        const json = await res.json()
-        if (!canceled) {
-          setAffiliations(Array.isArray(json?.affiliations) ? json.affiliations : [])
-        }
-      } catch {
-        if (!canceled) setAffiliations([])
-      } finally {
-        if (!canceled) setAffiliationsLoading(false)
-      }
-    })()
-
-    return () => {
-      canceled = true
-    }
-  }, [coach])
 
   if (loading) {
     return (
@@ -236,7 +193,7 @@ export default function CoachDetailPage() {
         <Tabs defaultValue="general" className="gap-4">
           <TabsList className="grid h-auto w-full grid-cols-3">
             <TabsTrigger value="general" className="w-full">
-              General
+              Général
             </TabsTrigger>
             <TabsTrigger value="affiliation" className="w-full">
               Affiliations
@@ -247,17 +204,16 @@ export default function CoachDetailPage() {
           </TabsList>
 
           <TabsContent value="general">
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
               <DetailCard
-                title="Identite"
+                title="Identité"
                 icon={UserCog}
                 fields={[
-                  { label: "ID", value: coach.id },
                   { label: "Nom complet", value: nomComplet },
                   { label: "Sexe", value: coach.sexe === "M" ? "Masculin" : "Feminin" },
                   { label: "Date de naissance", value: coach.dateNaissance },
                   { label: "Lieu de naissance", value: coach.lieuNaissance },
-                  { label: "Nationalite", value: coach.nationalite },
+                  { label: "Nationalité", value: coach.nationalite },
                 ]}
               />
 
@@ -276,68 +232,25 @@ export default function CoachDetailPage() {
                 title="Contact"
                 icon={Contact}
                 fields={[
-                  { label: "Telephone", value: coach.telephone },
+                  { label: "Téléphone", value: coach.telephone },
                   { label: "Email", value: coach.email },
                   { label: "Adresse", value: coach.adresse },
                 ]}
+              />
+              <DetailCard
+                title="Observations"
+                icon={Info}
+                fields={[{ label: "Remarques", value: coach.observations || "Aucune remarque enregistrée" }]}
               />
             </div>
           </TabsContent>
 
           <TabsContent value="affiliation">
             <AffiliationsPanel kind="coach" actorId={coach.id} />
-            {false && <Card>
-              <CardHeader>
-                <CardTitle>Historique des affiliations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Saison</TableHead>
-                        <TableHead>Équipe</TableHead>
-                        <TableHead>Club</TableHead>
-                        <TableHead>Fonction</TableHead>
-                        <TableHead>Date de début</TableHead>
-                        <TableHead>Date de fin</TableHead>
-                        <TableHead>Statut</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {affiliationsLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                            Chargement des affiliations...
-                          </TableCell>
-                        </TableRow>
-                      ) : affiliations.length > 0 ? (
-                        affiliations.map((affiliation) => (
-                          <TableRow key={affiliation.__key ?? affiliation.id}>
-                            <TableCell>{display(affiliation.saison)}</TableCell>
-                            <TableCell>{display(affiliation.equipeNom)}</TableCell>
-                            <TableCell>{display(affiliation.clubNom)}</TableCell>
-                            <TableCell>{display(affiliation.fonction)}</TableCell>
-                            <TableCell>{formatDisplayDate(affiliation.dateDebut)}</TableCell>
-                            <TableCell>{formatDisplayDate(affiliation.dateFin)}</TableCell>
-                            <TableCell><StatusBadge status={affiliation.statut} /></TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                            Aucune affiliation enregistrée.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>}
+
           </TabsContent>
           <TabsContent value="licences">
-            <ActorLicensesPanel actorId={coach.id} typeId="TAC002" />
+            <CoachLicensesPanel actorId={coach.id} />
           </TabsContent>
         </Tabs>
       </div>

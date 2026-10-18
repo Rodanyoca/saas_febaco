@@ -358,6 +358,10 @@ export type EquipeNationaleCompetition = CompetitionEquipeNationale
 export type EquipeNationaleResultat = ResultatEquipeNationale
 
 export interface Coach {
+  licenceNumero?: string
+  licenceDisplay?: string
+  licenceAmbiguous?: boolean
+  observations?: string
   __key?: string
   id: string
   clubId?: string
@@ -408,6 +412,12 @@ export interface CoachAffiliation {
 }
 
 export interface Arbitre {
+  licenceNumero?: string
+  licenceDisplay?: string
+  licenceAmbiguous?: boolean
+  observations?: string
+  lieuNaissance?: string
+  adresse?: string
   __key?: string
   id: string
   clubId?: string
@@ -437,6 +447,12 @@ export interface Arbitre {
 }
 
 export interface Officiel {
+  licenceNumero?: string
+  licenceDisplay?: string
+  licenceAmbiguous?: boolean
+  observations?: string
+  lieuNaissance?: string
+  adresse?: string
   __key?: string
   id: string
   idNational?: string
@@ -479,6 +495,13 @@ export interface OfficielMandat {
 }
 
 export interface Medecin {
+  licenceNumero?: string
+  licenceDisplay?: string
+  licenceAmbiguous?: boolean
+  nomComplet?: string
+  observations?: string
+  lieuNaissance?: string
+  adresse?: string
   __key?: string
   id: string
   idNational?: string

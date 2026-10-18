@@ -7,7 +7,7 @@ import { DetailCard } from "@/components/dashboard/detail-card"
 import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ActorEditor } from "@/components/dashboard/actor-editor"
 import { AffiliationsPanel } from "@/components/dashboard/affiliations-panel"
-import { ActorLicensesPanel } from "@/components/dashboard/actor-licenses-panel"
+import { ActorLicenseHistoryTable } from "@/components/dashboard/actor-license-history-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Officiel, OfficielMandat } from "@/lib/models"
@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ArrowLeft, Camera, Contact, Fingerprint, Flag } from "lucide-react"
+import { ArrowLeft, Camera, Contact, Fingerprint, Flag, Info } from "lucide-react"
 import { formatDisplayDate } from "@/lib/date-format"
 
 function initials(prenom?: string, nom?: string): string {
@@ -152,11 +152,19 @@ export default function OfficielDetailPage() {
       <Header title={`Fiche Officiel: ${nomComplet}`} />
 
       <div className="flex-1 p-6 space-y-6">
-        <div className="flex items-center justify-between">
-        <div className="flex flex-wrap justify-between gap-3"><Button variant="outline" onClick={() => router.back()}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour à la liste
-        </Button><ActorEditor kind="officiels" actor={officiel as unknown as Record<string,string>} onSaved={(saved)=>setOfficiels([saved as unknown as Officiel])}/></div>
+          </Button>
+          <div className="ml-auto">
+            <ActorEditor
+              kind="officiels"
+              actor={officiel as unknown as Record<string,string>}
+              onSaved={(saved)=>setOfficiels([saved as unknown as Officiel])}
+              formExtra={<div className="space-y-2"><p className="text-sm font-medium">Photo</p><Button type="button" variant="outline" onClick={() => setAvatarModalOpen(true)}><Camera className="mr-2 h-4 w-4" />Ajouter la photo</Button></div>}
+            />
+          </div>
         </div>
 
         <Card>
@@ -180,12 +188,6 @@ export default function OfficielDetailPage() {
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Code Officiel</p>
                 <p className="font-mono font-medium">{officiel.id}</p>
-                <div className="mt-3 flex justify-end">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setAvatarModalOpen(true)}>
-                    <Camera className="mr-2 h-4 w-4" />
-                    Ajouter la photo
-                  </Button>
-                </div>
               </div>
             </div>
           </CardContent>
@@ -239,15 +241,15 @@ export default function OfficielDetailPage() {
           </TabsList>
 
           <TabsContent value="general">
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
           <DetailCard
             title="Identité"
             icon={Flag}
             fields={[
-              { label: "ID officiel", value: officiel.id },
               { label: "Nom complet", value: nomComplet },
               { label: "Sexe", value: officiel.sexe === "M" ? "Masculin" : "Féminin" },
               { label: "Date de naissance", value: officiel.dateNaissance },
+              { label: "Lieu de naissance", value: officiel.lieuNaissance },
               { label: "Nationalité", value: officiel.nationalite },
             ]}
           />
@@ -256,6 +258,7 @@ export default function OfficielDetailPage() {
             title="Identifiants"
             icon={Fingerprint}
             fields={[
+              { label: "ID officiel", value: officiel.id },
               { label: "ID national", value: officiel.idNational },
               { label: "ID FIBA", value: officiel.idFiba },
               { label: "Statut", value: officiel.statut },
@@ -268,7 +271,13 @@ export default function OfficielDetailPage() {
             fields={[
               { label: "Téléphone", value: officiel.telephone },
               { label: "Email", value: officiel.email },
+              { label: "Adresse", value: officiel.adresse },
             ]}
+          />
+          <DetailCard
+            title="Observations"
+            icon={Info}
+            fields={[{ label: "Remarques", value: officiel.observations || officiel.observation || "Aucune remarque enregistrée" }]}
           />
             </div>
           </TabsContent>
@@ -322,7 +331,7 @@ export default function OfficielDetailPage() {
             </Card>}
           </TabsContent>
           <TabsContent value="licences">
-            <ActorLicensesPanel actorId={officiel.id} typeId="TAC003" />
+            <ActorLicenseHistoryTable actorId={officiel.id} typeId="TAC003" />
           </TabsContent>
         </Tabs>
       </div>

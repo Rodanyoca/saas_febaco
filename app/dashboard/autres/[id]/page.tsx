@@ -33,7 +33,7 @@ export default function AutreDetailPage() {
         <ActorEditor kind="autres" actor={actor} onSaved={setActor} />
       </div>
       <div className="grid gap-6 md:grid-cols-2">
-            <DetailCard title="Identité" icon={User} fields={[{ label: "Identifiant", value: actor.id }, { label: "Nom complet", value: actor.nom_complet }, { label: "Sexe", value: actor.sexe }, { label: "Date de naissance", value: actor.date_de_naissance }, { label: "Nationalité", value: actor.nationalite }, { label: "Type", value: actor.id_type_autre_acteur }, { label: "Statut", value: actor.statut }]} />
+            <DetailCard title="Identité" icon={User} fields={[{ label: "Identifiant", value: actor.id }, { label: "Nom complet", value: actor.nom_complet }, { label: "Rôle", value: actor.role }, { label: "Sexe", value: actor.sexe }, { label: "Date de naissance", value: actor.date_de_naissance }, { label: "Nationalité", value: actor.nationalite }, { label: "Type", value: actor.id_type_autre_acteur }, { label: "Statut", value: actor.statut }]} />
             <DetailCard title="Coordonnées" icon={Contact} fields={[{ label: "Téléphone", value: actor.telephone }, { label: "Courriel", value: actor.email }, { label: "Adresse", value: actor.adresse }]} />
             <DetailCard title="Observations" icon={Info} fields={[{ label: "Remarques", value: actor.observations }]} />
       </div>

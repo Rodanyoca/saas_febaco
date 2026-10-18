@@ -8,17 +8,10 @@ import { ActorEditor } from "@/components/dashboard/actor-editor"
 import { Medecin, getFilterOptions } from "@/lib/models"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-function formatCode(value: unknown): string {
-  const raw = String(value ?? "").trim()
-  const digits = raw.replace(/\D/g, "")
-  if (!digits) return raw
-  return digits.slice(-3).padStart(3, "0")
-}
-
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
   const n = String(nom ?? "").trim()
-  const a = p ? p.replace(/^Dr\.?\s*/i, "")[0] ?? "" : ""
+  const a = p ? p[0] : ""
   const b = n ? n[0] : ""
   const v = `${a}${b}`.toUpperCase()
   return v || "MD"
@@ -37,69 +30,89 @@ function calcAge(dateNaissance?: string): number | null {
 
 const columns: Column<Medecin>[] = [
   {
-    key: "id",
-    header: "ID",
-    className: "w-[11%] font-mono text-sm",
-    render: (item) => <span className="block break-all">{formatCode(item.id) || "-"}</span>,
+    key: "licenceDisplay",
+    header: "Licence",
+    className: "w-[10%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block break-all leading-snug" title={item.licenceAmbiguous ? "Plusieurs licences valides : vérification administrative nécessaire." : undefined}>{item.licenceAmbiguous ? "À vérifier" : item.licenceDisplay || ""}</span>,
   },
   {
-    key: "nom",
-    header: "Nom complet",
-    className: "w-[24%] font-medium",
+    key: "avatarUrl",
+    header: "Avatar",
+    className: "w-[6%] text-center",
     render: (item) => (
-      <div className="flex items-center gap-3">
+      <div className="flex justify-center">
         <Avatar className="size-10 shrink-0">
-          <AvatarImage src={item.avatarUrl || undefined} alt={`${item.prenom} ${item.nom}`} />
+          <AvatarImage src={item.avatarUrl || undefined} alt={item.nomComplet || `${item.prenom} ${item.nom}`} />
           <AvatarFallback className="text-xs">{initials(item.prenom, item.nom)}</AvatarFallback>
         </Avatar>
-        <span className="min-w-0 whitespace-normal break-words">{item.prenom} {item.nom}</span>
       </div>
     ),
   },
   {
+    key: "nomComplet",
+    header: "Nom complet",
+    className: "w-[24%] whitespace-normal font-medium",
+    render: (item) => (
+        <span className="block whitespace-normal break-words leading-snug">
+          {item.nomComplet || `${item.prenom} ${item.nom}`}
+        </span>
+    ),
+  },
+  {
+    key: "specialite",
+    header: "Spécialité",
+    className: "w-[14%] whitespace-normal break-words",
+    render: (item) => <span className="block whitespace-normal break-words leading-snug">{item.specialite || "-"}</span>,
+  },
+  {
     key: "sexe",
-    header: "Sexe / Âge",
-    className: "w-[13%]",
+    header: "Sexe / âge",
+    className: "w-[8%] text-center",
     render: (item) => {
       const age = calcAge(item.dateNaissance)
       return (
-        <div className="space-y-1">
-          <span className="block">{item.sexe || "-"}</span>
-          <span className="block text-xs text-muted-foreground">{age !== null ? `${age} ans` : "-"}</span>
+        <div className="flex flex-col items-center leading-tight">
+          <span className="text-sm font-semibold">{item.sexe || "-"}</span>
+          <span className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">{age !== null ? `${age} ans` : "-"}</span>
         </div>
       )
     },
   },
-  { key: "specialite", header: "Spécialité", className: "w-[15%]" },
   {
     key: "idNational",
     header: "ID national",
-    className: "w-[14%] break-all font-mono text-sm",
-    render: (item) => item.idNational || "-",
+    className: "w-[12%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block break-all leading-snug">{item.idNational || "-"}</span>,
   },
   {
     key: "idFiba",
     header: "ID FIBA",
-    className: "w-[14%] break-all font-mono text-sm",
-    render: (item) => item.idFiba || "-",
+    className: "w-[12%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block break-all leading-snug">{item.idFiba || "-"}</span>,
   },
   {
     key: "statut",
     header: "Statut",
-    className: "w-[10%]",
+    className: "w-[8%]",
     render: (item) => <StatusBadge status={item.statut} />,
   },
 ]
 
 export default function MedecinsPage() {
   const [medecins, setMedecins] = useState<Medecin[]>([])
+  const [revision, setRevision] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     let canceled = false
+    const controller = new AbortController()
     ;(async () => {
       try {
-        const res = await fetch("/api/medecins", { cache: "no-store" })
+        setLoading(true); setError("")
+        const res = await fetch("/api/medecins", { cache: "no-store", signal: controller.signal })
         const json = await res.json()
+        if (!res.ok) throw new Error(json.error || "Lecture impossible.")
         if (!canceled) {
           const raw = Array.isArray(json?.medecins) ? (json.medecins as Medecin[]) : []
           setMedecins(
@@ -110,35 +123,39 @@ export default function MedecinsPage() {
             }))
           )
         }
-      } catch {
-        if (!canceled) setMedecins([])
-      }
+      } catch (cause) {
+        if (!canceled) { setMedecins([]); setError(cause instanceof Error ? cause.message : "Lecture impossible.") }
+      } finally { if (!canceled) setLoading(false) }
     })()
 
     return () => {
       canceled = true
+      controller.abort()
     }
-  }, [])
+  }, [revision])
 
   const filters: Filter[] = useMemo(() => {
     return [
       {
         key: "sexe",
         label: "Sexe",
+        allLabel: "Tous les sexes",
         options: [
-          { value: "M", label: "M" },
-          { value: "F", label: "F" },
+          { value: "M", label: "Masculin" },
+          { value: "F", label: "Féminin" },
         ],
       },
       {
         key: "specialite",
         label: "Spécialité",
-        options: getFilterOptions(medecins, "specialite"),
+        allLabel: "Toutes les spécialités",
+        options: getFilterOptions(medecins, "specialite").sort((a,b) => a.label.localeCompare(b.label, "fr")),
       },
       {
         key: "statut",
         label: "Statut",
-        options: getFilterOptions(medecins, "statut"),
+        allLabel: "Tous les statuts",
+        options: getFilterOptions(medecins, "statut").map(option => ({ ...option, label: option.value === "ACTIF" ? "Actif" : option.value === "INACTIF" ? "Inactif" : option.label })),
       },
     ]
   }, [medecins])
@@ -147,18 +164,22 @@ export default function MedecinsPage() {
     <div className="flex flex-col">
       <Header
         title="Médecins"
-        subtitle="Liste du personnel médical affilié à la FECOBASKET"
+        subtitle="Liste des médecins et de leurs licences actuellement valides"
       />
 
       <div className="flex-1 p-6">
-        <div className="mb-4 flex justify-end"><ActorEditor kind="medecins" onSaved={(actor) => setMedecins(current => [actor as unknown as Medecin, ...current].sort((a,b)=>String(`${a.prenom} ${a.nom}`).localeCompare(String(`${b.prenom} ${b.nom}`),"fr",{sensitivity:"base"})))} /></div>
+        {loading ? <p role="status" className="mb-4 text-sm text-muted-foreground">Chargement des médecins et des licences…</p> : null}
+        {error ? <p role="alert" className="mb-4 text-sm text-destructive">{error}</p> : null}
+        <div className="mb-4 flex justify-end"><ActorEditor kind="medecins" onSaved={() => setRevision(value => value + 1)} /></div>
         <DataTable
           data={medecins}
+          showFilterLabels
           columns={columns}
           filters={filters}
           tableClassName="table-fixed"
-          actionsClassName="w-[10%]"
-          searchPlaceholder="Rechercher un médecin..."
+          actionsClassName="w-[6%]"
+          searchPlaceholder="Rechercher par licence, nom…"
+          searchableKeys={["licenceDisplay", "nomComplet", "specialite", "sexe", "idNational", "idFiba", "statut"]}
           detailHref={(item) => `/dashboard/medecins/${encodeURIComponent(item.id)}`}
           idKey="__key"
         />

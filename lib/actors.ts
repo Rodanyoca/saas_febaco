@@ -16,7 +16,7 @@ export const actorConfig = {
   officiels: { sheet:"OFFICIELS", id:"id_officiel", prefix:"OFF", extra:[] },
   arbitres: { sheet:"ARBITRES", id:"id_arbitre", prefix:"ARB", extra:["id_grade_arbitre"] },
   medecins: { sheet:"MEDECINS", id:"id_medecin", prefix:"MED", extra:["id_specialite_sante"] },
-  autres: { sheet:"AUTRES", id:"id_autre_acteur", prefix:"AUT", extra:["entite","id_type_autre_acteur"] },
+  autres: { sheet:"AUTRES", id:"id_autre_acteur", prefix:"AUT", extra:["entite","id_type_autre_acteur","role"] },
 } as const
 
 const physicalAliases: Record<string,string[]> = {
@@ -34,11 +34,11 @@ const physicalHeaders:Record<ActorKind,string[]>={
   officiels:["id_officiel","id_national","id_fiba","nom_complet","id_sexe","date_naissance","lieu_naissance","nationalite","telephone","email","adresse","numero_passeport","date_delivrance_passeport","date_expiration_passeport","statut","avatar_drive_id","avatar_drive_url","passeport_drive_id","passeport_drive_url"],
   arbitres:["id_arbitre","id_national","id_fifa","nom_complet","id_sexe","date_naissance","lieu_naissance","nationalite","id_grade_arbitre","telephone","email","adresse","numero_passeport","date_delivrance_passeport","date_expiration_passeport","statut","avatar_drive_id","avatar_drive_url","passeport_drive_id","passeport_drive_url"],
   medecins:["id_medecin","id_national","id_bwf","nom_complet","id_sexe","date_naissance","lieu_naissance","nationalite","id_specialite","telephone","email","adresse","numero_passeport","date_delivrance_passeport","date_expiration_passeport","statut","avatar_drive_id","avatar_drive_url","passeport_drive_id","passeport_drive_url"],
-  autres:["id_autre_acteur","nom_complet","id_sexe","date_naissance","nationalite","telephone","email","entite","type_autre_acteur","statut","Observations"],
+  autres:["id_autre_acteur","nom_complet","id_sexe","date_naissance","nationalite","telephone","email","entite","type_autre_acteur","statut","Observations","role"],
 }
 const clean=(v:unknown)=>String(v??"").trim()
 const fieldsFor=(kind:ActorKind)=>kind==="autres"
-  ? ["nom_complet","id_sexe","date_de_naissance","nationalite","telephone","email","entite","id_type_autre_acteur","statut","observations"]
+  ? ["nom_complet","id_sexe","date_de_naissance","nationalite","telephone","email","entite","id_type_autre_acteur","role","statut","observations"]
   : [...commonFields,...actorConfig[kind].extra]
 
 export function normalizeSexId(value: unknown): string {

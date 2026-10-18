@@ -30,80 +30,83 @@ function calcAge(dateNaissance?: string): number | null {
 
 const columns: Column<Officiel>[] = [
   {
-    key: "id",
-    header: "ID",
-    className: "w-[11%] whitespace-normal break-all font-mono text-sm",
-    render: (item) => <span className="block break-all">{item.id || "-"}</span>,
+    key: "licenceDisplay",
+    header: "Licence",
+    className: "w-[12%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block break-all leading-snug" title={item.licenceAmbiguous ? "Plusieurs licences valides : vérification administrative nécessaire." : undefined}>{item.licenceAmbiguous ? "À vérifier" : item.licenceDisplay || ""}</span>,
   },
   {
-    key: "nomComplet",
-    header: "Nom complet",
-    className: "w-[24%] whitespace-normal font-medium",
+    key: "avatarUrl",
+    header: "Avatar",
+    className: "w-[6%] text-center",
     render: (item) => (
-      <div className="flex items-center gap-3">
+      <div className="flex justify-center">
         <Avatar className="size-10 shrink-0">
           <AvatarImage src={item.avatarUrl || undefined} alt={item.nomComplet || `${item.prenom} ${item.nom}`} />
           <AvatarFallback className="text-xs">{initials(item.prenom, item.nom)}</AvatarFallback>
         </Avatar>
-        <span className="block min-w-0 whitespace-normal break-words leading-snug">
-          {item.nomComplet || `${item.prenom} ${item.nom}`}
-        </span>
       </div>
     ),
   },
   {
+    key: "nomComplet",
+    header: "Nom complet",
+    className: "w-[28%] whitespace-normal font-medium",
+    render: (item) => (
+        <span className="block whitespace-normal break-words leading-snug">
+          {item.nomComplet || `${item.prenom} ${item.nom}`}
+        </span>
+    ),
+  },
+  {
     key: "sexe",
-    header: "Sexe / Âge",
-    className: "w-[14%]",
+    header: "Sexe / âge",
+    className: "w-[8%] text-center",
     render: (item) => {
       const age = calcAge(item.dateNaissance)
       return (
-        <div className="space-y-1">
-          <span className="block">{item.sexe || "-"}</span>
-          <span className="block text-xs text-muted-foreground">{age !== null ? `${age} ans` : "-"}</span>
+        <div className="flex flex-col items-center leading-tight">
+          <span className="text-sm font-semibold">{item.sexe || "-"}</span>
+          <span className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">{age !== null ? `${age} ans` : "-"}</span>
         </div>
       )
     },
   },
   {
     key: "idNational",
-    header: "Identifiants",
-    className: "w-[17%]",
-    render: (item) => (
-      <div className="space-y-1 font-mono text-xs">
-        <span className="block break-all">National : {item.idNational || "-"}</span>
-        <span className="block break-all">FIBA : {item.idFiba || "-"}</span>
-      </div>
-    ),
+    header: "ID national",
+    className: "w-[14%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block break-all leading-snug">{item.idNational || "-"}</span>,
   },
   {
-    key: "email",
-    header: "Contact",
-    className: "w-[20%]",
-    render: (item) => (
-      <div className="space-y-1 text-sm">
-        <span className="block break-all">{item.email || "-"}</span>
-        <span className="block text-xs text-muted-foreground">{item.telephone || "-"}</span>
-      </div>
-    ),
+    key: "idFiba",
+    header: "ID FIBA",
+    className: "w-[14%] whitespace-normal break-all font-mono text-sm",
+    render: (item) => <span className="block break-all leading-snug">{item.idFiba || "-"}</span>,
   },
   {
     key: "statut",
     header: "Statut",
-    className: "w-[10%]",
+    className: "w-[12%]",
     render: (item) => <StatusBadge status={item.statut} />,
   },
 ]
 
 export default function OfficielsPage() {
   const [officiels, setOfficiels] = useState<Officiel[]>([])
+  const [revision, setRevision] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     let canceled = false
+    const controller = new AbortController()
     ;(async () => {
       try {
-        const res = await fetch("/api/officiels", { cache: "no-store" })
+        setLoading(true); setError("")
+        const res = await fetch("/api/officiels", { cache: "no-store", signal: controller.signal })
         const json = await res.json()
+        if (!res.ok) throw new Error(json.error || "Lecture impossible.")
         if (!canceled) {
           const raw = Array.isArray(json?.officiels) ? (json.officiels as Officiel[]) : []
           setOfficiels(
@@ -114,15 +117,16 @@ export default function OfficielsPage() {
             }))
           )
         }
-      } catch {
-        if (!canceled) setOfficiels([])
-      }
+      } catch (cause) {
+        if (!canceled) { setOfficiels([]); setError(cause instanceof Error ? cause.message : "Lecture impossible.") }
+      } finally { if (!canceled) setLoading(false) }
     })()
 
     return () => {
       canceled = true
+      controller.abort()
     }
-  }, [])
+  }, [revision])
 
   const filters: Filter[] = useMemo(() => {
     return [
@@ -146,18 +150,21 @@ export default function OfficielsPage() {
     <div className="flex flex-col">
       <Header
         title="Officiels"
-        subtitle="Liste des officiels et dirigeants de la FECOBASKET"
+        subtitle="Liste des officiels et de leurs licences actuellement valides"
       />
 
       <div className="flex-1 p-6">
-        <div className="mb-4 flex justify-end"><ActorEditor kind="officiels" onSaved={(actor) => setOfficiels(current => [actor as unknown as Officiel, ...current].sort((a,b)=>String(a.nomComplet??"").localeCompare(String(b.nomComplet??""),"fr",{sensitivity:"base"})))} /></div>
+        {loading ? <p role="status" className="mb-4 text-sm text-muted-foreground">Chargement des officiels et des licences…</p> : null}
+        {error ? <p role="alert" className="mb-4 text-sm text-destructive">{error}</p> : null}
+        <div className="mb-4 flex justify-end"><ActorEditor kind="officiels" onSaved={() => setRevision(value => value + 1)} /></div>
         <DataTable
           data={officiels}
           columns={columns}
           filters={filters}
           tableClassName="table-fixed"
-          actionsClassName="w-[10%]"
-          searchPlaceholder="Rechercher un officiel..."
+          actionsClassName="w-[6%]"
+          searchPlaceholder="Rechercher par licence, nom…"
+          searchableKeys={["licenceDisplay", "nomComplet", "sexe", "idNational", "idFiba", "statut"]}
           detailHref={(item) => `/dashboard/officiels/${encodeURIComponent(item.id)}`}
           idKey="__key"
         />
