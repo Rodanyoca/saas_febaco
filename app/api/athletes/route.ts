@@ -1,7 +1,7 @@
 import { protectedRoute } from "@/lib/auth/guard"
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth-session"
-import { listActors } from "@/lib/actors"
+import { listActors, listAthletesById } from "@/lib/actors"
 import { handleActorWrite } from "@/app/api/_actor-write"
 import { readSheetRows } from "@/lib/google-sheets"
 import { resolveAthleteAgeCategory } from "@/lib/athlete-age-category"
@@ -13,7 +13,7 @@ async function GETHandler(request: Request) {
   try {
     const params = new URL(request.url).searchParams, id = params.get("id")?.trim().toLowerCase(), search = params.get("search")?.trim().toLocaleLowerCase("fr")
     const [actorRows, categories, settings] = await Promise.all([
-      listActors("athletes"),
+      id ? listAthletesById(id) : listActors("athletes"),
       readSheetRows({ block: "referentiel", sheet: "CATEGORIES_AGE", range: "A:F" }),
       id ? Promise.resolve(null) : loadSeasonSettings(),
     ])

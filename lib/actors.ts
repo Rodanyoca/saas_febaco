@@ -158,6 +158,17 @@ export function sortActorsAlphabetically<T extends Record<string,string>>(actors
   return [...actors].sort((a,b)=>a.nom_complet.localeCompare(b.nom_complet,"fr",{sensitivity:"base",ignorePunctuation:true}))
 }
 
+export async function listAthletesById(id: string) {
+  // readSheetRows applique le périmètre territorial avant cette sélection.
+  // La feuille reste lue en entier ; seules les lignes correspondantes sont transformées.
+  const rows = await readSheetRows({ block: "acteurs", sheet: "ATHLETES", range: "A:ZZ" })
+  const matches = rows
+    .filter(row => pickFirst(row, ["id_athlete"]).toLowerCase() === id)
+    .map(row => normalizeActor("athletes", row))
+  // Les doublons gardent exactement l'ordre alphabétique stable de la liste historique.
+  return matches.length > 1 ? sortAthletesAlphabetically(matches) : matches
+}
+
 export async function listActors(kind:ActorKind){
   const config=actorConfig[kind]
   const [rows,coachLevels,refereeGrades]=await Promise.all([

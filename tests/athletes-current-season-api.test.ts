@@ -16,7 +16,7 @@ test("API athlètes : saison persistée, lot unique, recherche/tri sur licence, 
   const mocks: Record<string, string> = {
     "@/lib/auth/guard": "export const protectedRoute = handler => handler",
     "@/lib/auth-session": "export const getSessionUser = async () => ({role:'federal'})",
-    "@/lib/actors": "export const listActors = async () => [{id:'ATH-Z',nomComplet:'Zulu'}, {id:'ATH-A',nomComplet:'Alpha'}, {id:'ATH-MISSING',nomComplet:'Missing'}]",
+    "@/lib/actors": "export const listActors = async () => [{id:'ATH-Z',nomComplet:'Zulu'}, {id:'ATH-A',nomComplet:'Alpha'}, {id:'ATH-MISSING',nomComplet:'Missing'}]; export const listAthletesById = async id => (await listActors()).filter(actor => actor.id.toLowerCase() === id)",
     "@/app/api/_actor-write": "export const handleActorWrite = () => {throw Error('No writes in test')}",
     "@/lib/google-sheets": "export async function readSheetRows({sheet}){const s=globalThis.__athleteSeasonApiFixture;if(sheet==='ATHLETE_LICENCES'){s.licenceReads++;return s.licences}return []}",
     "@/lib/athlete-age-category": "export const resolveAthleteAgeCategory=()=>({label:'Non définie'})",
