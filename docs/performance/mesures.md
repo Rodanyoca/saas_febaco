@@ -135,3 +135,13 @@ Cette livraison réunit P1 et des changements fonctionnels, dont la recherche pa
 Sur la base distante `dc467a6`, intégration `release/p1-app-current` : suite complète 319 tests, 316 réussites et 3 échecs ; tests ciblés P1/identification/projection/permissions/Compétitions : 133/133 réussis. Les trois échecs Ligue/Club sont reproduits sur `dc467a6` non modifié (5 tests, 2 réussites et 3 échecs). Il s'agit de `ligue-athlete-indicator`, `ligue-detail-ville` et `team-name-refresh`. Pas de nouvelle régression détectée. TypeScript et build sont consignés après leur résultat final dans le canevas.
 
 Aucune écriture métier de production ni nouveau benchmark n'a été nécessaire pendant l'intégration. Les nouvelles vérifications de publication seront distinguées des observations historiques ; le déploiement antérieur de retour arrière reste `dpl_H9WAncS6iWwnyvJHNjapafWt75nH`.
+
+### Publication et vérifications du lot applicatif
+
+Commit applicatif publié : `e60cfd5e9f9aa33fa1ea65df228f5f4ce1744af7`. Premier déploiement validé : `dpl_H8VbsdVh3e7EQnBq17842SSMx7xu`, READY `2026-10-18T23:25:36.967Z`, alias `saas-febaco.vercel.app`. Le commit documentaire de confirmation ne modifie pas le code de cette livraison combinée.
+
+TypeScript et build local réussis ; 47 pages générées et sortie npm 0 confirmée. L'avertissement de racine multi-lockfiles du worktree imbriqué est remonté comme NativeCommandError par PowerShell ; il n'est pas un échec du build Next. Build Vercel réussi, y compris TypeScript et génération des pages.
+
+Contrôles sans session : login 200, dashboard 307 vers login, API auth/Athlètes complète/projetée/individuelle/affiliations et mutations d'engagement 401. Aucune écriture métier. Logs error/fatal accessibles via CLI : 0 sur `2026-10-18T23:21:22.501Z`–`2026-10-18T23:26:22.501Z`, limite 20, pas de pagination restante ni intervalle exclu. MCP erreurs refusé en 403 ; pas de tentative Observability Plus. Absence de navigateur/session : les contrôles authentifiés d'identification, de complétude et de périmètre listés dans le canevas restent manuels.
+
+Ces contrôles ne sont ni un profil CPU ni une mesure de gain isolé P1. La référence pré-livraison de rollback reste `dc467a6` / `dpl_H9WAncS6iWwnyvJHNjapafWt75nH`. Les mesures et observations historiques sont conservées.
