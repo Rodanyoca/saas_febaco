@@ -198,7 +198,7 @@ export default function AthletesPage() {
           onFilterValuesChange={setFilterValues}
           tableClassName="table-fixed"
           searchPlaceholder="Rechercher par licence, nom…"
-          searchableKeys={["licenceDisplay", "nomComplet", "sexe", "dateNaissance", "idNational", "idFiba", "statut"]}
+          searchableKeys={["id", "licenceDisplay", "nomComplet", "sexe", "dateNaissance", "idNational", "idFiba", "statut"]}
           detailHref={(item) => `/dashboard/athletes/${encodeURIComponent(item.id || item.__key || "")}`}
           idKey="__key"
           renderMobileCard={item => <div className="rounded-xl border bg-card p-4">

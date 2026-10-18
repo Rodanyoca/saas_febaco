@@ -3,7 +3,7 @@ import { CompetitionParticipationError } from "@/lib/competition-participants";
 import { competitionEntityId } from "@/lib/competition-ids";
 import { GROUP_PHASE_MODE_ID, resolveCompetitionPhaseModeId, resolveCompetitionPhaseTypeId, resolvedReferenceLabel } from "@/lib/competition-phase";
 import { mergeCompetitionPhaseUnits } from "@/lib/competition-phase-units";
-import { requireMutableEdition } from "@/lib/competition-lifecycle";
+import { requireCompetitionEdition } from "@/lib/competition-edition";
 
 const clean = (value: unknown) => String(value ?? "").trim();
 
@@ -70,7 +70,7 @@ export async function createCompetitionStructureItem(competitionId: string, body
   if (kind === "groupe" && !phaseId) fields.phaseId = "Sélectionnez la phase du groupe.";
   if (Object.keys(fields).length) throw new CompetitionParticipationError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, fields);
   const data = await load(competitionId, deps);
-  requireMutableEdition(data.competitions, competitionId);
+  requireCompetitionEdition(data.competitions, competitionId);
   if (kind === "phase") {
     if (!data.events.some((event) => event.id === eventId && event.statut !== "INACTIF")) throw new CompetitionParticipationError("EPREUVE_INVALIDE", "Épreuve invalide ou inactive.", 422, { eventId: "Épreuve indisponible." });
     if (!data.types.some((type) => type.id === typeId)) throw new CompetitionParticipationError("TYPE_PHASE_INVALIDE", "Type de phase invalide.", 422, { typeId: "Type indisponible." });

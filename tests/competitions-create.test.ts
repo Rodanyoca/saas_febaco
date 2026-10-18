@@ -56,9 +56,9 @@ test("la fiche expose huit onglets pleine largeur avec une URL stable", async ()
   for (const tab of ["general", "epreuves", "equipes", "participants", "phases", "matchs", "resultats", "classement"]) assert.match(source, new RegExp(`value=\\"${tab}\\"`));
   assert.match(source, /w-full grid-cols-2/);
   assert.match(source, /router\.push\(`\$\{pathname\}\?tab=\$\{tab\}`\)/);
-  assert.match(source, /CompetitionPlayPanel competitionId=\{id\} view="matchs" readOnly=\{closed\}/);
-  assert.match(source, /CompetitionPlayPanel competitionId=\{id\} view="resultats" readOnly=\{closed\}/);
-  assert.match(source, /CompetitionPlayPanel competitionId=\{id\} view="classement" readOnly=\{closed\}/);
+  assert.match(source, /CompetitionPlayPanel competitionId=\{id\} view="matchs"/);
+  assert.match(source, /CompetitionPlayPanel competitionId=\{id\} view="resultats"/);
+  assert.match(source, /CompetitionPlayPanel competitionId=\{id\} view="classement"/);
   assert.match(source, /Équipes engagées/);
   assert.match(source, /CompetitionPeoplePanel/);
   assert.ok(source.indexOf('id:"epreuves"') < source.indexOf('id:"phases"'));

@@ -33,16 +33,16 @@ export default function CompetitionsPage() {
   }, []);
   useEffect(() => { void fetch("/api/auth/me").then((response) => response.json()).then((data) => setCanCreate(data?.user?.role === "federal")).catch(() => setCanCreate(false)); }, []);
   const filters: Filter[] = useMemo(() => [
-    { key: "saison", label: "Saison", options: getFilterOptions(competitions, "saison") },
-    { key: "pays", label: "Pays", options: getFilterOptions(competitions, "pays") },
-    { key: "statut", label: "Statut", options: getFilterOptions(competitions, "statut") },
+    { key: "saison", label: "Saison", allLabel: "Toutes les saisons", options: getFilterOptions(competitions, "saison") },
+    { key: "pays", label: "Pays", allLabel: "Tous les pays", options: getFilterOptions(competitions, "pays") },
+    { key: "statut", label: "Statut", allLabel: "Tous les statuts", options: getFilterOptions(competitions, "statut") },
   ], [competitions]);
   return <div className="flex flex-col">
     <Header title="Compétitions" subtitle="Toutes les compétitions FEBACO" />
     <main className="flex-1 space-y-4 p-4 sm:p-6">
       {error ? <p className="rounded-lg border border-destructive/30 p-3 text-sm text-destructive">{error}</p> : null}
       {canCreate ? <div className="flex justify-end"><Button onClick={() => setCreateOpen(true)}><Plus className="mr-2 h-4 w-4" />Créer une compétition</Button></div> : null}
-      <DataTable data={competitions} columns={columns} filters={filters} searchPlaceholder="Rechercher une compétition..." detailHref={(item) => `/dashboard/competitions/${competitionRouteId(item.id)}`} idKey="__key" />
+      <DataTable data={competitions} columns={columns} filters={filters} showFilterLabels searchPlaceholder="Rechercher une compétition..." detailHref={(item) => `/dashboard/competitions/${competitionRouteId(item.id)}`} idKey="__key" />
       <CompetitionCreateModal open={createOpen} onOpenChange={setCreateOpen} onCreated={(competition) => setCompetitions((current) => sortCompetitionsByStartDate([competition, ...current]))} />
     </main>
   </div>;

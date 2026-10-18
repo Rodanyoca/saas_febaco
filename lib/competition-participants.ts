@@ -6,7 +6,7 @@ import {
 import { competitionEntityId } from "@/lib/competition-ids";
 import { GROUP_PHASE_MODE_ID, KNOCKOUT_PHASE_MODE_ID, OTHER_PHASE_MODE_ID, resolveCompetitionPhaseModeId } from "@/lib/competition-phase";
 import { mergeCompetitionPhaseUnits } from "@/lib/competition-phase-units";
-import { requireMutableEdition } from "@/lib/competition-lifecycle";
+import { requireCompetitionEdition } from "@/lib/competition-edition";
 
 const clean = (value: unknown) => String(value ?? "").trim();
 
@@ -89,15 +89,15 @@ export async function getCompetitionParticipants(
   const sexMap = new Map(data.sexes.map((row) => [clean(row.id_sexe), clean(row.nom_sexe) || clean(row.id_sexe)]));
   const teams = data.teams.map((row) => ({ id: clean(row.id_equipe), clubId: clean(row.id_club), nom: clean(row.nom_equipe) || clean(row.id_equipe), disciplineId: clean(row.id_discipline), categorieId: clean(row.id_categorie_age), sexeId: clean(row.id_sexe), categorie: categoryMap.get(clean(row.id_categorie_age)) || clean(row.id_categorie_age), sexe: sexMap.get(clean(row.id_sexe)) || clean(row.id_sexe) })).filter((team) => team.id && team.clubId);
   const clubs = data.clubs.map((row) => ({ id: clean(row.id_club), nom: clean(row.nom_club) || clean(row.id_club) })).filter((club) => club.id);
-  const unitByParticipation = new Map(data.units.map((row) => [clean(row.id_participation), row]));
-  const assignmentByUnit = new Map(data.assignments.map((row) => [clean(row.id_unite_competition), row]));
+  const unitByParticipation = new Map(data.units.filter(row => clean(row.id_competition) === competitionId && clean(row.statut).toUpperCase() !== "INACTIF").map((row) => [clean(row.id_participation), row]));
+  const assignmentByUnit = new Map(data.assignments.filter(row => phaseIds.has(clean(row.id_phase_competition)) && clean(row.statut).toUpperCase() !== "INACTIF").slice().reverse().map((row) => [clean(row.id_unite_competition), row]));
   const groupMap = new Map(groups.map((group) => [group.id, group.label]));
   const teamMap = new Map(teams.map((team) => [team.id, team]));
-  const participants = data.participants.filter((row) => clean(row.id_competition) === competitionId).map((row) => {
+  const participants = data.participants.filter((row) => clean(row.id_competition) === competitionId && clean(row.statut_participation) !== "SUPPRIMEE").map((row) => {
     const team = teamMap.get(clean(row.id_equipe));
     const unit = unitByParticipation.get(clean(row.id_participation));
     const assignment = assignmentByUnit.get(clean(unit?.id_unite_competition));
-    return { id: clean(row.id_participation), clubId: team?.clubId || "", equipeId: clean(row.id_equipe), club: clubMap.get(team?.clubId || "") || team?.clubId || "Référence absente", equipe: team?.nom || clean(row.id_equipe), categorie: team?.categorie || "-", sexe: team?.sexe || "-", groupe: groupMap.get(clean(assignment?.id_groupe)) || clean(assignment?.id_groupe) || "-", dateInscription: clean(row.date_inscription), statut: clean(row.statut_participation) };
+    return { id: clean(row.id_participation), unitId: clean(unit?.id_unite_competition), epreuveId: clean(unit?.id_epreuve_competition), phaseId: clean(assignment?.id_phase_competition), groupId: clean(assignment?.id_groupe), observations: clean(row.observations), assignments: data.assignments.filter(item => phaseIds.has(clean(item.id_phase_competition)) && clean(item.id_unite_competition) === clean(unit?.id_unite_competition) && clean(item.statut).toUpperCase() !== "INACTIF").map(item => ({ phaseId: clean(item.id_phase_competition), groupId: clean(item.id_groupe) })), clubId: team?.clubId || "", equipeId: clean(row.id_equipe), club: clubMap.get(team?.clubId || "") || team?.clubId || "Référence absente", equipe: team?.nom || clean(row.id_equipe), categorie: team?.categorie || "-", sexe: team?.sexe || "-", groupe: groupMap.get(clean(assignment?.id_groupe)) || clean(assignment?.id_groupe) || "-", dateInscription: clean(row.date_inscription), statut: clean(row.statut_participation) };
   });
   const modes = data.modes.map((row) => ({ id: clean(row.id_mode_phase), label: clean(row.nom_mode_phase) })).filter((row) => row.id);
   return { participants, clubs, teams, events, phases, groups, modes };
@@ -119,7 +119,7 @@ export async function createCompetitionParticipations(
   if (!status) fields.statutParticipation = "Le statut est obligatoire.";
   if (Object.keys(fields).length) throw new CompetitionParticipationError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, fields);
   const data = await loadRows(deps, true);
-  requireMutableEdition(data.competitions, competitionId);
+  requireCompetitionEdition(data.competitions, competitionId);
   if (!data.competitions.some((row) => clean(row.id_competition) === competitionId)) throw new CompetitionParticipationError("COMPETITION_INTROUVABLE", "La compétition n’existe pas.", 404);
   const event = data.events.find((row) => clean(row.id_epreuve_competition) === eventId && clean(row.id_competition) === competitionId && clean(row.statut).toUpperCase() !== "INACTIF");
   if (!event) throw new CompetitionParticipationError("EPREUVE_INVALIDE", "Cette épreuve n’appartient pas à cette édition ou est inactive.", 422, { epreuveId: "Épreuve indisponible." });
@@ -132,7 +132,7 @@ export async function createCompetitionParticipations(
   if (modeId !== GROUP_PHASE_MODE_ID && groupId) throw new CompetitionParticipationError("GROUPE_INTERDIT", "Aucun groupe n’est permis pour cette phase.", 422, { groupId: "Laissez le groupe vide." });
   if (![GROUP_PHASE_MODE_ID, KNOCKOUT_PHASE_MODE_ID, OTHER_PHASE_MODE_ID].includes(modeId)) throw new CompetitionParticipationError("MODE_PHASE_INVALIDE", "Le mode de la phase est absent ou non référencé.", 422);
   if (groupId && !data.groups.some((row) => clean(row.id_groupe) === groupId && clean(row.id_phase_competition) === phaseId)) throw new CompetitionParticipationError("GROUPE_INVALIDE", "Ce groupe n’appartient pas à cette phase.", 422, { groupId: "Groupe indisponible." });
-  const existingTeams = new Set(data.participants.filter((row) => clean(row.id_competition) === competitionId).map((row) => clean(row.id_equipe)));
+  const existingTeams = new Set(data.participants.filter((row) => clean(row.id_competition) === competitionId && clean(row.statut_participation) !== "SUPPRIMEE").map((row) => clean(row.id_equipe)));
   const writes: Array<{ sheet: string; values: Record<string, string> }> = [];
   let participationRows = [...data.participants], unitRows = [...data.units], assignmentRows = [...data.canonicalPhaseUnits];
   const created = [];
@@ -173,7 +173,7 @@ export async function listAllCompetitionParticipants(deps: Dependencies = defaul
   const groups = new Map(data.groups.map((row) => [clean(row.id_groupe), { label: clean(row.nom_groupe) || clean(row.id_groupe), competitionId: phaseCompetitions.get(clean(row.id_phase_competition)) || "" }]));
   const units = new Map(data.units.map((row) => [clean(row.id_participation), row]));
   const assignments = new Map(data.assignments.map((row) => [clean(row.id_unite_competition), row]));
-  return data.participants.map((row) => {
+  return data.participants.filter(row => clean(row.statut_participation) !== "SUPPRIMEE").map((row) => {
     const competitionId = clean(row.id_competition), team = teams.get(clean(row.id_equipe)), unit = units.get(clean(row.id_participation)), assignment = assignments.get(clean(unit?.id_unite_competition)), group = groups.get(clean(assignment?.id_groupe));
     return { id: clean(row.id_participation), competitionId, competition: competitions.get(competitionId) || competitionId, club: clubs.get(team?.clubId || "") || team?.clubId || "Référence absente", equipe: team?.nom || clean(row.id_equipe), categorie: team?.categorie || "-", sexe: team?.sexe || "-", groupe: group?.competitionId === competitionId ? group.label : "Référence absente", dateInscription: clean(row.date_inscription), statut: clean(row.statut_participation) };
   });

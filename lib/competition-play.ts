@@ -3,7 +3,8 @@ import { CompetitionParticipationError } from "@/lib/competition-participants";
 import { competitionEntityId } from "@/lib/competition-ids";
 import { GROUP_PHASE_MODE_ID, KNOCKOUT_PHASE_MODE_ID, OTHER_PHASE_MODE_ID, isCompetitionGroupPhase, resolveCompetitionPhaseModeId, resolveCompetitionPhaseTypeId, resolvedReferenceLabel } from "@/lib/competition-phase";
 import { mergeCompetitionPhaseUnits } from "@/lib/competition-phase-units";
-import { requireMutableEdition } from "@/lib/competition-lifecycle";
+import { requireCompetitionEdition } from "@/lib/competition-edition";
+import { FORFEIT_MARKER, isThirtyZeroForfeit } from "@/lib/competition-result-rules";
 
 const clean = (value: unknown) => String(value ?? "").trim();
 const integer = (value: unknown) => Number(clean(value));
@@ -49,7 +50,7 @@ export function calculateStandings(
   matches: SheetRow[], results: SheetRow[], competitionId: string, groupPhaseIds?: ReadonlySet<string>,
 ): Array<{ phaseId: string; groupId: string; unitId: string; played: number; wins: number; losses: number; for: number; against: number; difference: number; points: number; rank: number }> {
   const resultByMatch = new Map(results.filter((row) => clean(row.id_statut_resultat) === "STR001").map((row) => [clean(row.id_match), row]));
-  const buckets = new Map<string, Map<string, { played: number; wins: number; losses: number; for: number; against: number }>>();
+  const buckets = new Map<string, Map<string, { played: number; wins: number; losses: number; for: number; against: number; forfeitLosses: number }>>();
   for (const match of matches.filter((row) => clean(row.id_competition) === competitionId)) {
     if (groupPhaseIds && !groupPhaseIds.has(clean(match.id_phase_competition))) continue;
     const result = resultByMatch.get(clean(match.id_match));
@@ -58,14 +59,15 @@ export function calculateStandings(
     const table = buckets.get(key) ?? new Map(); buckets.set(key, table);
     const a = clean(match.id_unite_a), b = clean(match.id_unite_b), scoreA = integer(result.score_total_a), scoreB = integer(result.score_total_b);
     for (const [unitId, own, other, won] of [[a, scoreA, scoreB, scoreA > scoreB], [b, scoreB, scoreA, scoreB > scoreA]] as const) {
-      const current = table.get(unitId) ?? { played: 0, wins: 0, losses: 0, for: 0, against: 0 };
+      const current = table.get(unitId) ?? { played: 0, wins: 0, losses: 0, for: 0, against: 0, forfeitLosses: 0 };
+      if (!won && isThirtyZeroForfeit(result)) current.forfeitLosses++;
       current.played++; current.for += own; current.against += other; won ? current.wins++ : current.losses++; table.set(unitId, current);
     }
   }
   const output: ReturnType<typeof calculateStandings> = [];
   for (const [key, table] of buckets) {
     const [phaseId, groupId] = key.split("\u0000");
-    const sorted = [...table.entries()].map(([unitId, stat]) => ({ phaseId, groupId, unitId, ...stat, difference: stat.for - stat.against, points: stat.wins * 2 + stat.losses, rank: 0 }))
+    const sorted = [...table.entries()].map(([unitId, { forfeitLosses, ...stat }]) => ({ phaseId, groupId, unitId, ...stat, difference: stat.for - stat.against, points: stat.wins * 2 + stat.losses - 2 * forfeitLosses, rank: 0 }))
       .sort((a, b) => b.points - a.points || b.difference - a.difference || b.for - a.for || a.unitId.localeCompare(b.unitId));
     sorted.forEach((row, index) => { row.rank = index + 1; output.push(row); });
   }
@@ -85,7 +87,7 @@ function present(data: Awaited<ReturnType<typeof load>>, competitionId: string) 
   const groupNames = new Map(scoped.groups.map((row) => [clean(row.id_groupe), clean(row.nom_groupe) || clean(row.id_groupe)]));
   const matches = data.matches.filter((row) => clean(row.id_competition) === competitionId).map((row) => { const phaseId = clean(row.id_phase_competition), eventId = clean(scoped.phases.find((phase) => clean(phase.id_phase_competition) === phaseId)?.id_epreuve_competition); return { id: clean(row.id_match), eventId, epreuve: eventNames.get(eventId) || "-", phaseId, phase: phaseNames.get(phaseId) || "-", groupId: clean(row.id_groupe), groupe: groupNames.get(clean(row.id_groupe)) || "-", uniteAId: clean(row.id_unite_a), uniteA: unitNames.get(clean(row.id_unite_a)) || clean(row.id_unite_a), uniteBId: clean(row.id_unite_b), uniteB: unitNames.get(clean(row.id_unite_b)) || clean(row.id_unite_b), date: clean(row.date_match), heure: clean(row.heure_match), statut: clean(row.statut_match) }; });
   const matchMap = new Map(matches.map((row) => [row.id, row]));
-  const results = data.results.filter((row) => matchMap.has(clean(row.id_match))).map((row) => { const match = matchMap.get(clean(row.id_match))!; const winnerId = clean(row.id_unite_vainqueur); return { id: clean(row.id_resultat), matchId: match.id, match, scoreA: clean(row.score_total_a), scoreB: clean(row.score_total_b), qt1A: clean(row.qt1_a), qt1B: clean(row.qt1_b), qt2A: clean(row.qt2_a), qt2B: clean(row.qt2_b), qt3A: clean(row.qt3_a), qt3B: clean(row.qt3_b), qt4A: clean(row.qt4_a), qt4B: clean(row.qt4_b), prolongationA: clean(row.prolongation_a), prolongationB: clean(row.prolongation_b), winnerId, vainqueur: unitNames.get(winnerId) || "-", statutId: clean(row.id_statut_resultat) }; });
+  const results = data.results.filter((row) => matchMap.has(clean(row.id_match))).map((row) => { const match = matchMap.get(clean(row.id_match))!; const winnerId = clean(row.id_unite_vainqueur); return { resultMode: isThirtyZeroForfeit(row) ? "FORFAIT_30_0" : "NORMAL", id: clean(row.id_resultat), matchId: match.id, match, scoreA: clean(row.score_total_a), scoreB: clean(row.score_total_b), qt1A: clean(row.qt1_a), qt1B: clean(row.qt1_b), qt2A: clean(row.qt2_a), qt2B: clean(row.qt2_b), qt3A: clean(row.qt3_a), qt3B: clean(row.qt3_b), qt4A: clean(row.qt4_a), qt4B: clean(row.qt4_b), prolongationA: clean(row.prolongation_a), prolongationB: clean(row.prolongation_b), winnerId, vainqueur: unitNames.get(winnerId) || "-", statutId: clean(row.id_statut_resultat) }; });
   const groupPhaseIds = new Set(scoped.phases.filter(isCompetitionGroupPhase).map((row) => clean(row.id_phase_competition)));
   const standings = data.standings.filter((row) => clean(row.id_competition) === competitionId && groupPhaseIds.has(clean(row.id_phase_competition))).map((row) => {
     const phaseId = clean(row.id_phase_competition), unitId = clean(row.id_unite_competition), sourcePosition = phasePositions.get(phaseId) ?? 0;
@@ -130,7 +132,7 @@ export async function createCompetitionPhaseUnit(competitionId: string, body: un
   if (!phaseId) fields.idPhaseCompetition = "Phase obligatoire.";
   if (!unitId) fields.idUniteCompetition = "Unité obligatoire.";
   if (Object.keys(fields).length) throw new CompetitionParticipationError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, fields);
-  const data = await load(deps); requireCompetition(data, competitionId); requireMutableEdition(data.competitionRows, competitionId);
+  const data = await load(deps); requireCompetition(data, competitionId); requireCompetitionEdition(data.competitionRows, competitionId);
   const phase = data.phases.find((row) => clean(row.id_phase_competition) === phaseId && clean(row.id_competition) === competitionId);
   if (!phase) throw new CompetitionParticipationError("PHASE_INVALIDE", "Cette phase n’appartient pas à la compétition.", 422, { idPhaseCompetition: "Phase indisponible." });
   if (clean(phase.statut).toUpperCase() === "INACTIF") throw new CompetitionParticipationError("PHASE_INACTIVE", "Cette phase est inactive.", 422);
@@ -168,7 +170,7 @@ export async function createCompetitionPhaseUnit(competitionId: string, body: un
 export async function createCompetitionQualifications(competitionId:string,body:unknown,deps:Dependencies=defaults){
  const input=body&&typeof body==="object"?body as Record<string,unknown>:{},sourceId=clean(input.sourcePhaseId),destinationId=clean(input.destinationPhaseId),groupId=clean(input.destinationGroupId),typeId=clean(input.typeId)||"TAP002",sourceMatchId=clean(input.sourceMatchId),date=clean(input.date)||new Date().toISOString().slice(0,10),observations=clean(input.observations),unitIds=[...new Set((Array.isArray(input.unitIds)?input.unitIds:[]).map(clean).filter(Boolean))];
  const fields:Record<string,string>={};if(!sourceId)fields.sourcePhaseId="Phase source obligatoire.";if(!destinationId)fields.destinationPhaseId="Destination obligatoire.";if(!unitIds.length)fields.unitIds="Sélectionnez au moins une unité.";if(Object.keys(fields).length)throw new CompetitionParticipationError("VALIDATION","Veuillez corriger les champs indiqués.",422,fields);
- const data=await load(deps);requireCompetition(data,competitionId);requireMutableEdition(data.competitionRows,competitionId);const source=data.phases.find(x=>clean(x.id_competition)===competitionId&&clean(x.id_phase_competition)===sourceId),destination=data.phases.find(x=>clean(x.id_competition)===competitionId&&clean(x.id_phase_competition)===destinationId);if(!source||!destination)throw new CompetitionParticipationError("PHASE_INVALIDE","Phase source ou destination invalide.",422);if(clean(source.id_epreuve_competition)!==clean(destination.id_epreuve_competition))throw new CompetitionParticipationError("EPREUVE_INCOMPATIBLE","Les phases doivent appartenir à la même épreuve.",422);const order=(x:SheetRow)=>Number(clean(x.numero_phase))||data.phases.indexOf(x)+1;if(order(destination)<=order(source))throw new CompetitionParticipationError("PHASE_DESTINATION_ANTERIEURE","La destination doit être ultérieure.",422);
+ const data=await load(deps);requireCompetition(data,competitionId);requireCompetitionEdition(data.competitionRows,competitionId);const source=data.phases.find(x=>clean(x.id_competition)===competitionId&&clean(x.id_phase_competition)===sourceId),destination=data.phases.find(x=>clean(x.id_competition)===competitionId&&clean(x.id_phase_competition)===destinationId);if(!source||!destination)throw new CompetitionParticipationError("PHASE_INVALIDE","Phase source ou destination invalide.",422);if(clean(source.id_epreuve_competition)!==clean(destination.id_epreuve_competition))throw new CompetitionParticipationError("EPREUVE_INCOMPATIBLE","Les phases doivent appartenir à la même épreuve.",422);const order=(x:SheetRow)=>Number(clean(x.numero_phase))||data.phases.indexOf(x)+1;if(order(destination)<=order(source))throw new CompetitionParticipationError("PHASE_DESTINATION_ANTERIEURE","La destination doit être ultérieure.",422);
  const mode=resolveCompetitionPhaseModeId(destination);if(mode===GROUP_PHASE_MODE_ID&&!groupId)throw new CompetitionParticipationError("GROUPE_REQUIS","Le groupe de destination est obligatoire.",422);if(mode!==GROUP_PHASE_MODE_ID&&groupId)throw new CompetitionParticipationError("GROUPE_INTERDIT","Aucun groupe n’est permis pour cette destination.",422);if(groupId&&!data.groups.some(x=>clean(x.id_groupe)===groupId&&clean(x.id_phase_competition)===destinationId))throw new CompetitionParticipationError("GROUPE_INVALIDE","Groupe de destination invalide.",422);if(!data.assignmentTypes.some(x=>clean(x.id_type_affectation_phase)===typeId))throw new CompetitionParticipationError("TYPE_AFFECTATION_INVALIDE","Type d’affectation invalide.",422);
  const sourceUnits=new Set(data.phaseUnits.filter(x=>clean(x.id_phase_competition)===sourceId&&clean(x.statut).toUpperCase()!=="INACTIF").map(x=>clean(x.id_unite_competition))),existing=new Set(data.phaseUnits.filter(x=>clean(x.id_phase_competition)===destinationId&&clean(x.statut).toUpperCase()!=="INACTIF").map(x=>clean(x.id_unite_competition)));for(const unitId of unitIds){const unit=data.units.find(x=>clean(x.id_competition)===competitionId&&clean(x.id_unite_competition)===unitId);if(!unit||clean(unit.id_epreuve_competition)!==clean(destination.id_epreuve_competition)||!sourceUnits.has(unitId))throw new CompetitionParticipationError("UNITE_INVALIDE","Une unité n’appartient pas à la phase source ou à l’épreuve.",422);if(existing.has(unitId))throw new CompetitionParticipationError("AFFECTATION_DUPLIQUEE","Une unité est déjà active dans la destination.",409)}
  if(sourceMatchId){const match=data.matches.find(x=>clean(x.id_match)===sourceMatchId&&clean(x.id_phase_competition)===sourceId),result=data.results.find(x=>clean(x.id_match)===sourceMatchId&&clean(x.id_statut_resultat)==="STR001");if(!match)throw new CompetitionParticipationError("MATCH_SOURCE_INVALIDE","Le match source est invalide.",422);if(unitIds.length!==1||clean(result?.id_unite_vainqueur)!==unitIds[0])throw new CompetitionParticipationError("VAINQUEUR_INCOMPATIBLE","La sélection doit correspondre au vainqueur du match source.",422)}
@@ -184,7 +186,7 @@ export async function createCompetitionMatch(competitionId: string, body: unknow
   if (unitA && unitA === unitB) fields.uniteBId = "Choisissez deux équipes différentes.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fields.date = "Date invalide."; if (!/^\d{2}:\d{2}$/.test(time)) fields.heure = "Heure invalide.";
   if (Object.keys(fields).length) throw new CompetitionParticipationError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, fields);
-  const data = await load(deps); requireCompetition(data, competitionId); requireMutableEdition(data.competitionRows, competitionId); const scoped = scope(data, competitionId);
+  const data = await load(deps); requireCompetition(data, competitionId); requireCompetitionEdition(data.competitionRows, competitionId); const scoped = scope(data, competitionId);
   const phase = scoped.phases.find((row) => clean(row.id_phase_competition) === phaseId);
   if (!phase) throw new CompetitionParticipationError("PHASE_INVALIDE", "Cette phase n’appartient pas à la compétition.", 422, { phaseId: "Phase indisponible." });
   if (clean(phase.statut).toUpperCase() === "INACTIF") throw new CompetitionParticipationError("PHASE_INACTIVE", "Cette phase est inactive.", 422, { phaseId: "Choisissez une phase active." });
@@ -204,7 +206,12 @@ export async function createCompetitionMatch(competitionId: string, body: unknow
 }
 
 export async function createCompetitionResult(competitionId: string, body: unknown, deps: Dependencies = defaults) {
-  const input = body && typeof body === "object" ? body as Record<string, unknown> : {}, matchId = clean(input.matchId), statusId = clean(input.statutId), observations = clean(input.observations);
+  const source = body && typeof body === "object" ? body as Record<string, unknown> : {};
+  const forfeit = clean(source.resultMode) === "FORFAIT_30_0", side = clean(source.winnerSide);
+  if (clean(source.resultMode) && !["NORMAL", "FORFAIT_30_0"].includes(clean(source.resultMode))) throw new CompetitionParticipationError("MODE_RESULTAT_INVALIDE", "Mode de résultat invalide.", 422);
+  if (forfeit && !["A", "B"].includes(side)) throw new CompetitionParticipationError("VAINQUEUR_REQUIS", "Choisissez l’équipe gagnante du forfait.", 422, { winnerSide: "Équipe gagnante obligatoire." });
+  const input = forfeit ? { ...source, statutId: "STR001", qt1A: side === "A" ? 30 : 0, qt1B: side === "B" ? 30 : 0, qt2A: 0, qt2B: 0, qt3A: 0, qt3B: 0, qt4A: 0, qt4B: 0, prolongationA: 0, prolongationB: 0 } : source;
+  const matchId = clean(input.matchId), statusId = clean(input.statutId), observations = (forfeit ? FORFEIT_MARKER + " " : "") + clean(input.observations).replaceAll(FORFEIT_MARKER, "").trim();
   const scoreKeys = ["qt1A", "qt1B", "qt2A", "qt2B", "qt3A", "qt3B", "qt4A", "qt4B", "prolongationA", "prolongationB"] as const;
   const scores = Object.fromEntries(scoreKeys.map((key) => [key, integer(input[key] ?? 0)])) as Record<typeof scoreKeys[number], number>;
   const fields: Record<string, string> = {}; if (!matchId) fields.matchId = "Match obligatoire."; if (!statusId) fields.statutId = "Statut obligatoire.";
@@ -212,13 +219,13 @@ export async function createCompetitionResult(competitionId: string, body: unkno
   const totalA = scores.qt1A + scores.qt2A + scores.qt3A + scores.qt4A + scores.prolongationA, totalB = scores.qt1B + scores.qt2B + scores.qt3B + scores.qt4B + scores.prolongationB;
   if (statusId === "STR001" && totalA === totalB) fields.scores = "Un match joué ne peut pas se terminer à égalité.";
   if (Object.keys(fields).length) throw new CompetitionParticipationError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, fields);
-  const data = await load(deps); requireCompetition(data, competitionId); requireMutableEdition(data.competitionRows, competitionId);
+  const data = await load(deps); requireCompetition(data, competitionId); requireCompetitionEdition(data.competitionRows, competitionId);
   const match = data.matches.find((row) => clean(row.id_match) === matchId && clean(row.id_competition) === competitionId);
   if (!match) throw new CompetitionParticipationError("MATCH_INVALIDE", "Match introuvable pour cette compétition.", 422, { matchId: "Match indisponible." });
   if (!data.statuses.some((row) => clean(row.id_statut_resultat) === statusId)) throw new CompetitionParticipationError("STATUT_INVALIDE", "Statut de résultat invalide.", 422, { statutId: "Statut indisponible." });
   if (data.results.some((row) => clean(row.id_match) === matchId)) throw new CompetitionParticipationError("RESULTAT_DUPLIQUE", "Un résultat existe déjà pour ce match.", 409);
   const resultId = competitionEntityId("resultat", competitionId, data.results, "id_resultat"), played = statusId === "STR001";
-  const resultValues = { id_resultat: resultId, id_match: matchId, qt1_a: played ? String(scores.qt1A) : "", qt1_b: played ? String(scores.qt1B) : "", qt2_a: played ? String(scores.qt2A) : "", qt2_b: played ? String(scores.qt2B) : "", qt3_a: played ? String(scores.qt3A) : "", qt3_b: played ? String(scores.qt3B) : "", qt4_a: played ? String(scores.qt4A) : "", qt4_b: played ? String(scores.qt4B) : "", prolongation_a: played ? String(scores.prolongationA) : "", prolongation_b: played ? String(scores.prolongationB) : "", score_total_a: played ? String(totalA) : "", score_total_b: played ? String(totalB) : "", id_unite_vainqueur: played ? clean(totalA > totalB ? match.id_unite_a : match.id_unite_b) : "", id_statut_resultat: statusId, observations };
+  const resultValues = { id_resultat: resultId, id_match: matchId, qt1_a: played && !forfeit ? String(scores.qt1A) : "", qt1_b: played && !forfeit ? String(scores.qt1B) : "", qt2_a: played && !forfeit ? String(scores.qt2A) : "", qt2_b: played && !forfeit ? String(scores.qt2B) : "", qt3_a: played && !forfeit ? String(scores.qt3A) : "", qt3_b: played && !forfeit ? String(scores.qt3B) : "", qt4_a: played && !forfeit ? String(scores.qt4A) : "", qt4_b: played && !forfeit ? String(scores.qt4B) : "", prolongation_a: played && !forfeit ? String(scores.prolongationA) : "", prolongation_b: played && !forfeit ? String(scores.prolongationB) : "", score_total_a: played ? String(totalA) : "", score_total_b: played ? String(totalB) : "", id_unite_vainqueur: played ? clean(totalA > totalB ? match.id_unite_a : match.id_unite_b) : "", id_statut_resultat: statusId, observations };
   const groupPhaseIds = new Set(data.phases.filter((row) => clean(row.id_competition) === competitionId && isCompetitionGroupPhase(row)).map((row) => clean(row.id_phase_competition)));
   const shouldCalculateStandings = groupPhaseIds.has(clean(match.id_phase_competition));
   const allResults = [...data.results, resultValues], calculated = shouldCalculateStandings ? calculateStandings(data.matches, allResults, competitionId, groupPhaseIds) : [];

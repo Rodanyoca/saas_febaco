@@ -1,7 +1,7 @@
 import { appendSheetRowsAtomically, readSheetRows, type SheetRow } from "@/lib/google-sheets";
 import { CompetitionParticipationError } from "@/lib/competition-participants";
 import { competitionEntityId } from "@/lib/competition-ids";
-import { requireMutableEdition } from "@/lib/competition-lifecycle";
+import { requireCompetitionEdition } from "@/lib/competition-edition";
 import { buildCompetitionLicenseIndexes, calculateCompetitionParticipationValidity, type ParticipationValidity } from "@/lib/competition-participation-validity";
 
 const clean = (value: unknown) => String(value ?? "").trim();
@@ -32,7 +32,7 @@ async function load(deps: Dependencies) {
 function resolve(competitionId: string, data: Awaited<ReturnType<typeof load>>, now: string) {
   const competition = data.competitions.find((row) => clean(row.id_competition) === competitionId);
   if (!competition) throw new CompetitionParticipationError("COMPETITION_INTROUVABLE", "La compétition n’existe pas.", 404);
-  const participationRows = data.participations.filter((row) => clean(row.id_competition) === competitionId), teamIds = new Set(participationRows.map((row) => clean(row.id_equipe)));
+  const participationRows = data.participations.filter((row) => clean(row.id_competition) === competitionId && clean(row.statut_participation) !== "SUPPRIMEE"), teamIds = new Set(participationRows.map((row) => clean(row.id_equipe)));
   const teamMap = new Map(data.teams.map((row) => [clean(row.id_equipe), row])), clubMap = new Map(data.clubs.map((row) => [clean(row.id_club), clean(row.nom_club) || clean(row.id_club)]));
   const teamName = (id: string) => clean(teamMap.get(id)?.nom_equipe) || id || "-", clubIdFor = (teamId: string) => clean(teamMap.get(teamId)?.id_club), clubName = (teamId: string) => clubMap.get(clubIdFor(teamId)) || clubIdFor(teamId) || "-";
   const actorMaps = { athletes: new Map(data.athleteRows.map((row) => [clean(row.id_athlete), row])), arbitres: new Map(data.refereeRows.map((row) => [clean(row.id_arbitre), row])), officiels: new Map(data.officialRows.map((row) => [clean(row.id_officiel), row])), medecins: new Map(data.doctorRows.map((row) => [clean(row.id_medecin), row])), autres: new Map(data.otherRows.map((row) => [clean(row.id_autre_acteur), row])) };
@@ -57,7 +57,7 @@ function resolve(competitionId: string, data: Awaited<ReturnType<typeof load>>, 
   const candidates: Record<ParticipantCategory, CompetitionCandidate[]> = { athletes: [], arbitres: [], officiels: [], medecins: [], autres: [] };
   const seenAthletes = new Set<string>();
   for (const affiliation of data.athleteAffiliations.filter((row) => teamIds.has(clean(row.id_equipe)) && activeAffiliation(row, now))) {
-    const id = clean(affiliation.id_athlete), actor = actorMaps.athletes.get(id), teamId = clean(affiliation.id_equipe), actorTypeId = actorTypeByCategory.athletes, unitId = clean(data.units.find((row) => clean(row.id_competition) === competitionId && clean(row.id_equipe) === teamId)?.id_unite_competition), selectionId = `${id}::${unitId || teamId}`; if (!id || !actor || !activeActor(actor) || seenAthletes.has(selectionId) || enrolledKeys.has(`${actorTypeId}\u0000${id}\u0000${unitId}`)) continue;
+    const id = clean(affiliation.id_athlete), actor = actorMaps.athletes.get(id), teamId = clean(affiliation.id_equipe), actorTypeId = actorTypeByCategory.athletes, unitId = clean(data.units.find((row) => clean(row.id_competition) === competitionId && clean(row.id_equipe) === teamId && clean(row.statut) !== "INACTIF")?.id_unite_competition), selectionId = `${id}::${unitId || teamId}`; if (!id || !actor || !activeActor(actor) || seenAthletes.has(selectionId) || enrolledKeys.has(`${actorTypeId}\u0000${id}\u0000${unitId}`)) continue;
     candidates.athletes.push({ id, nom: nameOf(actor), role: "", club: clubName(teamId), equipe: teamName(teamId), detail: "Affiliation active", teamId, clubId: clubIdFor(teamId), unitId, selectionId, actorTypeId, grade: "", ...validity(actorTypeId, id) }); seenAthletes.add(selectionId);
   }
   const actorRows: Record<Exclude<ParticipantCategory, "athletes">, SheetRow[]> = { arbitres: data.refereeRows, officiels: data.officialRows, medecins: data.doctorRows, autres: data.otherRows };
@@ -74,10 +74,10 @@ export async function addCompetitionPerson(competitionId: string, body: unknown,
   const input = body && typeof body === "object" ? body as Record<string, unknown> : {}, category = clean(input.category) as ParticipantCategory, actorId = clean(input.actorId), requestedUnitId = clean(input.unitId), roleInput = clean(input.role);
   const fields: Record<string, string> = {}; if (!Object.hasOwn(categoryType, category)) fields.category = "Catégorie invalide."; if (!actorId) fields.actorId = "Sélectionnez une personne."; if (category === "autres" && !roleInput) fields.role = "Le rôle dans la compétition est obligatoire.";
   if (Object.keys(fields).length) throw new CompetitionParticipationError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, fields);
-  const data = await load(deps); requireMutableEdition(data.competitions, competitionId); const view = resolve(competitionId, data, now), candidate = view.available[category].find((item) => item.id === actorId && (!requestedUnitId || item.unitId === requestedUnitId));
+  const data = await load(deps); requireCompetitionEdition(data.competitions, competitionId); const view = resolve(competitionId, data, now), candidate = view.available[category].find((item) => item.id === actorId && (!requestedUnitId || item.unitId === requestedUnitId));
   if (!candidate) throw new CompetitionParticipationError("PARTICIPANT_INVALIDE", "Cette personne n’est pas disponible pour cette compétition.", 422, { actorId: "Personne indisponible ou déjà ajoutée." });
   const id = competitionEntityId("intervenant", competitionId, data.intervenants, "id_intervenant_competition"), type = categoryType[category], actorTypeId = actorTypeByCategory[category];
-  const unitId = candidate.unitId || (candidate.teamId ? clean(data.units.find((row) => clean(row.id_competition) === competitionId && clean(row.id_equipe) === candidate.teamId)?.id_unite_competition) : "");
+  const unitId = candidate.unitId || (candidate.teamId ? clean(data.units.find((row) => clean(row.id_competition) === competitionId && clean(row.id_equipe) === candidate.teamId && clean(row.statut) !== "INACTIF")?.id_unite_competition) : "");
   await deps.appendRows({ block: "competitions", rows: [{ sheet: "COMPETITIONS_INTERVENANTS", values: { id_intervenant_competition: id, id_competition: competitionId, type_participant: type, id_acteur: actorId, id_type_acteur: actorTypeId, id_unite_competition: unitId, id_fonction: "", id_equipe: candidate.teamId || "", id_club: candidate.clubId || "", role_participant: category === "autres" ? roleInput.replace(/\s+/g, " ") : "", statut: "ACTIF", observations: clean(input.observations) } }] });
   return { id };
 }

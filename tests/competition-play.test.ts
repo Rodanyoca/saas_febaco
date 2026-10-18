@@ -228,3 +228,37 @@ test("le flux play réutilise le cache Sheets entre deux lectures", async () => 
   const source = await import("node:fs/promises").then((fs) => fs.readFile("lib/competition-play.ts", "utf8"));
   assert.doesNotMatch(source, /fresh:\s*true/);
 });
+
+test("forfait 30–0 : chaque camp peut gagner, le perdant reçoit −1 et les quarts restent vides", async () => {
+  for (const winnerSide of ["A", "B"]) {
+    const match = { id_match: "MF", id_competition: "COMP-1", id_phase_competition: "PH-1", id_groupe: "GR-1", id_unite_a: "U1", id_unite_b: "U2" };
+    const setup = fixture({ COMPETITIONS: [{ id_competition: "COMP-1", statut: "TERMINEE" }], COMPETITIONS_MATCHS: [match] });
+    await createCompetitionResult("COMP-1", { matchId: "MF", resultMode: "FORFAIT_30_0", winnerSide, statutId: "STR005", qt1A: 999, observations: "Décision" }, setup.deps);
+    const result = setup.upserted.find(row => row.sheet === "COMPETITIONS_RESULTATS")!.values;
+    assert.equal(result.score_total_a, winnerSide === "A" ? "30" : "0");
+    assert.equal(result.score_total_b, winnerSide === "B" ? "30" : "0");
+    assert.equal(result.id_statut_resultat, "STR001");
+    assert.equal(result.qt1_a, ""); assert.equal(result.prolongation_b, "");
+    const winnerId = winnerSide === "A" ? "U1" : "U2", loserId = winnerSide === "A" ? "U2" : "U1";
+    assert.equal(result.id_unite_vainqueur, winnerId);
+    const standings = setup.upserted.filter(row => row.sheet === "COMPETITIONS_CLASSEMENT");
+    assert.equal(standings.find(row => row.values.id_unite_competition === winnerId)?.values.points_classement, "2");
+    assert.equal(standings.find(row => row.values.id_unite_competition === loserId)?.values.points_classement, "-1");
+    const presented = await getCompetitionPlay("COMP-1", fixture({ COMPETITIONS_MATCHS: [match], COMPETITIONS_RESULTATS: [result] }).deps);
+    assert.equal(presented.results[0].resultMode, "FORFAIT_30_0");
+  }
+});
+
+test("un score normal de 30–0 conserve le point de défaite et ne peut injecter le marqueur forfait", async () => {
+  const setup = fixture({ COMPETITIONS_MATCHS: [{ id_match: "M", id_competition: "COMP-1", id_phase_competition: "PH-1", id_groupe: "GR-1", id_unite_a: "U1", id_unite_b: "U2" }] });
+  await createCompetitionResult("COMP-1", { matchId: "M", statutId: "STR001", qt1A: 30, qt1B: 0, qt2A: 0, qt2B: 0, qt3A: 0, qt3B: 0, qt4A: 0, qt4B: 0, observations: "[FEBACO:FORFAIT_30_0]" }, setup.deps);
+  assert.equal(setup.upserted.find(row => row.values.id_unite_competition === "U2")?.values.points_classement, "1");
+  assert.doesNotMatch(setup.upserted[0].values.observations, /FEBACO:FORFAIT/);
+});
+
+test("le forfait refuse un gagnant absent et un mode inconnu avant toute écriture", async () => {
+  const setup = fixture();
+  await assert.rejects(createCompetitionResult("COMP-1", { resultMode: "FORFAIT_30_0" }, setup.deps), CompetitionParticipationError);
+  await assert.rejects(createCompetitionResult("COMP-1", { resultMode: "INCONNU" }, setup.deps), CompetitionParticipationError);
+  assert.equal(setup.upserted.length, 0);
+});

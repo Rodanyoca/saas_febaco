@@ -82,3 +82,15 @@ Demander éventuellement les captures accessibles à l'utilisateur avec bornes/v
 ## 6. Décision, livraison et reprise
 
 Pour chaque intervention, mettre à jour le tableau d'état du canevas : proposée → implémentée → vérifiée localement → publiée → observée en production, sans sauter de statut. Noter SHA/diff/test/mesure/limites et référence rollback. Pas de publication dans cet audit. Plus tard, ne publier qu'un diff autorisé, conserver les évolutions parallèles et revérifier alias/SHA ; un push main déclenche Vercel automatiquement.
+
+## 7. Livraison combinée P1 et fonctionnel (autorisation du 19 octobre 2026)
+
+L'autorisation actuelle couvre l'intégration, les commits, le push et le déploiement de l'ensemble applicatif/documentaire voulu. Elle remplace la restriction historique « P1 isolé sans publication ». Aucun développement supplémentaire Compétitions n'est ajouté pour cette livraison.
+
+- Intégrer depuis la production vérifiée les commits P1 et la documentation, puis les changements identification/Compétitions existants. Préserver les implémentations publiées de tri, chemin individuel et projection, ainsi que les évolutions acteurs/licences/saison et dashboard.
+- Inventorier les fichiers suivis et non suivis des worktrees ; exclure secrets, données personnelles, fichiers d'environnement contenant des valeurs, scripts d'administration locaux, réglages d'éditeur, caches et sorties de build. Vérifier le diff final avant push, sans force push.
+- Vérifier tests complets/ciblés, TypeScript et build. Reproduire les échecs Ligue/Club sur la base publiée pour les distinguer des régressions.
+- Pousser le commit d'intégration vers `main` après les contrôles : l'intégration Git Vercel déclenche la production. Vérifier l'alias, le SHA et l'état READY, puis conserver les métadonnées de publication et le déploiement précédent dans le canevas.
+- Sans session : vérifier login, redirection dashboard et refus API (liste complète/projetée, fiche et affiliations). Ne pas fabriquer de cookie ni effectuer d'écriture métier pour cette vérification.
+- Avec une session existante : vérifier ordinateur/mobile, recherche exacte/partielle par ID système, absence d'ID visible, licence/nom, filtres, tri, pagination, photos et ouverture de fiche ; vérifier les réponses complète et individuelle (même avec view=table), identifiant inconnu, affiliations ciblées et périmètres fédéral/ligue/entente. Sans session, conserver cette liste de contrôles manuels restants ; les fixtures ne sont pas une validation authentifiée de production.
+- Consulter les erreurs runtime accessibles sur une fenêtre UTC bornée sans divulguer de messages bruts ou données métier. Aucune nouvelle tentative Observability Plus. Les observations de cette livraison combinée ne mesurent pas le gain CPU isolé de P1.

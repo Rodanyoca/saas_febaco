@@ -40,13 +40,17 @@ test("actual desktop/mobile table: same rendering, search, filters, licence sort
       {search:"001",filters:{statut:"ACTIF"},sort:"licence-asc",page:1,size:25},
       {search:"SYNTH",filters:{sexe:"M",statut:"ACTIF"},sort:"name",page:2,size:10},
       {search:"absent-synthetic-value",filters:{},sort:"name",page:1,size:10},
+      {search:"ATH00001",filters:{},sort:"name",page:1,size:10},
+      {search:"ath000",filters:{},sort:"name",page:2,size:10},
+      {search:"ATH99999",filters:{},sort:"name",page:1,size:10},
     ]
     for(const scenario of scenarios) {
       const {search,filters,sort,page,size}=scenario
       const before=render(full.athletes,search,filters,sort,page,size),after=render(compact.athletes,search,filters,sort,page,size)
       assert.equal(after,before,JSON.stringify(scenario))
       assert.match(after,/md:hidden/);assert.match(after,/hidden md:block/)
-      const searchKeys=["licenceDisplay","nomComplet","sexe","dateNaissance","idNational","idFiba","statut"]
+      assert.doesNotMatch(after.replace(/<[^>]*>/g,""),/\bATH\d{5}\b/,"system IDs are searchable but never rendered as visible text")
+      const searchKeys=["id","licenceDisplay","nomComplet","sexe","dateNaissance","idNational","idFiba","statut"]
       const expected=[...full.athletes].sort((a,b)=>sort==="name"?String(a.nomComplet||"").localeCompare(String(b.nomComplet||""),"fr",{sensitivity:"base"}):compareLicenceNumbers(a,b,sort==="licence-desc"?"desc":"asc"))
         .filter(row=>searchKeys.some(key=>String(row[key]).toLowerCase().includes(search.toLowerCase()))&&Object.entries(filters).every(([key,value])=>row[key]===value))
         .slice((page-1)*size,page*size)

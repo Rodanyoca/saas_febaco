@@ -12,9 +12,11 @@ export type ResolvedPhaseUnitRow = SheetRow & {
 export function mergeCompetitionPhaseUnits(canonical: SheetRow[], historical: SheetRow[], groups: SheetRow[]): ResolvedPhaseUnitRow[] {
   const phaseByGroup = new Map(groups.map((row) => [clean(row.id_groupe), clean(row.id_phase_competition)]));
   const output = new Map<string, ResolvedPhaseUnitRow>();
+  const canonicalPairs = new Set(canonical.map(row => `${clean(row.id_phase_competition)}\u0000${clean(row.id_unite_competition)}`));
   const add = (row: SheetRow, historicalRow: boolean) => {
     const groupId = clean(row.id_groupe), phaseId = historicalRow ? phaseByGroup.get(groupId) || "" : clean(row.id_phase_competition), unitId = clean(row.id_unite_competition);
     if (!phaseId || !unitId) return;
+    if (historicalRow && canonicalPairs.has(`${phaseId}\u0000${unitId}`)) return;
     const key = `${phaseId}\u0000${unitId}\u0000${groupId}`;
     if (output.has(key)) return;
     output.set(key, { ...row, id_phase_unite: clean(row.id_phase_unite) || clean(row.id_affectation_groupe), id_phase_competition: phaseId, id_groupe: groupId, id_unite_competition: unitId });

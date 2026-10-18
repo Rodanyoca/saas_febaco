@@ -4,6 +4,20 @@ Mis à jour le 19 octobre 2026 (Europe/Paris, UTC+02:00). Les mesures portent un
 
 Ce dossier est le point de reprise de la démarche. Il complète, sans remplacer, l'[audit historique du dashboard](../audits/vercel-cpu-dashboard-2026-10-17.md). Ne pas reprendre ses anciens constats de disponibilité d'outils comme une description de la situation actuelle.
 
+## Livraison combinée autorisée le 19 octobre 2026
+
+État : intégration locale validée sur `release/p1-app-current`, publication et vérifications en cours. Suite complète : 316/319, les trois échecs Ligue/Club reproduits sur la base publiée ; suite ciblée : 133/133. TypeScript réussi. Build webpack réussi (47 pages, journal npm `exit 0`) ; PowerShell a classé l'avertissement de racine multi-lockfiles comme NativeCommandError, sans échec du build Next. Cette section actualise l'état de livraison ; les observations et mesures ci-dessous restent historiques.
+
+- Base distante et production vérifiées avant intervention : `dc467a62d747cc13cb5c7a561216f1ac50b14bdb`, alias `saas-febaco.vercel.app`, déploiement précédent `dpl_H9WAncS6iWwnyvJHNjapafWt75nH` (`saas-febaco-qr9fe044l-yoca-souleymane-s-projects.vercel.app`). Conserver ce déploiement pour un retour arrière.
+- P1 : commits source `9cb5826` et `b4d31d9`, repris en `1153137` et `a524240` ; code, fixtures, benchmark et documentation intégrés ensemble. L'audit `18c2f38` est inclus dans la documentation P1, sans rapport parallèle.
+- Identification : recherche locale du tableau Athlètes par ID système, exact ou partiel, sans affichage de cet ID ; réponse `view=table` maintenue sur ordinateur et mobile. Parcours et tests du worktree `fix/athletes-system-id-search` repris.
+- Fonctionnel existant : filtres Compétitions, retrait progression/clôture et verrouillage par statut, édition/suppression des engagements et forfait 30–0 (+2/−1), déjà implémentés dans `feat/competition-editing`. Aucun développement supplémentaire Compétitions pour cette livraison.
+- Évolutions déjà publiées conservées : acteurs et licences/saison (`b1b481b`, `880f675`), retrait qualité de données (`dc467a6`), Collator (`23fa79a`), sélection individuelle avant normalisation (`4375438`) et projection explicite Athlètes présente dans la base publiée. Les variantes CPU plus anciennes du workspace ne remplacent pas ces implémentations.
+- Inventaire : workspace principal `main` à `880f675`, worktrees acteurs, détail CPU, projection, retrait qualité, audit, P1, identification et Compétitions examinés. Les changements acteurs/Sheets/modèles sont déjà représentés dans la version distante ; les fichiers non suivis équivalents ne sont pas des suppressions à rejouer. Les deux commits P1 et les modifications non committées identification/Compétitions sont les apports supplémentaires.
+- Exclus : fichiers `.env` contenant des valeurs, secrets, données personnelles, scripts locaux d'activation/réinitialisation des utilisateurs, réglages `.code-workspace`, `next-env.d.ts` généré, caches/builds et journaux temporaires. Le modèle `.env.example` localement retiré reste supprimé. Les anciens tests/benchmarks de la variante CPU locale ne remplacent pas leurs versions publiées ; le benchmark P1 et ses données synthétiques documentées restent suivis.
+
+La publication combine P1 et des changements fonctionnels. Les mesures globales de cette version ne permettent pas d'attribuer un gain CPU isolé à P1. Les [mesures locales](mesures.md) restent celles du protocole apparié historique, sans nouvelle revendication Vercel. Les lectures Sheets complètes et les limites des compteurs restent applicables. Aucun développement du chargement des licences ou de la navigation n'est ajouté par P1.
+
 ## Objectif et cadre
 
 **[Communiqué par l'utilisateur]** Usage prioritaire : liste Athlètes → recherche → fiche → affiliations → création/modification → retour à la liste → athlète suivant. Environ 6 000 à 14 000 affiliations en une semaine ; les 6 000 premières provenaient d'une sauvegarde. Aucun recomptage du classeur n'a été effectué pendant cet audit.

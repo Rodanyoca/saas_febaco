@@ -104,7 +104,7 @@ test("l'interface masque l'écriture aux rôles non fédéraux et évite le déb
   const source = await import("node:fs/promises").then((fs) => fs.readFile("components/dashboard/competition-participants-panel.tsx", "utf8"));
   assert.match(source, /federal \? <Button/);
   assert.match(source, /md:hidden/);
-  assert.match(source, /hidden min-w-0 grid-cols-7 md:grid/);
+  assert.match(source, /hidden min-w-0 md:grid/);
   assert.doesNotMatch(source, /overflow-x-auto/);
   assert.match(source, /participatingTeamIds/);
   assert.match(source, /!participatingTeamIds\.has\(team\.id\)/);

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 type Ref = { id: string; label: string };
 type Event = { id: string; nom: string; disciplineId: string; discipline: string; categorieId: string; categorie: string; sexeId: string; sexe: string; statut: string; observations: string; unitCount: number; phaseCount: number; matchCount: number };
 
-export function CompetitionEventsPanel({ competitionId, readOnly = false }: { competitionId: string; readOnly?: boolean }) {
+export function CompetitionEventsPanel({ competitionId }: { competitionId: string }) {
   const [events, setEvents] = useState<Event[]>([]), [refs, setRefs] = useState<{ disciplines: Ref[]; categories: Ref[]; sexes: Ref[] }>({ disciplines: [], categories: [], sexes: [] }), [federal, setFederal] = useState(false), [open, setOpen] = useState(false), [editing, setEditing] = useState<Event | null>(null), [saving, setSaving] = useState(false), [error, setError] = useState("");
   const [nom, setNom] = useState(""), [disciplineId, setDiscipline] = useState(""), [categorieId, setCategorie] = useState(""), [sexeId, setSexe] = useState(""), [statut, setStatut] = useState("ACTIF"), [observations, setObservations] = useState("");
   const endpoint = `/api/competitions/${encodeURIComponent(competitionId)}/epreuves`;
@@ -20,7 +20,7 @@ export function CompetitionEventsPanel({ competitionId, readOnly = false }: { co
     if (!response.ok) throw new Error(data?.error?.message || "Lecture impossible.");
     setEvents(data.epreuves || []); setRefs(data.references || { disciplines: [], categories: [], sexes: [] });
   }, [endpoint]);
-  useEffect(() => { void load().catch((reason) => setError(reason.message)); void fetch("/api/auth/me").then((response) => response.json()).then((data) => setFederal(!readOnly && data?.user?.role === "federal")); }, [load, readOnly]);
+  useEffect(() => { void load().catch((reason) => setError(reason.message)); void fetch("/api/auth/me").then((response) => response.json()).then((data) => setFederal(data?.user?.role === "federal")); }, [load]);
   const show = (event?: Event) => { setEditing(event || null); setNom(event?.nom || ""); setDiscipline(event?.disciplineId || ""); setCategorie(event?.categorieId || ""); setSexe(event?.sexeId || ""); setStatut(event?.statut || "ACTIF"); setObservations(event?.observations || ""); setOpen(true); };
   const save = async () => {
     setSaving(true); setError("");

@@ -127,3 +127,11 @@ Suite complète exécutée : 313 tests, 310 succès, 3 échecs Ligue. Les mêmes
 `npm run typecheck` : code 0. `npm run build -- --webpack` avec plafond local Node 4 Go : code 0, compilation, TypeScript intégré et 47 pages générées. Le premier build avait compilé puis signalé une annotation absente dans le tableau d'échantillons du benchmark ; elle a été corrigée, puis TypeScript et le build relancés avec succès. Correction uniquement typée, service mesuré et ses empreintes inchangés ; pas de nouvelle mesure sélective.
 
 Liens du canevas et git diff --check validés. Comparaison avec dc467a6 : seul fichier applicatif modifié `lib/affiliations.ts` ; aucun changement dans app/components, auth, Sheets/cache, licences, saison, actors, Collator ou projection Athlètes. L'alias production a été revérifié en fin d'intervention : toujours `dpl_H9WAncS6iWwnyvJHNjapafWt75nH`. Aucun contrôle navigateur authentifié, aucune mesure CPU Vercel, aucune écriture métier ni publication.
+
+## Intégration combinée du 19 octobre 2026 — validation avant publication
+
+Cette livraison réunit P1 et des changements fonctionnels, dont la recherche par ID système masqué et les changements Compétitions déjà implémentés. Les mesures appariées P1 ci-dessus restent historiques et inchangées. Aucun gain CPU Vercel isolé de P1 ne peut être déduit des mesures globales de cette publication ; aucune requête Observability Plus n'est relancée.
+
+Sur la base distante `dc467a6`, intégration `release/p1-app-current` : suite complète 319 tests, 316 réussites et 3 échecs ; tests ciblés P1/identification/projection/permissions/Compétitions : 133/133 réussis. Les trois échecs Ligue/Club sont reproduits sur `dc467a6` non modifié (5 tests, 2 réussites et 3 échecs). Il s'agit de `ligue-athlete-indicator`, `ligue-detail-ville` et `team-name-refresh`. Pas de nouvelle régression détectée. TypeScript et build sont consignés après leur résultat final dans le canevas.
+
+Aucune écriture métier de production ni nouveau benchmark n'a été nécessaire pendant l'intégration. Les nouvelles vérifications de publication seront distinguées des observations historiques ; le déploiement antérieur de retour arrière reste `dpl_H9WAncS6iWwnyvJHNjapafWt75nH`.

@@ -34,7 +34,7 @@ Les nouvelles clés utilisent `BKB-COMP-AAAA-###` puis les préfixes contextuali
 
 ## Autorisations et clôture
 
-La lecture exige une session. Toutes les mutations exigent le rôle `federal` côté route. Une édition `TERMINEE` masque les commandes et les services refusent les mutations ordinaires avec `EDITION_CLOTUREE`. La clôture écrit uniquement le statut de la ligne ciblée ; aucune réouverture implicite n’est prévue.
+La lecture exige une session. Toutes les mutations exigent le rôle `federal` côté route. Le statut de l’édition ne verrouille plus les commandes ni les services. L’action et la route de clôture sont retirées.
 
 ## Google Sheets et atomicité
 
@@ -60,7 +60,7 @@ Lecture du 12 septembre 2026 pour `BKB-COMP-2026-002` : 2 épreuves, 36 unités,
 
 ## Routes et composants principaux
 
-Routes : `/api/competitions`, `/api/competitions/[id]/epreuves`, `participants`, `people`, `structure`, `play` et `close`. Les routes historiques globales de résultats et classements réutilisent les mêmes services de lecture.
+Routes : `/api/competitions`, `/api/competitions/[id]/epreuves`, `participants`, `participants/[participationId]` (PUT/DELETE), `people`, `structure` et `play`. Les routes historiques globales de résultats et classements réutilisent les mêmes services de lecture.
 
 Composants : `competition-create-modal`, `competition-events-panel`, `competition-participants-panel`, `competition-people-panel`, `competition-structure-panel` et `competition-play-panel`.
 
@@ -74,4 +74,4 @@ Composants : `competition-create-modal`, `competition-events-panel`, `competitio
 
 ## Limites conservées
 
-Le calendrier complet et le tableau graphique à élimination directe ne sont pas générés automatiquement. Les qualifications restent des décisions fédérales explicites. La correction administrative après clôture devra faire l’objet d’un flux séparé et audité.
+Le calendrier complet et le tableau graphique à élimination directe ne sont pas générés automatiquement. Les qualifications restent des décisions fédérales explicites. Les corrections fédérales sont possibles quel que soit le statut. Les gardes protégeant les matchs, intervenants et qualifications restent appliqués aux engagements ; voir `competitions-consultation-creation.md`.

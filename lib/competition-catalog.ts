@@ -37,7 +37,6 @@ export async function createCompetitionEventTable(competitionId: string, body: u
   const input = body && typeof body === "object" ? body as Record<string, unknown> : {}, nom = clean(input.nomEpreuve), disciplineId = clean(input.disciplineId), categorieId = clean(input.categorieId), sexeId = clean(input.sexeId), statut = clean(input.statut), data = await load(deps);
   const competition = data.competitions.find((row) => clean(row.id_competition) === competitionId);
   if (!competition) throw new CompetitionError("COMPETITION_INTROUVABLE", "La compétition n’existe pas.", 404);
-  if (clean(competition.statut).toUpperCase() === "TERMINEE") throw new CompetitionError("COMPETITION_CLOTUREE", "Cette compétition est clôturée et consultable uniquement en historique.", 409);
   const fields: Record<string, string> = {};
   if (!nom) fields.nomEpreuve = "Nom obligatoire."; if (!disciplineId) fields.disciplineId = "Discipline obligatoire."; if (!categorieId) fields.categorieId = "Catégorie obligatoire."; if (!sexeId) fields.sexeId = "Sexe obligatoire."; if (!["ACTIF", "INACTIF"].includes(statut)) fields.statut = "Statut invalide.";
   if (Object.keys(fields).length) throw new CompetitionError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, fields);
@@ -50,7 +49,6 @@ export async function createCompetitionEventTable(competitionId: string, body: u
 export async function updateCompetitionEventTable(competitionId: string, eventId: string, body: unknown, deps: Dependencies = defaults) {
   const input = body && typeof body === "object" ? body as Record<string, unknown> : {}, data = await load(deps), id = clean(eventId), competition = data.competitions.find((row) => clean(row.id_competition) === competitionId), event = data.events.find((row) => clean(row.id_epreuve_competition) === id && clean(row.id_competition) === competitionId);
   if (!competition || !event) throw new CompetitionError("EPREUVE_INTROUVABLE", "L’épreuve n’existe pas dans cette compétition.", 404);
-  if (clean(competition.statut).toUpperCase() === "TERMINEE") throw new CompetitionError("COMPETITION_CLOTUREE", "Cette compétition est clôturée.", 409);
   const nom = clean(input.nomEpreuve), statut = clean(input.statut), fields: Record<string, string> = {};
   if (!nom) fields.nomEpreuve = "Nom obligatoire."; if (!["ACTIF", "INACTIF"].includes(statut)) fields.statut = "Statut invalide.";
   if (Object.keys(fields).length) throw new CompetitionError("VALIDATION", "Veuillez corriger les champs indiqués.", 422, fields);
