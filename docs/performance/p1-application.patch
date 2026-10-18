@@ -1,0 +1,16 @@
+diff --git a/lib/affiliations.ts b/lib/affiliations.ts
+index 21264d5..33b2696 100644
+--- a/lib/affiliations.ts
++++ b/lib/affiliations.ts
+@@ -61,7 +61,10 @@ export async function listAffiliations(kind: AffiliationKind, filters: string |
+   const teamById = new Map(teams.map((r) => [clean(r.id_equipe), r])), clubById = new Map(clubs.map((r) => [clean(r.id_club), r])), ententeById = new Map(ententes.map((r) => [clean(r.id_entente), r])), functionById = new Map(functions.map((r) => [clean(r.id_fonction), r]))
+   const entityRows = new Map<string, Map<string, SheetRow>>()
+   if (kind === "officiel") for (const [type, ref] of Object.entries(entityTypes)) entityRows.set(type, new Map((await rowsOrUnavailable(deps, ref.block, ref.sheet)).map((r) => [clean(r[ref.id]), r])))
+-  return rows.map((row) => {
++  // actorId est exactement clean(row[config.actor]) dans la vue actuelle.
++  // Garder les lectures/index et les filtres dérivés inchangés, y compris sans résultat.
++  const selectedRows = query.actorId ? rows.filter((row) => clean(row[config.actor]) === query.actorId) : rows
++  return selectedRows.map((row) => {
+     const actorId = clean(row[config.actor]), actor = actorById.get(actorId), item: AffiliationFields = { id: clean(row[config.id]), [config.id]: clean(row[config.id]), actorId, [config.actor]: actorId }
+     for (const field of config.fields) item[field] = clean(row[field])
+     item[actorLabels[kind]] = fullName(actor); item.nomActeur = fullName(actor); item.id_sexe = clean(actor?.id_sexe); item.sexe = item.id_sexe === "SEX001" ? "M" : item.id_sexe === "SEX002" ? "F" : ""; item.statut = clean(statusById.get(item.id_statut_affiliation)?.nom_statut_affiliation) || item.id_statut_affiliation; item.fonction = clean(functionById.get(item.id_fonction)?.nom_fonction)

@@ -1,0 +1,212 @@
+{
+  "measuredUtc": "2026-10-18T22:02:05.540Z",
+  "commit": "dc467a62d747cc13cb5c7a561216f1ac50b14bdb",
+  "node": "v24.16.0",
+  "icu": "78.3",
+  "platform": "win32",
+  "warmups": 3,
+  "runs": 9,
+  "input": "synthetic-only",
+  "includes": "Published services, indexes, enrichment, filtering, sorting. CPU samples are process-wide in a serial diagnostic without other requests.",
+  "excludes": "Google/network, raw sheet conversion, authentication/scope construction, HTTP serialization timing, browser, Vercel CPU. GC/background runtime work can affect CPU samples; RSS is not a request allocation measure.",
+  "results": [
+    {
+      "scenario": "affiliations-one-athlete",
+      "population": 6000,
+      "returnedRows": 1,
+      "logicalReads": 7,
+      "jsonBytes": 524,
+      "elapsedMedianMs": 12.95010000000002,
+      "elapsedP95Ms": 15.401499999999942,
+      "processCpuMedianMs": 16,
+      "processCpuP95Ms": 32,
+      "elapsedSamplesMs": [
+        10.20659999999998,
+        9.713600000000042,
+        9.320999999999913,
+        14.5328999999997,
+        11.94900000000007,
+        15.07569999999987,
+        15.401499999999942,
+        13.399599999999737,
+        12.95010000000002
+      ],
+      "processCpuSamplesMs": [
+        16,
+        0,
+        32,
+        15,
+        16,
+        15,
+        16,
+        16,
+        0
+      ]
+    },
+    {
+      "scenario": "licences-one-athlete",
+      "population": 6000,
+      "returnedRows": 1,
+      "logicalReads": 10,
+      "jsonBytes": 484,
+      "elapsedMedianMs": 5.630300000000261,
+      "elapsedP95Ms": 9.252700000000004,
+      "processCpuMedianMs": 0,
+      "processCpuP95Ms": 16,
+      "elapsedSamplesMs": [
+        5.97440000000006,
+        6.984399999999823,
+        5.404399999999896,
+        5.630300000000261,
+        7.715099999999893,
+        9.252700000000004,
+        5.025000000000091,
+        4.4177999999997155,
+        4.439800000000105
+      ],
+      "processCpuSamplesMs": [
+        15,
+        0,
+        0,
+        16,
+        0,
+        15,
+        0,
+        0,
+        16
+      ]
+    },
+    {
+      "scenario": "affiliations-one-athlete",
+      "population": 14000,
+      "returnedRows": 1,
+      "logicalReads": 7,
+      "jsonBytes": 524,
+      "elapsedMedianMs": 19.217200000000048,
+      "elapsedP95Ms": 21.27489999999989,
+      "processCpuMedianMs": 16,
+      "processCpuP95Ms": 31,
+      "elapsedSamplesMs": [
+        18.176500000000033,
+        21.27489999999989,
+        18.814899999999852,
+        19.217200000000048,
+        18.484899999999925,
+        19.582600000000184,
+        18.776299999999992,
+        21.23640000000023,
+        19.911899999999605
+      ],
+      "processCpuSamplesMs": [
+        16,
+        31,
+        16,
+        15,
+        16,
+        16,
+        31,
+        15,
+        16
+      ]
+    },
+    {
+      "scenario": "licences-one-athlete",
+      "population": 14000,
+      "returnedRows": 1,
+      "logicalReads": 10,
+      "jsonBytes": 484,
+      "elapsedMedianMs": 9.454699999999775,
+      "elapsedP95Ms": 12.332600000000184,
+      "processCpuMedianMs": 0,
+      "processCpuP95Ms": 16,
+      "elapsedSamplesMs": [
+        9.454699999999775,
+        7.973100000000159,
+        8.766699999999673,
+        8.809200000000146,
+        12.332600000000184,
+        12.067599999999857,
+        11.630600000000413,
+        9.409900000000107,
+        11.768999999999778
+      ],
+      "processCpuSamplesMs": [
+        16,
+        0,
+        15,
+        0,
+        16,
+        0,
+        15,
+        0,
+        0
+      ]
+    },
+    {
+      "scenario": "affiliations-one-athlete",
+      "population": 28000,
+      "returnedRows": 2,
+      "logicalReads": 7,
+      "jsonBytes": 1041,
+      "elapsedMedianMs": 43.60330000000022,
+      "elapsedP95Ms": 50.66020000000026,
+      "processCpuMedianMs": 94,
+      "processCpuP95Ms": 109,
+      "elapsedSamplesMs": [
+        43.55419999999958,
+        43.477300000000014,
+        42.889500000000226,
+        43.73190000000022,
+        42.94769999999971,
+        43.60330000000022,
+        50.66020000000026,
+        45.577999999999975,
+        43.66579999999976
+      ],
+      "processCpuSamplesMs": [
+        47,
+        93,
+        94,
+        47,
+        47,
+        94,
+        109,
+        109,
+        109
+      ]
+    },
+    {
+      "scenario": "licences-one-athlete",
+      "population": 28000,
+      "returnedRows": 2,
+      "logicalReads": 10,
+      "jsonBytes": 972,
+      "elapsedMedianMs": 23.198300000000017,
+      "elapsedP95Ms": 39.74440000000004,
+      "processCpuMedianMs": 31,
+      "processCpuP95Ms": 64,
+      "elapsedSamplesMs": [
+        31.26909999999998,
+        18.318499999999858,
+        18.09830000000011,
+        21.013100000000122,
+        23.634500000000116,
+        39.74440000000004,
+        25.3733000000002,
+        23.198300000000017,
+        21.709899999999834
+      ],
+      "processCpuSamplesMs": [
+        64,
+        31,
+        16,
+        15,
+        31,
+        31,
+        31,
+        16,
+        31
+      ]
+    }
+  ]
+}
