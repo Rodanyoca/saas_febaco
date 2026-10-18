@@ -1,4 +1,5 @@
 import { pickFirst, readSheetRows, writeSheetRowByHeaders, type SheetRow } from "@/lib/google-sheets"
+import { sortAthletesAlphabetically } from "@/lib/athlete-sort"
 
 export type ActorKind = "athletes" | "coachs" | "officiels" | "arbitres" | "medecins" | "autres"
 export type ActorFieldErrors = Record<string, string>
@@ -164,7 +165,8 @@ export async function listActors(kind:ActorKind){
     kind==="coachs"?readSheetRows({block:"referentiel",sheet:"NIVEAUX_COACH",range:"A:C"}).catch(()=>[]):Promise.resolve([]),
     kind==="arbitres"?readSheetRows({block:"referentiel",sheet:"GRADES_ARBITRES",range:"A:C"}).catch(()=>[]):Promise.resolve([]),
   ])
-  return sortActorsAlphabetically(rows
+  const actors = rows
     .filter(r=>pickFirst(r,[config.id]))
-    .map(r=>normalizeActor(kind,r,{coachLevels,refereeGrades})))
+    .map(r=>normalizeActor(kind,r,{coachLevels,refereeGrades}))
+  return kind === "athletes" ? sortAthletesAlphabetically(actors) : sortActorsAlphabetically(actors)
 }
