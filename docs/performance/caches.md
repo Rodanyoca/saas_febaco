@@ -53,3 +53,9 @@ Toutes les invalidations actuelles indiquées sont **[Confirmées dans le code]*
 5. Si un cache partagé devient nécessaire, adopter un modèle versionné et une matrice de dépendances avant toute intégration. Définir régions/environnements, génération anti-course, invalidation après écriture confirmée et comportement sur panne. Pas d'allongement général des TTL pour réduire artificiellement les lectures.
 
 [Next revalidateTag](https://nextjs.org/docs/app/api-reference/functions/revalidateTag) agit sur le cache de données concerné, pas sur les Maps ni useState de ce dépôt. [Vercel Runtime Cache](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) est un mécanisme distinct, régional. [Caching Next sans Cache Components](https://nextjs.org/docs/app/guides/caching-without-cache-components) explique les couches ; la version courante de documentation est plus récente que Next 16.2.0. Ne pas adopter de nouveaux comportements sans vérifier la version installée.
+
+## P2 locale : fraîcheur et annulation
+
+Le composant d'historique Athlètes ne conserve aucun cache client après son démontage. Un nouvel onglet Licence monté refait un GET `no-store` ; fermeture/changement d'ID annule et ignore la réponse tardive. Un rerendu après édition/photo avec le même ID ne recharge pas les licences. Les erreurs affichent un état explicite et permettent une nouvelle tentative, sans montrer l'ancien historique à la place.
+
+Le service dédié garde les dix lectures, les index et le contrôle territorial fondé sur les affiliations. Les TTL, promesses, invalidation et limites multi-instance ci-dessus restent identiques. Un GET supplémentaire n'implique pas un appel réseau Google frais. Le bénéfice recherché porte sur les invocations non nécessaires avant l'ouverture, les vues hors cible et les synthèses inutilisées ; aucun cache partagé n'est introduit.

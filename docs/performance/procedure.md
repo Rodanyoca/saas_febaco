@@ -94,3 +94,25 @@ L'autorisation actuelle couvre l'intégration, les commits, le push et le déplo
 - Sans session : vérifier login, redirection dashboard et refus API (liste complète/projetée, fiche et affiliations). Ne pas fabriquer de cookie ni effectuer d'écriture métier pour cette vérification.
 - Avec une session existante : vérifier ordinateur/mobile, recherche exacte/partielle par ID système, absence d'ID visible, licence/nom, filtres, tri, pagination, photos et ouverture de fiche ; vérifier les réponses complète et individuelle (même avec view=table), identifiant inconnu, affiliations ciblées et périmètres fédéral/ligue/entente. Sans session, conserver cette liste de contrôles manuels restants ; les fixtures ne sont pas une validation authentifiée de production.
 - Consulter les erreurs runtime accessibles sur une fenêtre UTC bornée sans divulguer de messages bruts ou données métier. Aucune nouvelle tentative Observability Plus. Les observations de cette livraison combinée ne mesurent pas le gain CPU isolé de P1.
+
+## 8. Validation P2 locale, sans publication
+
+Base : production vérifiée 42f6db2. Worktree `perf/athlete-licences-on-demand`. Baseline du service figée dans `tests/fixtures/licences-before-p2.ts`, blob égal à `git rev-parse 42f6db2:lib/licences.ts` via `git hash-object --path=lib/licences.ts`.
+
+Commandes :
+
+```powershell
+npx.cmd tsx --test tests/licences-p2.test.ts tests/athlete-licence-lazy.test.ts tests/licences.test.ts
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run build -- --webpack
+npx.cmd tsx scripts/benchmark-licences-p2.ts docs/performance/mesures-p2-2026-10-19.json
+```
+
+Comparer exactement JSON, ordre, doublons, données manquantes, affiliations croisées et périmètres fédéral/ligue/entente ; ID inconnu/non autorisé, trim/casse, absence de paramètre, refus de session/droits et panne source sans court-circuit. Vérifier aussi liste globale, filtres, synthèses/références et mutations existantes. Les probes de vues/synthèses sont seulement injectées dans les tests, absentes du benchmark et de l'application.
+
+Client : SSR réel Radix pour montage initial/onglets ; harnais d'effets pour réouverture, ID stable après édition/photo, erreur/retry, changement d'athlète et réponses tardives annulées. Le navigateur authentifié reste une validation distincte : ouvrir Général/Affiliations sans GET historique, puis Licence, quitter/revenir, changer d'athlète, éditer/photo, simuler une erreur ; vérifier tableau et absence de données périmées. Ne pas prétendre que ce harnais mesure le trafic de production.
+
+Benchmark : mêmes objets synthétiques convertis, 6k/14k/28k licences, 26 199 acteurs, 100 équipes ; trois échauffements puis neuf paires alternées, CPU processus et durée écoulée séparés, 10 appels par échantillon ciblé/ID inconnu et 3 pour contrôle global. Dix lectures logiques conservées ; JSON individuel identique. Conserver résultats défavorables et limites des compteurs Windows, GC et charge des autres processus. Aucun Google, cookie ou écriture métier. Rétablir séparément le client ou la route/service depuis la base si nécessaire ; aucune publication automatique dans cette étape.
+
+Précision du protocole final P2 : le premier prototype conserve 3 appels par échantillon global dans son JSON. La variante finale conserve 10 appels pour cible/ID inconnu et utilise 1 appel global par échantillon (durée déjà supérieure à la résolution CPU), après la fin du build et des tests locaux. Les neuf paires alternées et trois échauffements restent identiques ; comparer chaque avant/après dans son propre protocole, pas les deux contrôles globaux comme une amélioration attribuable au code.

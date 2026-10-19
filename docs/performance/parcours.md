@@ -50,6 +50,12 @@ Une lecture logique n'est pas un appel réseau Google : microbatch, cache cellul
 
 ## Licences et autres usages
 
+### Écart local P2 depuis la production 42f6db2
+
+La séquence initiale ci-dessus reste une observation du code dc467a6. Dans `perf/athlete-licences-on-demand`, le GET de l'historique vient d'un composant enfant monté à l'activation de l'onglet Licence, et non plus de l'objet `athlete` du parent. Chaque remontage relit l'API ; une édition/photo avec même ID ne relance pas ce GET. Pas de restauration de liste, changement d'URL ou nouveau cache client.
+
+La route individuelle conserve son garde et son enveloppe. Le service dédié garde les dix lectures et index, sélectionne les lignes par ID avant les vues puis conserve les contrôles territoriaux dérivés de l'affiliation. La liste globale utilise le même calcul de vues et continue à produire ses synthèses/références. Les mutations ne changent pas. La lecture/conversion/scoping Sheets complets peuvent rester nécessaires. Les tests locaux ne mesurent ni le trafic réel navigateur ni le CPU Vercel de ce correctif non publié.
+
 - **[Confirmé dans le code]** `/dashboard/licences` commence par `/api/licences`, choisit seasonId depuis references, puis l'effet seasonId appelle `/api/licences?saison=…`. Deux chargements applicatifs possibles selon données de saison, différents d'un doublon attribué à Strict Mode. Recherche/filtres territoriaux sont locaux ; changement saison recharge.
 - **[Confirmé dans le code]** `LicenceEditor` reçoit les références de la page ; ouverture seule sans équipe n'appelle pas l'éligibilité. Choix saison/équipe : GET `/api/licences/eligibilite?mode=EQUIPE&id_saison=…&id_equipe=…`. Recherche candidats locale. Le service parcourt les licences pour chaque candidat (find puis filter/sort), y compris le numéro précédent. POST `/api/licences/renouveler` ou PUT `/api/licences/[id]`, puis `onSaved → load(seasonId)` ; cohérence et écriture par lot serveur à préserver.
 - **[Confirmé dans le code]** Autres familles : `actorLicenceIndex` est calculé une fois par GET liste mais reconstruit à chaque appel ; `listActorLicenses` charge licences, références et les quatre populations d'acteurs avant filtre. Les fiches récemment harmonisées utilisent `ActorLicenseHistoryTable`, sans bouton supplémentaire. L'ancien `ActorLicensesPanel` existe encore : suppression de code non utilisé à étudier séparément, sans élargir cet audit.

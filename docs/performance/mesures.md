@@ -145,3 +145,54 @@ TypeScript et build local réussis ; 47 pages générées et sortie npm 0 confir
 Contrôles sans session : login 200, dashboard 307 vers login, API auth/Athlètes complète/projetée/individuelle/affiliations et mutations d'engagement 401. Aucune écriture métier. Logs error/fatal accessibles via CLI : 0 sur `2026-10-18T23:21:22.501Z`–`2026-10-18T23:26:22.501Z`, limite 20, pas de pagination restante ni intervalle exclu. MCP erreurs refusé en 403 ; pas de tentative Observability Plus. Absence de navigateur/session : les contrôles authentifiés d'identification, de complétude et de périmètre listés dans le canevas restent manuels.
 
 Ces contrôles ne sont ni un profil CPU ni une mesure de gain isolé P1. La référence pré-livraison de rollback reste `dc467a6` / `dpl_H9WAncS6iWwnyvJHNjapafWt75nH`. Les mesures et observations historiques sont conservées.
+
+## Intervention P2 — historique à la demande et chemin individuel
+
+**[Implémenté localement, non publié]** Base de production vérifiée `42f6db204de464abfec796128f2c152cdd0706f1` / `dpl_H3jGJLmBakrhGhiEeNM28sES6DRF`. Branche `perf/athlete-licences-on-demand`, worktree `.tmp/athlete-licences-p2`. La baseline `tests/fixtures/licences-before-p2.ts` est égale au blob publié `9f40f62d88b8896b21137b2e3d7e4fc7f87f449b`.
+
+### Périmètre et preuves
+
+- Montage de l'historique seulement dans l'onglet Licence ; aucune requête historique depuis la fiche Général/Affiliations. Effet dépendant de l'ID, annulation et rejet des réponses tardives, nouvelle requête à la réouverture, erreur explicite et retry. Les tableaux et colonnes sont conservés. Les mutations/photo de l'athlète ne relancent pas l'historique pour un ID identique.
+- Service individuel : les mêmes dix lectures et index, filtre exact sur l'ID brut nettoyé avant vues, contrôle territorial conservé par affiliation, même tri et même enveloppe. Pas de synthèse/référence calculée pour être jetée. L'ensemble du corps de la liste globale et les fonctions de mutation sont conservés à l'identique dans la variante finale ; seule une fonction dédiée est ajoutée dans le service.
+- Comparaisons JSON exactes, ordre/doublons, plusieurs saisons et affiliations croisées, champs/références manquants, scopes fédéral/L1/L2/E1/E2/E3, ID inconnu/non autorisé/espaces/casse, feuille vide et échec de chacune des dix sources. Route réelle et garde réel sur données injectées : enveloppe/erreurs/cache-control et lectures identiques, 400/401/403, panne d'auth 503 et panne source 500 inchangées.
+- Compteurs injectés uniquement dans les tests : le chemin individuel construit seulement les vues correspondant à l'ID dans les lignes déjà autorisées ; aucune synthèse. ID inconnu : zéro vue, mais lectures et erreurs conservées. Sans nouveau cache ni modification de l'invalidation.
+- SSR du Radix Tabs réellement installé : composant absent en Général/Affiliations, présent en Licence. Harnais d'effets du vrai composant : ID stable, réouverture, erreur/retry, annulation, changement d'athlète, réponses tardives et réponse invalide. Ce n'est pas un test navigateur authentifié ; Strict Mode peut déclencher un cycle supplémentaire en développement.
+
+### Premier prototype conservé
+
+[Mesures du prototype](mesures-p2-prototype-2026-10-19.json), [diff serveur du prototype](p2-prototype-server.patch). Il factorisait le pipeline de sélection/tri de la liste globale, en conservant les réponses. Sur le contrôle global, les médianes défavorables étaient : durée +8,09 %/+6,30 %/+30,45 % et CPU +3,02 %/+2,93 %/+23,54 % pour 6k/14k/28k. Ces écarts ne prouvent pas une régression causée par la factorisation : build/tests ont tourné dans d'autres processus pendant une partie de la mesure, charge machine et GC variables. Ils sont conservés et ne sont pas masqués par les gains individuels.
+
+**[Décision]** Réduire le diff final : rétablir littéralement le service global publié et ajouter le chemin individuel séparément. Tests complets, ciblés, TypeScript et build relancés après ce changement. Le second passage est justifié par ce changement de code et exécuté après la fin des contrôles locaux, pas par une sélection des meilleurs chiffres. Le contrôle global utilise un appel par échantillon au lieu de trois, chaque appel durant déjà plus d'une seconde dans le premier diagnostic ; neuf paires alternées et trois échauffements sont conservés. Le nombre d'itérations est explicite dans chaque résultat et les deux contrôles globaux ne sont pas directement comparables comme un gain de code.
+
+### Validation finale
+
+26/26 tests ciblés. Suite complète relancée : 324 tests, 321 réussites, mêmes trois échecs Ligue/Club préexistants (`ligue-athlete-indicator`, `ligue-detail-ville`, `team-name-refresh`), déjà reproduits sur la base non modifiée lors de la livraison précédente. TypeScript final : code 0. Build final webpack : code 0, compilation 25,3 s, TypeScript intégré 33,8 s et 47 pages générées. Aucune désactivation des vérifications ; avertissement de racine multi-lockfiles limité au worktree imbriqué.
+
+Aucun accès aux données métier réelles, cookie fabriqué, écriture de production, push ou déploiement. Aucun gain CPU Vercel revendiqué. Les lectures complètes Sheets, index, contrôles territoriaux et limites de fraîcheur des caches existants restent applicables. Le volume de chaque réponse individuelle ouverte reste strictement égal ; le chargement évité avant ouverture est démontré localement par le montage et les effets, pas mesuré sur du trafic réel.
+
+
+### Mesures finales P2
+
+UTC : `2026-10-19T00:09:27.325Z`, Node v24.16.0 / ICU 78.3, Windows. Base `42f6db204de464abfec796128f2c152cdd0706f1`, commit applicatif local `ba9f1a52d4c4c87f4f4dd59cb96f1df827120087`. [Echantillons finaux](mesures-p2-2026-10-19.json), [benchmark](../../scripts/benchmark-licences-p2.ts), [diff applicatif](p2-application.patch).
+
+| Population | Scenario | Lignes | Octets JSON avant/apres | Temps median avant -> apres (ms) | CPU processus median avant -> apres (ms) |
+|---|---|---:|---:|---:|---:|
+| 6000 | one-athlete | 1 | 438 | 9,70 -> 5,81 | 9,40 -> 6,30 |
+| 6000 | unknown-athlete | 0 | 15 | 10,72 -> 5,75 | 11,00 -> 6,10 |
+| 6000 | global-control | 6000 | 2669898 | 281,15 -> 262,79 | 250,00 -> 250,00 |
+| 14000 | one-athlete | 1 | 438 | 16,28 -> 5,48 | 17,10 -> 6,20 |
+| 14000 | unknown-athlete | 0 | 15 | 16,01 -> 5,60 | 15,60 -> 4,70 |
+| 14000 | global-control | 14000 | 6216601 | 652,87 -> 624,42 | 625,00 -> 610,00 |
+| 28000 | one-athlete | 2 | 876 | 31,14 -> 7,87 | 31,20 -> 7,80 |
+| 28000 | unknown-athlete | 0 | 15 | 30,57 -> 9,25 | 29,80 -> 7,80 |
+| 28000 | global-control | 28000 | 12451979 | 1394,90 -> 1355,94 | 1422,00 -> 1359,00 |
+
+SHA-256 source avant : `6bb2aa451cc23eb9f778e523e75788363f89185cb93e573a02f6c5c14b41981a`, apres : `41b91d43433af2444fd8b167a75637cdbb139ae1a5e8c2912722f21b47e49a3f`. Les fins de lignes peuvent changer ces empreintes ; le blob Git de la baseline verifie son contenu normalise.
+
+**Interprétation finale :** trois paires d'échauffement puis neuf paires alternées sur les mêmes objets, 10 appels ciblés/ID inconnu et un appel global par échantillon. Mesures après la fin des tests et du build locaux, sans autre requête dans ce processus. Les autres processus et la charge générale de la machine ne sont pas contrôlés. CPU processus et durée écoulée sont séparés ; les compteurs Windows restent de résolution limitée (quelques millisecondes par appel après division du lot), avec GC/travail de fond inclus. Les petites différences, surtout à 6k, ne constituent pas une précision garantie.
+
+Sur la cible : réductions CPU médianes locales 32,98 % /63,74 % /75,00 % ; temps écoulé 40,14 % /66,34 % /74,72 %. Après P2 : 1/1/2 vues au lieu de 6k/14k/28k, zéro synthèse ; ID inconnu : zéro vue. Les scans des lignes et tous les index complets restent nécessaires. Les octets JSON individuels sont inchangés (438/438/876 ; ID inconnu 15). Pas de gain constant revendiqué sur le contrôle global : CPU 250→250 /625→610 /1422→1359 ms, variations qui ne sont pas attribuées à P2 puisque son corps et ses mutations sont restés littéralement identiques. Les écarts avec le premier prototype reflètent aussi des conditions/protocoles différents ; ils ne mesurent pas un gain causé par la suppression de la factorisation.
+
+Inclus : services compilés sans probes, lectures injectées de lignes déjà converties, index, vues, contrôle territorial du service, synthèses avant seulement pour la route ciblée, tri et sérialisation du JSON effectivement retourné. Exclus : réseau Google, conversion/scoping des cellules, garde HTTP, navigateur, mutations et CPU Vercel. Dix lectures logiques dans les deux variantes ; pas dix appels réseau Google démontrés. Les volumes sont synthétiques, pas des comptages des classeurs de production.
+
+**Limites restantes :** pas de session navigateur authentifiée. À vérifier manuellement avant publication : ouverture Général/Affiliations sans GET historique, activation Licence, réouverture fraîche à l'API, édition/photo sans rechargement inutile, changement d'athlète, erreurs/refus et tableau sur ordinateur/mobile avec les périmètres réels. Les TTL Sheets et limites multi-instance existants restent inchangés. Le premier GET de Licence est différé au clic : sa latence est alors visible et aucun préchargement n'est promis. Aucun push/déploiement P2, aucune économie CPU Vercel ou mensuelle extrapolée.

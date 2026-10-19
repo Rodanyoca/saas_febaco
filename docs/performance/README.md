@@ -24,9 +24,21 @@ La publication combine P1 et des changements fonctionnels. Les mesures globales 
 
 ## Objectif et cadre
 
+### P2 — implémentation locale du 19 octobre 2026
+
+Base vérifiée : production READY `42f6db204de464abfec796128f2c152cdd0706f1`, déploiement `dpl_H3jGJLmBakrhGhiEeNM28sES6DRF`. Worktree isolé `.tmp/athlete-licences-p2`, branche `perf/athlete-licences-on-demand`. P1 et toutes les évolutions publiées sont héritées. Aucun changement Compétitions, P3/navigation, mutations de licences, cache ou invalidation.
+
+- Client : `AthleteLicenceHistory` se monte dans l'onglet Licence existant, sans `forceMount`. La fiche ne charge plus l'historique dès l'arrivée. L'effet dépend de l'ID primitif et d'un retry après erreur, pas de l'objet athlète : une édition/photo avec même ID ne relance pas ce GET. Le démontage annule la requête et ignore une réponse tardive ; une réouverture refait le GET. Les erreurs HTTP/réseau/réponse invalide sont explicites, au lieu d'afficher une fausse absence de licence.
+- Serveur : `listAthleteLicenceHistory` sélectionne exactement `clean(row.id_athlete) === athleteId` avant construction des vues, puis conserve le contrôle territorial par affiliation et le même filtre/tri final. Les dix lectures logiques et tous les index restent exécutés, même pour un ID inconnu. Les synthèses/références de la liste globale ne sont pas construites sur ce chemin.
+- Compatibilité : enveloppe `{ licences }`, champs, doublons, ordre, trim de route, erreurs et permissions conservés. Liste globale, synthèses/références, éligibilité, renouvellement et édition conservés. Le calcul de vues est partagé pour éviter deux règles divergentes.
+- Preuves locales : baseline égale au blob publié `9f40f62d88b8896b21137b2e3d7e4fc7f87f449b` ; comparaisons service/API avec vrai garde et fonctions réelles de périmètre sur données injectées. Compteurs uniquement dans les tests. Test SSR du vrai Radix Tabs installé et harnais d'effets pour ID stable, réouverture, retry, annulation et réponse tardive. Ces tests ne constituent pas une session navigateur authentifiée.
+- Fraîcheur : nouveau GET HTTP `no-store` à chaque remontage, sans cache client conservé ; TTL et cohérence multi-instance Sheets inchangés. Aucune lecture complète Sheets supprimée, ni garantie de lecture réseau Google forcée.
+
+P2 reste locale et non publiée : commit applicatif `ba9f1a52d4c4c87f4f4dd59cb96f1df827120087`, [diff applicatif](p2-application.patch). Variante finale : liste globale et mutations littéralement identiques à la baseline, ajout de la fonction dédiée seulement. Mesures finales du 19 octobre à 00:09:27 UTC : CPU médian individuel 9,4→6,3 /17,1→6,2 /31,2→7,8 ms pour 6k/14k/28k ; dix lectures et JSON conservés, aucun gain Vercel mesuré. TypeScript et build réussis, 26 tests ciblés réussis, 321/324 dans la suite complète (trois échecs Ligue/Club préexistants). [Registre et limites](mesures.md), [échantillons finaux](mesures-p2-2026-10-19.json) ; prototype défavorable également conservé. Les constats initiaux plus bas restent historiques.
+
 **[Communiqué par l'utilisateur]** Usage prioritaire : liste Athlètes → recherche → fiche → affiliations → création/modification → retour à la liste → athlète suivant. Environ 6 000 à 14 000 affiliations en une semaine ; les 6 000 premières provenaient d'une sauvegarde. Aucun recomptage du classeur n'a été effectué pendant cet audit.
 
-Réduire le travail inutile par consultation et fluidifier ce parcours, sans gel du développement fonctionnel, changement des permissions, migration de stockage ou nouvelle couche de cache par principe. Audit initial : documentation et diagnostic local seulement. Étape suivante autorisée : P1 implémentée et vérifiée localement, sans push, déploiement, achat ou écriture métier en production ; voir le [registre P1](mesures.md#intervention-p1--filtrage-avant-enrichissement).
+Réduire le travail inutile par consultation et fluidifier ce parcours, sans gel du développement fonctionnel, changement des permissions, migration de stockage ou nouvelle couche de cache par principe. Audit initial : documentation et diagnostic local seulement. P1 a ensuite été implémentée, vérifiée puis publiée dans la livraison combinée documentée plus haut ; voir le [registre historique P1](mesures.md#intervention-p1--filtrage-avant-enrichissement). Étape actuelle : P2 locale, sans push, déploiement, achat ou écriture métier en production.
 
 ### Convention de preuve
 
@@ -40,7 +52,7 @@ Chaque constat porte un statut : **observé en production**, **confirmé dans le
 - [Procédure de mesure et de contrôle fonctionnel](procedure.md).
 - [Diagnostic local sans Google](../../scripts/diagnose-affiliation-processing.ts).
 
-## État vérifié et outils
+## État vérifié lors de l'audit initial et outils
 
 **[Observé en production]** Alias `saas-febaco.vercel.app` → `dpl_H9WAncS6iWwnyvJHNjapafWt75nH`, SHA `dc467a62d747cc13cb5c7a561216f1ac50b14bdb`, état READY, région iad1. Métadonnées et alias lus via MCP Vercel le 18 octobre UTC / 19 octobre Paris. Le dernier changement supprime Qualité des données et ses calculs, pas les autres indicateurs.
 
@@ -64,8 +76,8 @@ Guides appliqués : `vercel:deployments-cicd`/`vercel-cli` pour provenance et lo
 | Filtrage individuel avant normalisation | oui | `4375438` | tests détail/permissions/équivalence | `dpl_CTtpK4ak6YWW8fXA9EbrKfzvxSkQ`, puis hérité | présence confirmée ; coût individuel actuel inconnu |
 | Projection explicite view=table | oui | isolé `a17459e`, intégré `b1b481b` | équivalence, rendu ordinateur/mobile, volume local | `dpl_Bfy5ZmM1QmEuZMo53wo51ogsbysf`, puis hérité | présence confirmée ; réponses avec session non relues |
 | Suppression Qualité des données | oui | `dc467a6` | 18 tests + TypeScript lors de l'intervention | `dpl_H9WAncS6iWwnyvJHNjapafWt75nH` | provenance READY ; gain non mesuré |
-| P1 Filtrage affiliations en amont de l'enrichissement | oui | `9cb5826`, actorId uniquement | équivalence/scopes/mutations, mesures alternées, 42 tests ciblés, TypeScript et build ; 3 échecs Ligue préexistants dans la suite complète | non | non |
-| P2 Historique des licences à la demande + chemin individuel dédié | oui, cet audit | non | baseline seulement | non | non |
+| P1 Filtrage affiliations en amont de l'enrichissement | oui | source `9cb5826`, intégré `1153137` | équivalence/scopes/mutations, mesures alternées, contrôles de livraison combinée | oui, `e60cfd5` puis `42f6db2` documentaire | provenance et refus sans session ; aucun gain CPU isolé mesuré |
+| P2 Historique des licences à la demande + chemin individuel dédié | oui | local `ba9f1a5`, branche `perf/athlete-licences-on-demand` | 26 tests ciblés ; suite 321/324, 3 échecs préexistants ; TypeScript/build réussis ; mesures alternées et limites conservées | non | non |
 | P3 Restauration de liste et rafraîchissement client maîtrisé | oui, cet audit | non | protocole seulement | non | non |
 
 ## Trois premières interventions proposées
@@ -98,4 +110,4 @@ P1 et P2 sont des optimisations internes. P3 sépare la restauration d'état d'i
 - **[Question]** Combien de retours restaurent le composant liste avec Next 16.2.0 et le navigateur utilisé ? La conservation réelle d'état/scroll n'a pas été observée.
 - **[Question]** Quels TTL effectifs, taux de cache chaud, nombre d'instances, volumes affiliations/licences, proportions d'onglets consultés et fréquence des mutations ? Non mesurés ici.
 - **[Décision]** Aucun recours aux requêtes CPU refusées « Observability Plus is required for this query », aucun changement d'offre.
-- **[Prochaine action]** Examiner le diff P1 local et ses résultats avant une éventuelle autorisation de publication. P2/P3 restent proposées et ne sont pas incluses dans ce correctif.
+- **[Prochaine action actualisée]** Examiner le diff P2 et ses mesures avant toute publication, puis vérifier le parcours navigateur authentifié si disponible. P1 est publiée dans le lot combiné documenté ci-dessus. P3 reste proposée, non implémentée.
