@@ -17,6 +17,8 @@ const requests: Array<{ block: SheetBlock; sheets: string[] }> = [
   { block: "licences", sheets: ["ATHLETE_LICENCES", "ACTEURS_LICENCES"] },
   { block: "competitions", sheets: ["COMPETITIONS", "COMPETITIONS_EPREUVES", "COMPETITIONS_PHASES", "COMPETITIONS_GROUPES", "COMPETITIONS_UNITES", "COMPETITIONS_PHASES_UNITES", "COMPETITIONS_PARTICIPANTS", "COMPETITIONS_INTERVENANTS", "COMPETITIONS_MATCHS", "COMPETITIONS_RESULTATS", "COMPETITIONS_CLASSEMENT", "COMPETITIONS_DISTINCTIONS"] },
   { block: "equipeNationale", sheets: ["EQUIPES_NATIONALES", "EQUIPES_NATIONALES_SAISONS", "CAMPAGNES_EQUIPES_NATIONALES", "SELECTIONS_ATHLETES", "AFFECTATIONS_STAFF", "ENGAGEMENTS_EQUIPE_NATIONALE"] },
+  { block: "activities", sheets: ["ACTIVITES"] },
+  { block: "documents", sheets: ["DOCUMENTS"] },
   { block: "referentiel", sheets: ["PROVINCES", "FEDERATION", "SAISON", "SEXES", "CATEGORIES_AGE", "GRADES_ARBITRES", "SPECIALITES_MEDECINS", "TYPES_AUTRES_ACTEURS", "FONCTIONS", "STATUTS_AFFILIATION", "STATUT_LICENCE", "CYCLES_LICENCES", "TYPES_ACTEURS", "DISCIPLINES"] },
 ]
 
@@ -65,5 +67,5 @@ export async function loadDashboardData(deps: Dependencies = defaults, user?: Se
   const affiliations = ["ATHLETE_AFFILIATIONS", "COACH_AFFILIATIONS", "MEDECINS_AFFILIATIONS", "OFFICIELS_AFFILIATIONS"].flatMap((sheet) => byBlock.affiliations[sheet] ?? []).map((row) => ({ ...row, statut: statusNames.get(clean(row.id_statut_affiliation)) || clean(row.id_statut_affiliation) }))
   const licenceSummary = summarizeDashboardLicences(byBlock.licences.ATHLETE_LICENCES ?? [], byBlock.licences.ACTEURS_LICENCES ?? [], byBlock.referentiel.STATUT_LICENCE ?? [])
   const competitions = (byBlock.competitions.COMPETITIONS ?? []).map((row) => ({ ...row, id: clean(row.id_competition), nom: clean(row.nom_competition), statut: clean(row.statut) }))
-  return { ...structure, ...actors, affiliations: affiliations.slice(0, 100), affiliationSummary: summarizeDashboardAffiliations(affiliations), licenceSummary, competitions, participants: (byBlock.competitions.COMPETITIONS_PARTICIPANTS ?? []).filter(row => clean(row.statut_participation) !== "SUPPRIMEE"), competitionResults: byBlock.competitions.COMPETITIONS_RESULTATS ?? [], ...nationalData(byBlock.equipeNationale, byBlock.referentiel, byBlock.competitions), errors: settled.flatMap((item) => item.error ? [item.error] : []) }
+  return { ...structure, ...actors, activities: (byBlock.activities.ACTIVITES ?? []).filter(row => clean(row.id_activite)), documents: (byBlock.documents.DOCUMENTS ?? []).filter(row => clean(row.id_document)), seasons: byBlock.referentiel.SAISON ?? [], affiliations: affiliations.slice(0, 100), affiliationSummary: summarizeDashboardAffiliations(affiliations), licenceSummary, competitions, participants: (byBlock.competitions.COMPETITIONS_PARTICIPANTS ?? []).filter(row => clean(row.statut_participation) !== "SUPPRIMEE"), competitionResults: byBlock.competitions.COMPETITIONS_RESULTATS ?? [], ...nationalData(byBlock.equipeNationale, byBlock.referentiel, byBlock.competitions), errors: settled.flatMap((item) => item.error ? [item.error] : []) }
 }

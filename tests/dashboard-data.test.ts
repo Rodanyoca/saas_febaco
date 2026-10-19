@@ -15,7 +15,7 @@ test("charge chaque classeur du dashboard au maximum une fois", async () => {
     },
   } as never)
   assert.equal(new Set(calls).size, calls.length)
-  assert.equal(calls.length, 7)
+  assert.equal(calls.length, 9)
   assert.deepEqual({ total: result.affiliationSummary.total, active: result.affiliationSummary.active, inactive: result.affiliationSummary.inactive }, { total: 145, active: 125, inactive: 20 })
   assert.deepEqual({ total: result.licenceSummary.total, active: result.licenceSummary.active, expired: result.licenceSummary.expired }, { total: 2, active: 1, expired: 1 })
 })

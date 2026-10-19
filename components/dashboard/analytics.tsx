@@ -8,7 +8,7 @@ export function DashboardSection({ title, description, children }: { title: stri
   </section>
 }
 
-export function StatGrid({ children }: { children: ReactNode }) { return <div className="grid gap-px overflow-hidden rounded-xl border border-border/80 bg-border shadow-[0_12px_30px_rgba(1,10,20,0.12)] sm:grid-cols-2 xl:grid-cols-4">{children}</div> }
+export function StatGrid({ children, columns = 4 }: { children: ReactNode; columns?: 3 | 4 }) { return <div className={`grid gap-px overflow-hidden rounded-xl border border-border/80 bg-border shadow-[0_12px_30px_rgba(1,10,20,0.12)] sm:grid-cols-2 ${columns === 3 ? "lg:grid-cols-3" : "xl:grid-cols-4"}`}>{children}</div> }
 
 export function StatValue({ label, value, detail }: { label: string; value: string | number; detail?: string }) {
   return <div className="relative min-h-32 bg-card p-5 before:absolute before:inset-y-5 before:left-0 before:w-0.5 before:rounded-full before:bg-primary/70"><p className="text-sm font-medium text-muted-foreground">{label}</p><p className="mt-3 text-3xl font-bold tracking-[-0.04em] tabular-nums">{value}</p>{detail ? <p className="mt-2 text-xs text-muted-foreground">{detail}</p> : null}</div>
