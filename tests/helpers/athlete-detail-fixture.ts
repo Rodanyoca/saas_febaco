@@ -17,7 +17,7 @@ export function syntheticAthleteValues(count: number): string[][] {
   ])]
 }
 
-export async function createAthleteDetailFixture(before: boolean, values = syntheticAthleteValues(8), instrument = true, routeOverride?: string) {
+export async function createAthleteDetailFixture(before: boolean, values = syntheticAthleteValues(8), instrument = true, routeOverride?: string, requestPath = "/api/athletes") {
   const globalKey = `__athleteDetail_${randomUUID().replace(/-/g, "")}`
   const secret = "synthetic-fixture-signing-key-not-a-real-secret", now = 1800000000
   const user: User = { idUser: "U", nomComplet: "Synthetic", email: "u@example.invalid", passwordHash: "unused", typeUser: "ADMIN", estSuperAdmin: false, doitChangerMotDePasse: false, statut: "ACTIF", dateCreation: "2026-01-01T00:00:00Z", dateModificationMotDePasse: null, derniereConnexion: null, sessionVersion: 1, dateExpirationAccesTemporaire: null }
@@ -26,7 +26,7 @@ export async function createAthleteDetailFixture(before: boolean, values = synth
   const state = {
     user: user as User | null, token, secret, now, grants: [grant], authUnavailable: false,
     scope: null as ReturnType<typeof buildScopeIndex> | null, failSheet: "", values,
-    licenceValues: [] as string[][], currentSeasonId: "S1",
+    licenceValues: [] as string[][], extraValues: {} as Record<string, string[][]>, currentSeasonId: "S1",
     normalizations: 0, categoryCalls: 0, comparisons: 0, sortCalls: 0, configurationReads: 0, convertedRows: 0,
     sheetReads: [] as string[], pickFirst, sheetValuesToRows,
   }
@@ -54,10 +54,12 @@ export async function createAthleteDetailFixture(before: boolean, values = synth
       export function pickFirst(row,keys){return ${fixture}.pickFirst(row,keys)}
       export async function readSheetRows({sheet}){
         const s=${fixture};s.sheetReads.push(sheet);if(s.failSheet===sheet)throw Error('synthetic source failure');
-        const values=sheet==='ATHLETES'?s.values:sheet==='CATEGORIES_AGE'?[['id_categorie_age','nom_categorie_age','age_min','age_max'],['AGE1','Synthetic category','0','99']]:sheet==='ATHLETE_LICENCES'?s.licenceValues:[];
+        const values=s.extraValues[sheet] || (sheet==='ATHLETES'?s.values:sheet==='CATEGORIES_AGE'?[['id_categorie_age','nom_categorie_age','age_min','age_max'],['AGE1','Synthetic category','0','99']]:sheet==='ATHLETE_LICENCES'?s.licenceValues:[]);
         const rows=s.sheetValuesToRows(values);if(sheet==='ATHLETES')s.convertedRows+=rows.length;
         return scopeReadRows(sheet,rows)
       }
+      export async function appendSheetRowsAtomically(){throw Error('No writes in GET fixture')}
+      export async function upsertSheetRowsAtomically(){throw Error('No writes in GET fixture')}
       export async function writeSheetRowByHeaders(){throw Error('No writes in GET fixture')}
     `,
   }
@@ -92,7 +94,7 @@ export async function createAthleteDetailFixture(before: boolean, values = synth
     new Function("require", "module", "exports", result.outputFiles[0].text)(createRequire(resolve("package.json")), mod, mod.exports)
     return {
       state, user, grant,
-      request: (query: string) => mod.exports.GET(new Request(`https://febaco.invalid/api/athletes${query}`)),
+      request: (query: string) => mod.exports.GET(new Request(`https://febaco.invalid${requestPath}${query}`)),
       resetCounts() { state.normalizations = 0; state.categoryCalls = 0; state.comparisons = 0; state.sortCalls = 0; state.configurationReads = 0; state.convertedRows = 0; state.sheetReads = [] },
       close() { delete globals[globalKey] },
     }

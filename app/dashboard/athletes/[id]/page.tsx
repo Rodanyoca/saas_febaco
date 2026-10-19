@@ -7,35 +7,20 @@ import { ArrowLeft, Camera, Contact, Fingerprint, Info, User } from "lucide-reac
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AvatarUploadModal } from "@/components/dashboard/avatar-upload-modal"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { DetailCard } from "@/components/dashboard/detail-card"
 import { Header } from "@/components/dashboard/header"
-import { StatusBadge } from "@/components/dashboard/status-badge"
 import { ActorEditor } from "@/components/dashboard/actor-editor"
 import { AffiliationsPanel } from "@/components/dashboard/affiliations-panel"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { AthleteLicenceHistory } from "@/components/dashboard/athlete-licence-history"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { Athlete, AthleteLicence } from "@/lib/models"
+import type { Athlete } from "@/lib/models"
 
 function initials(prenom?: string, nom?: string): string {
   const p = String(prenom ?? "").trim()
   const n = String(nom ?? "").trim()
   return `${p ? p[0] : ""}${n ? n[0] : ""}`.toUpperCase() || "AT"
 }
-
-function display(value: unknown): string {
-  const raw = String(value ?? "").trim()
-  return raw && raw !== "-" ? raw : "-"
-}
-
-const displaySync = display
 
 export default function AthleteDetailPage() {
   const params = useParams()
@@ -47,8 +32,6 @@ export default function AthleteDetailPage() {
   }, [params])
 
   const [athletes, setAthletes] = useState<Athlete[]>([])
-  const [licences, setLicences] = useState<AthleteLicence[]>([])
-  const [licencesLoading, setLicencesLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
@@ -91,38 +74,6 @@ export default function AthleteDetailPage() {
   }, [athletes, athleteId])
 
   const avatarSrc = localAvatarUrl || athlete?.avatarUrl || null
-
-  useEffect(() => {
-    if (!athlete) {
-      setLicences([])
-      return
-    }
-
-    let canceled = false
-    ;(async () => {
-      setLicencesLoading(true)
-      try {
-        const query = new URLSearchParams({
-          athleteId: athlete.id,
-        })
-        const licenceRes = await fetch(`/api/athlete-licences?${query.toString()}`, { cache: "no-store" })
-        const json = await licenceRes.json()
-        if (!canceled) {
-          setLicences(Array.isArray(json?.licences) ? json.licences : [])
-        }
-      } catch {
-        if (!canceled) {
-          setLicences([])
-        }
-      } finally {
-        if (!canceled) setLicencesLoading(false)
-      }
-    })()
-
-    return () => {
-      canceled = true
-    }
-  }, [athlete])
 
   if (loading) {
     return (
@@ -282,51 +233,7 @@ export default function AthleteDetailPage() {
           </TabsContent>
 
           <TabsContent value="licence">
-            <Card>
-              <CardHeader>
-                <CardTitle>Historique des licences</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Saison</TableHead>
-                        <TableHead>Numéro</TableHead>
-                        <TableHead>Structure</TableHead>
-                        <TableHead>Délivrée le</TableHead>
-                        <TableHead>Statut</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {licencesLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                            Chargement des licences...
-                          </TableCell>
-                        </TableRow>
-                      ) : licences.length > 0 ? (
-                        licences.map((licence) => (
-                          <TableRow key={licence.__key ?? licence.id}>
-                            <TableCell>{display(licence.saison)}</TableCell>
-                            <TableCell className="font-mono font-medium">{display(licence.numero)}</TableCell>
-                            <TableCell>{display(licence.structure)}</TableCell>
-                            <TableCell>{display(licence.dateDelivrance)}</TableCell>
-                            <TableCell><StatusBadge status={licence.statut} /></TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                            Aucune licence enregistrée.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+            <AthleteLicenceHistory key={athlete.id} athleteId={athlete.id} />
           </TabsContent>
         </Tabs>
       </div>

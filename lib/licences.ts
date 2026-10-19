@@ -65,6 +65,13 @@ export async function listAthleteLicences(filters: Filters, scope: AccessScope, 
   return { licences, summary, teamSummary, references: { seasons: [...maps.seasons].map(([id, label]) => ({ id, label })).sort((a, b) => b.label.localeCompare(a.label, "fr", { numeric: true })), statuses: [...maps.statuses].map(([id, label]) => ({ id, label })), teams, athletes: [] } };
 }
 
+// Same reads, indexes and territorial checks; no summaries or references.
+export async function listAthleteLicenceHistory(athleteId: string, scope: AccessScope, deps: Dependencies = defaults) {
+  const data = await load(deps), maps = indexes(data);
+  const selected = athleteId ? data.licences.filter(row => clean(row.id_athlete) === athleteId) : data.licences;
+  return selected.map(row => view(row, maps)).filter(item => allowed(scope, item)).filter(item => !athleteId || item.athleteId === athleteId).sort((a, b) => b.saison.localeCompare(a.saison, "fr", { numeric: true }) || b.dateDelivrance.localeCompare(a.dateDelivrance) || a.athleteNom.localeCompare(b.athleteNom, "fr"));
+}
+
 export async function getAthleteLicenceEligibility(query: EligibilityQuery, scope: AccessScope, deps: Dependencies = defaults) {
   const data = await load(deps), maps = indexes(data);
   if (!maps.seasons.has(query.seasonId)) throw new LicenceError("SAISON_INTROUVABLE", "La saison sélectionnée n’existe pas.", 404, { id_saison: "Saison inconnue." });
