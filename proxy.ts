@@ -16,6 +16,7 @@ export async function proxy(request:NextRequest){
  const path=request.nextUrl.pathname
  if((path.startsWith("/_next/")||publicAssets.has(path)||path==="/_vercel/insights/script.js")&&["GET","HEAD"].includes(request.method))return NextResponse.next()
  if(!isMutationOriginAllowed(request))return deny(request,403)
+ if(["/confidentialite","/conditions-utilisation"].includes(path)&&["GET","HEAD"].includes(request.method))return NextResponse.next()
  if(["/login","/service-indisponible","/api/auth/login"].includes(path))return NextResponse.next()
  if(path==="/api/auth/logout")return NextResponse.next()
  const token=request.cookies.get(AUTH_COOKIE_NAME)?.value
